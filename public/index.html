@@ -311,6 +311,112 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
     </div>
   </div>
 </div>
+<!-- ── AI Quick Input 모달 (고객) ── -->
+<div class="modal-overlay" id="modal-quick-contact" style="display:none" onclick="if(event.target===this)closeModal('modal-quick-contact')">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-hd">
+      <div><h2>✨ Quick Input — Contact</h2><p>Paste KakaoTalk message → AI auto-fills the form</p></div>
+      <button class="modal-close" onclick="closeModal('modal-quick-contact')"><i class="ti ti-x"></i></button>
+    </div>
+    <!-- Step 1: 붙여넣기 -->
+    <div class="modal-body" id="qc-step1">
+      <div class="mf">
+        <label>PASTE MESSAGE HERE</label>
+        <textarea id="qc-text" rows="7" class="fi"
+          placeholder="Paste KakaoTalk message here&#10;&#10;Example:&#10;박민수 010-1234-5678&#10;BGC 1BR 임대 찾는데 예산 35K&#10;6월 입주 원함, 카카오 연락 됨"
+          style="resize:vertical;font-size:13px;line-height:1.7"></textarea>
+      </div>
+      <div id="qc-error" style="display:none;background:#FDEAEA;color:#DC4A4A;border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:12px"></div>
+      <button class="btn btn-g" style="width:100%;justify-content:center;padding:12px;font-size:14px" onclick="parseContactAI()">
+        <i class="ti ti-sparkles"></i> Analyze with AI
+      </button>
+    </div>
+    <!-- Step 2: 결과 미리보기 -->
+    <div class="modal-body" id="qc-step2" style="display:none">
+      <div style="background:#E0F3ED;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#085041;display:flex;align-items:center;gap:8px">
+        <i class="ti ti-check" style="font-size:16px"></i>
+        <span>AI analysis complete. Please review and confirm.</span>
+      </div>
+      <div class="mf-row">
+        <div class="mf"><label>NAME</label><input class="fi" id="qc-name" placeholder="Contact name"></div>
+        <div class="mf"><label>TYPE</label>
+          <select class="fs" id="qc-type">
+            <option value="TENANT">Lessee/Tenant</option>
+            <option value="BUYER">Buyer</option>
+            <option value="OWNER">Lessor/Owner</option>
+            <option value="SELLER">Seller</option>
+            <option value="CO-BROKER">Co-Broker</option>
+          </select>
+        </div>
+      </div>
+      <div class="mf-row">
+        <div class="mf"><label>MOBILE</label><input class="fi" id="qc-mobile" type="tel"></div>
+        <div class="mf"><label>PLATFORM</label>
+          <select class="fs" id="qc-platform">
+            <option value="">Select</option>
+            <option value="KakaoTalk">KakaoTalk</option>
+            <option value="Telegram">Telegram</option>
+            <option value="Viber">Viber</option>
+            <option value="WhatsApp">WhatsApp</option>
+            <option value="SMS">SMS</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="mf-row">
+        <div class="mf"><label>EMAIL</label><input class="fi" id="qc-email" type="email"></div>
+        <div class="mf"><label>NATIONALITY</label>
+          <select class="fs" id="qc-nationality">
+            <option value="Korean">Korean</option>
+            <option value="Filipino">Filipino</option>
+            <option value="Japanese">Japanese</option>
+            <option value="Chinese">Chinese</option>
+            <option value="American">American</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="mf"><label>NOTES</label>
+        <textarea class="fi" id="qc-remarks" rows="2" style="resize:vertical"></textarea>
+      </div>
+      <!-- 리드 섹션 -->
+      <div id="qc-lead-section" style="display:none;background:#F8F5F0;border-radius:10px;padding:14px;margin-top:8px">
+        <div style="font-size:11px;font-weight:600;color:var(--m);margin-bottom:10px;letter-spacing:.06em;text-transform:uppercase">Lead Information (auto-detected)</div>
+        <div class="mf-row">
+          <div class="mf"><label>TRANSACTION</label>
+            <select class="fs" id="qc-req-type"><option value="RENT">Rent</option><option value="BUY">Buy</option></select>
+          </div>
+          <div class="mf"><label>BUDGET (PHP)</label><input class="fi" id="qc-budget" type="number"></div>
+        </div>
+        <div class="mf-row">
+          <div class="mf"><label>LOCATION PREF.</label><input class="fi" id="qc-location" placeholder="BGC, Makati..."></div>
+          <div class="mf"><label>PROPERTY TYPE</label>
+            <select class="fs" id="qc-ptype">
+              <option value="">Any</option>
+              <option value="CONDO">CONDO</option>
+              <option value="OFFICE">OFFICE</option>
+              <option value="COMMERCIAL">COMMERCIAL</option>
+            </select>
+          </div>
+        </div>
+        <div class="mf"><label>LEAD NOTES</label><input class="fi" id="qc-lead-remarks"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn btn-o" onclick="qcReset()"><i class="ti ti-arrow-left"></i> Back</button>
+        <button class="btn btn-g" style="flex:1;justify-content:center" onclick="saveFromAI()">
+          <i class="ti ti-user-plus"></i> Save Contact
+        </button>
+      </div>
+    </div>
+    <!-- 로딩 -->
+    <div class="modal-body" id="qc-loading" style="display:none;text-align:center;padding:40px 24px">
+      <div style="font-size:36px;margin-bottom:12px">✨</div>
+      <div style="font-size:14px;font-weight:600;color:var(--N);margin-bottom:6px">AI Analyzing...</div>
+      <div style="font-size:12px;color:var(--m)">Extracting contact information from your message</div>
+    </div>
+  </div>
+</div>
+
 <input type="file" id="photo-input" accept="image/*" multiple style="display:none" onchange="onPhotoSelected(this)">
 
 <!-- ── Contact Add 모달 ── -->
@@ -1174,7 +1280,10 @@ function renderCustView() {
   vc(`
 <div class="ph">
   <div><div class="ph-title">Customers</div><div class="ph-sub">연락처 ${_contacts.length}명 · Active Leads ${active}deals</div></div>
-  <button class="btn btn-n" onclick="addContact()"><i class="ti ti-plus"></i>Contact Add</button>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-n" onclick="addContact()"><i class="ti ti-plus"></i>Add Contact</button>
+    <button class="btn" style="background:#534AB7;color:#fff;gap:6px" onclick="openQuickInput()"><i class="ti ti-sparkles"></i>Quick Input</button>
+  </div>
 </div>
 <div class="pb">
   <div class="tabs">
@@ -1305,6 +1414,87 @@ async function saveProfile() {
     errEl.style.display = 'block'
   }
 }
+// ═══════════ AI QUICK INPUT ═══════════
+function openQuickInput() {
+  qcReset()
+  document.getElementById('modal-quick-contact').style.display = 'flex'
+  setTimeout(() => document.getElementById('qc-text')?.focus(), 100)
+}
+function qcReset() {
+  document.getElementById('qc-step1').style.display = ''
+  document.getElementById('qc-step2').style.display = 'none'
+  document.getElementById('qc-loading').style.display = 'none'
+  const e = document.getElementById('qc-error'); if(e) e.style.display = 'none'
+}
+async function parseContactAI() {
+  const text = document.getElementById('qc-text').value.trim()
+  const errEl = document.getElementById('qc-error')
+  if (!text) { errEl.textContent = 'Please paste a message first'; errEl.style.display='block'; return }
+  document.getElementById('qc-step1').style.display = 'none'
+  document.getElementById('qc-loading').style.display = ''
+  errEl.style.display = 'none'
+  try {
+    const result = await api('POST', '/api/ai/parse-contact', { text })
+    const d = result.data
+    const set = (id, val) => { const el=document.getElementById(id); if(el&&val!=null) el.value=val }
+    set('qc-name',        d.name||'')
+    set('qc-mobile',      d.mobile||'')
+    set('qc-email',       d.email||'')
+    set('qc-platform',    d.platform||'')
+    set('qc-nationality', d.nationality||'Korean')
+    set('qc-remarks',     d.remarks||'')
+    const typeEl = document.getElementById('qc-type')
+    if (typeEl && d.contact_type) typeEl.value = d.contact_type
+    const leadSec = document.getElementById('qc-lead-section')
+    if (d.lead && (d.lead.budget || d.lead.location_pref)) {
+      if(leadSec) leadSec.style.display = ''
+      set('qc-req-type',     d.lead.request_type||'RENT')
+      set('qc-budget',       d.lead.budget||'')
+      set('qc-location',     d.lead.location_pref||'')
+      set('qc-ptype',        d.lead.property_type||'')
+      set('qc-lead-remarks', d.lead.remarks||'')
+    } else if(leadSec) leadSec.style.display = 'none'
+    document.getElementById('qc-loading').style.display = 'none'
+    document.getElementById('qc-step2').style.display = ''
+  } catch(e) {
+    document.getElementById('qc-loading').style.display = 'none'
+    document.getElementById('qc-step1').style.display = ''
+    errEl.textContent = 'AI Error: ' + e.message
+    errEl.style.display = 'block'
+  }
+}
+async function saveFromAI() {
+  const name = document.getElementById('qc-name').value.trim()
+  if (!name) { alert('Name is required'); document.getElementById('qc-name').focus(); return }
+  const hasLead = document.getElementById('qc-lead-section')?.style.display !== 'none'
+  try {
+    const contact = await api('POST', '/api/contacts', {
+      name, type: document.getElementById('qc-type').value,
+      mobile:      document.getElementById('qc-mobile').value      || null,
+      email:       document.getElementById('qc-email').value       || null,
+      platform:    document.getElementById('qc-platform').value    || null,
+      nationality: document.getElementById('qc-nationality').value || null,
+      remarks:     document.getElementById('qc-remarks').value     || null,
+      assigned_user_id: me?.id, status: 'ACTIVE'
+    })
+    if (hasLead && document.getElementById('qc-budget').value) {
+      await api('POST', '/api/leads', {
+        contact_id: contact.id,
+        request_type:  document.getElementById('qc-req-type').value,
+        budget:        parseFloat(document.getElementById('qc-budget').value) || null,
+        location_pref: document.getElementById('qc-location').value      || null,
+        property_type: document.getElementById('qc-ptype').value         || null,
+        remarks:       document.getElementById('qc-lead-remarks').value  || null,
+        assigned_user_id: me?.id, status: 'NEW'
+      })
+      toast(`✓ ${name} saved + lead created`)
+    } else {
+      toast(`✓ ${name} contact saved`)
+    }
+    closeModal('modal-quick-contact'); vCust()
+  } catch(e) { alert('Save error: ' + e.message) }
+}
+
 function closeModal(id) {
   document.getElementById(id).style.display = 'none'
 }
