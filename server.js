@@ -5,55 +5,59 @@ const morgan     = require('morgan')
 const path       = require('path')
 const { createClient } = require('@supabase/supabase-js')
 
+// ── 환경변수 확인 ─────────────────────────────
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+  console.error('❌ 필수 환경변수 누락: SUPABASE_URL, SUPABASE_SERVICE_KEY')
+  console.error('Railway Dashboard → Variables 탭에서 설정하세요')
+  process.exit(1)
+}
+
 // ── Supabase 클라이언트 ───────────────────────
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY   // service role key (백엔드 전용)
+  process.env.SUPABASE_SERVICE_KEY
 )
 
 // ── Express 앱 설정 ───────────────────────────
 const app = express()
-app.use(cors({ origin: process.env.FRONTEND_URL || '*' }))
+app.use(cors({ origin: '*' }))
 app.use(express.json())
-app.use(morgan('dev'))
-
-// 프론트엔드 정적 파일 서빙
+app.use(morgan('combined'))
 app.use(express.static(path.join(__dirname, 'public')))
-
-// Supabase 클라이언트를 req에 주입 (모든 라우터에서 사용)
 app.use((req, _res, next) => { req.supabase = supabase; next() })
 
 // ── 라우터 등록 ───────────────────────────────
-app.use('/api/auth',       require('./routes/auth'))
-app.use('/api/contacts',   require('./routes/contacts'))
-app.use('/api/listings',   require('./routes/listings'))
-app.use('/api/leads',      require('./routes/leads'))
-app.use('/api/deals',      require('./routes/deals'))
-app.use('/api/accounting', require('./routes/accounting'))
-app.use('/api/staff',      require('./routes/staff'))
-app.use('/api/dashboard',  require('./routes/dashboard'))
-app.use('/api/activities',     require('./routes/activities'))
-app.use('/api/upload',         require('./routes/upload'))
-app.use('/api/notifications',  require('./routes/notifications'))
+app.use('/api/auth',          require('./routes/auth'))
+app.use('/api/contacts',      require('./routes/contacts'))
+app.use('/api/listings',      require('./routes/listings'))
+app.use('/api/leads',         require('./routes/leads'))
+app.use('/api/deals',         require('./routes/deals'))
+app.use('/api/accounting',    require('./routes/accounting'))
+app.use('/api/staff',         require('./routes/staff'))
+app.use('/api/dashboard',     require('./routes/dashboard'))
+app.use('/api/activities',    require('./routes/activities'))
+app.use('/api/upload',        require('./routes/upload'))
+app.use('/api/notifications', require('./routes/notifications'))
 
-// ── 헬스체크 ─────────────────────────────────
+// ── 헬스체크 (Railway 상태 확인용) ───────────
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }))
+app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')))
 
 // ── 에러 핸들러 ───────────────────────────────
 app.use((err, _req, res, _next) => {
   console.error(err.stack)
-  res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' })
+  res.status(err.status || 500).json({ error: err.message || 'Server Error' })
 })
 
+// ── 서버 시작 (0.0.0.0 바인딩 — Railway 필수) ─
 const PORT = process.env.PORT || 4000
-app.listen(PORT, () => {
-  console.log(`🏠 RBS Homes CRM API → http://localhost:${PORT}`)
-  // 스케줄러 시작 (이메일 설정 여부와 무관하게 시작)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ RBS Homes CRM → http://0.0.0.0:${PORT}`)
   try {
     const { startScheduler } = require('./services/scheduler')
     startScheduler(supabase)
   } catch(e) {
-    console.warn('[Scheduler] 시작 실패:', e.message)
+    console.warn('[Scheduler] 시작 실패 (무시됨):', e.message)
   }
 })
 
