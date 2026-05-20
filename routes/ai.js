@@ -57,7 +57,7 @@ router.post('/parse-contact', auth, async (req, res) => {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 800,
         system: CONTACT_PROMPT,
         messages: [{ role: 'user', content: text }]
