@@ -122,20 +122,20 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 </head>
 <body>
 
-<div id="toast"><i class="ti ti-check"></i><span id="tmsg">저장되었습니다</span></div>
+<div id="toast"><i class="ti ti-check"></i><span id="tmsg">Saved</span></div>
 
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo">🏠 RBS Homes CRM</div>
-    <div class="login-sub">부동산 중개 관리 시스템 · 필리핀</div>
+    <div class="login-sub">Real Estate Brokerage CRM · Philippines</div>
     <form id="lf">
-      <label class="ll">이메일</label>
+      <label class="ll">Email</label>
       <input class="li" type="email" id="lem" placeholder="may@rbshomes.ph" required>
-      <label class="ll">비밀번호</label>
+      <label class="ll">Password</label>
       <input class="li" type="password" id="lpw" placeholder="rbs2026!" required>
-      <button type="submit" class="login-btn" id="lbtn">로그인</button>
-      <div id="login-err">이메일 또는 비밀번호가 올바르지 않습니다</div>
+      <button type="submit" class="login-btn" id="lbtn">Sign In</button>
+      <div id="login-err">Email 또는 Password가 올바르지 않습니다</div>
     </form>
   </div>
 </div>
@@ -145,18 +145,18 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
   <aside id="sidebar">
     <div class="sb-logo">
       <div class="sb-logo-m">🏠 RBS Homes</div>
-      <div class="sb-logo-s">부동산 중개 관리 시스템</div>
+      <div class="sb-logo-s">Real Estate Brokerage CRM</div>
     </div>
     <div style="flex:1;overflow-y:auto;padding-top:6px">
-      <div class="nav-sec">메인</div>
-      <button class="nav-it active" onclick="nav('dashboard')" data-v="dashboard"><i class="ti ti-layout-dashboard"></i><span>대시보드</span></button>
+      <div class="nav-sec">Main</div>
+      <button class="nav-it active" onclick="nav('dashboard')" data-v="dashboard"><i class="ti ti-layout-dashboard"></i><span>Dashboard</span></button>
       <div class="nav-sec">CRM</div>
-      <button class="nav-it" onclick="nav('customers')" data-v="customers"><i class="ti ti-users"></i><span>고객관리</span></button>
-      <button class="nav-it" onclick="nav('listings')" data-v="listings"><i class="ti ti-building"></i><span>매물관리</span></button>
-      <button class="nav-it" onclick="nav('deals')" data-v="deals"><i class="ti ti-file-text"></i><span>계약·커미션</span></button>
-      <div class="nav-sec admin-only">경영</div>
-      <button class="nav-it admin-only" onclick="nav('accounting')" data-v="accounting"><i class="ti ti-coin"></i><span>회계</span></button>
-      <button class="nav-it admin-only" onclick="nav('staff')" data-v="staff"><i class="ti ti-chart-bar"></i><span>직원실적</span></button>
+      <button class="nav-it" onclick="nav('customers')" data-v="customers"><i class="ti ti-users"></i><span>Customers</span></button>
+      <button class="nav-it" onclick="nav('listings')" data-v="listings"><i class="ti ti-building"></i><span>Listings</span></button>
+      <button class="nav-it" onclick="nav('deals')" data-v="deals"><i class="ti ti-file-text"></i><span>Deals & Commission</span></button>
+      <div class="nav-sec admin-only">Management</div>
+      <button class="nav-it admin-only" onclick="nav('accounting')" data-v="accounting"><i class="ti ti-coin"></i><span>Accounting</span></button>
+      <button class="nav-it admin-only" onclick="nav('staff')" data-v="staff"><i class="ti ti-chart-bar"></i><span>Staff Performance</span></button>
     </div>
     <div class="sb-foot">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -165,7 +165,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
           <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
             <button onclick="openProfile()"
               style="background:none;border:none;color:rgba(255,255,255,.55);cursor:pointer;font-size:10px;padding:0;display:flex;align-items:center;gap:3px">
-              <i class="ti ti-user-edit" style="font-size:11px"></i> 내 정보
+              <i class="ti ti-user-edit" style="font-size:11px"></i> My Profile
             </button>
             <span style="color:rgba(255,255,255,.2)">|</span>
             <button onclick="doLogout()"
@@ -177,16 +177,16 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
         <div style="display:flex;align-items:center;gap:6px">
 
           <div style="position:relative">
-            <button class="notif-btn" onclick="toggleNotifPanel()" id="notif-btn" title="팔로업 알림">
+            <button class="notif-btn" onclick="toggleNotifPanel()" id="notif-btn" title="Follow-up Alerts">
               <i class="ti ti-bell" aria-hidden="true"></i>
               <span class="notif-badge" id="notif-badge" style="display:none">0</span>
             </button>
           <div class="notif-panel" id="notif-panel">
             <div style="padding:12px 14px;border-bottom:1px solid var(--b);font-size:12px;font-weight:600;color:var(--N);display:flex;align-items:center;justify-content:space-between">
-              <span><i class="ti ti-bell-ringing" aria-hidden="true"></i> <span>팔로업 알림</span></span>
+              <span><i class="ti ti-bell-ringing" aria-hidden="true"></i> <span>Follow-up Alerts</span></span>
               <button onclick="toggleNotifPanel()" style="background:none;border:none;cursor:pointer;color:var(--m);font-size:14px"><i class="ti ti-x" aria-hidden="true"></i></button>
             </div>
-            <div id="notif-list"><div style="padding:20px;text-align:center;color:var(--m);font-size:12px">불러오는 중...</div></div>
+            <div id="notif-list"><div style="padding:20px;text-align:center;color:var(--m);font-size:12px">Loading...</div></div>
           </div>
         </div>
       </div>
@@ -195,39 +195,39 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
   <main id="main"><div id="vc"><div class="loading">로딩 중...</div></div></main>
 </div>
 
-<!-- ── 프로필 수정 모달 ── -->
+<!-- ── 프로필 Edit 모달 ── -->
 <div class="modal-overlay" id="modal-profile" style="display:none" onclick="if(event.target===this)closeModal('modal-profile')">
   <div class="modal" style="max-width:420px">
     <div class="modal-hd">
       <div>
-        <h2>개인정보 수정</h2>
-        <p id="prof-subtitle">내 정보를 업데이트하세요</p>
+        <h2>Edit My Profile</h2>
+        <p id="prof-subtitle">Update your profile</p>
       </div>
       <button class="modal-close" onclick="closeModal('modal-profile')"><i class="ti ti-x"></i></button>
     </div>
     <div class="modal-body">
-      <!-- 이름 (읽기 전용) -->
+      <!-- Name (읽기 전용) -->
       <div class="mf">
-        <label>이름</label>
+        <label>Name</label>
         <input type="text" id="prof-name" disabled style="background:#F8F5F0;color:var(--m);cursor:not-allowed">
       </div>
       <div class="mf">
-        <label>이메일</label>
-        <input type="email" id="prof-email" placeholder="이메일 주소">
+        <label>Email</label>
+        <input type="email" id="prof-email" placeholder="Email Address">
       </div>
       <div class="mf">
-        <label>연락처 (Mobile)</label>
+        <label>Mobile</label>
         <input type="tel" id="prof-mobile" placeholder="09XXXXXXXXX">
       </div>
 
       <div style="margin:18px 0 14px;display:flex;align-items:center;gap:10px">
         <div style="flex:1;height:1px;background:var(--b)"></div>
-        <span style="font-size:11px;color:var(--m);white-space:nowrap">비밀번호 변경 (선택)</span>
+        <span style="font-size:11px;color:var(--m);white-space:nowrap">Change Password (optional)</span>
         <div style="flex:1;height:1px;background:var(--b)"></div>
       </div>
 
       <div class="mf">
-        <label>새 비밀번호</label>
+        <label>새 Password</label>
         <div style="position:relative">
           <input type="password" id="prof-new-pw" placeholder="6자 이상 (변경 시에만 입력)" style="padding-right:40px">
           <button type="button" onclick="togglePwVis('prof-new-pw',this)"
@@ -237,54 +237,54 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
         </div>
       </div>
       <div class="mf">
-        <label>새 비밀번호 확인</label>
-        <input type="password" id="prof-confirm-pw" placeholder="새 비밀번호 재입력">
+        <label>Confirm New Password</label>
+        <input type="password" id="prof-confirm-pw" placeholder="새 Password 재입력">
       </div>
 
       <div style="background:#FDF0DC;border-radius:9px;padding:12px 14px;margin-top:4px">
         <div style="font-size:11px;color:#854F0B;font-weight:600;margin-bottom:8px">
-          <i class="ti ti-lock"></i> 현재 비밀번호 확인 (필수)
+          <i class="ti ti-lock"></i> 현재 Password 확인 (필수)
         </div>
         <div style="position:relative">
-          <input type="password" id="prof-curr-pw" placeholder="현재 비밀번호를 입력하세요"
+          <input type="password" id="prof-curr-pw" placeholder="현재 Password를 입력하세요"
             style="padding-right:40px;border-color:#E8C97A">
           <button type="button" onclick="togglePwVis('prof-curr-pw',this)"
             style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#854F0B;font-size:16px">
             <i class="ti ti-eye"></i>
           </button>
         </div>
-        <div style="font-size:10px;color:#854F0B;margin-top:6px">어떤 항목을 수정해도 현재 비밀번호가 필요합니다</div>
+        <div style="font-size:10px;color:#854F0B;margin-top:6px">Current password is required for any changes</div>
       </div>
       <div id="prof-error" style="display:none;background:#FDEAEA;color:#DC4A4A;border-radius:8px;padding:10px 12px;margin-top:10px;font-size:12px"></div>
     </div>
     <div class="modal-ft">
-      <button class="btn btn-o" onclick="closeModal('modal-profile')">취소</button>
-      <button class="btn btn-g" onclick="saveProfile()"><i class="ti ti-device-floppy"></i> 저장</button>
+      <button class="btn btn-o" onclick="closeModal('modal-profile')">Cancel</button>
+      <button class="btn btn-g" onclick="saveProfile()"><i class="ti ti-device-floppy"></i> Save</button>
     </div>
   </div>
 </div>
 <input type="file" id="photo-input" accept="image/*" multiple style="display:none" onchange="onPhotoSelected(this)">
 
-<!-- ── 고객 추가 모달 ── -->
+<!-- ── Contact Add 모달 ── -->
 <div class="modal-overlay" id="modal-contact" style="display:none" onclick="if(event.target===this)closeModal('modal-contact')">
   <div class="modal">
     <div class="modal-hd">
       <div>
-        <h2>고객 추가</h2>
-        <p>새 고객 정보를 입력하세요</p>
+        <h2>Contact Add</h2>
+        <p>새 Contact 정보를 입력하세요</p>
       </div>
       <button class="modal-close" onclick="closeModal('modal-contact')"><i class="ti ti-x"></i></button>
     </div>
     <div class="modal-body">
       <div class="mf-row">
         <div class="mf">
-          <label>이름 *</label>
-          <input type="text" id="mc-name" placeholder="고객 이름" autofocus>
+          <label>Name *</label>
+          <input type="text" id="mc-name" placeholder="Contact Name" autofocus>
         </div>
         <div class="mf">
-          <label>유형 *</label>
+          <label>Type *</label>
           <select id="mc-type">
-            <option value="OWNER">임대인 (Lessor/Owner)</option>
+            <option value="OWNER">Rent인 (Lessor/Owner)</option>
             <option value="TENANT">임차인 (Lessee/Tenant)</option>
             <option value="BUYER">매수인 (Buyer)</option>
             <option value="SELLER">매도인 (Seller)</option>
@@ -294,13 +294,13 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       </div>
       <div class="mf-row">
         <div class="mf">
-          <label>연락처 (Mobile)</label>
+          <label>Mobile</label>
           <input type="tel" id="mc-mobile" placeholder="09XXXXXXXXX">
         </div>
         <div class="mf">
-          <label>플랫폼</label>
+          <label>Platform</label>
           <select id="mc-platform">
-            <option value="">선택</option>
+            <option value="">Select</option>
             <option value="Telegram">Telegram</option>
             <option value="KakaoTalk">KakaoTalk</option>
             <option value="Viber">Viber</option>
@@ -314,11 +314,11 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       </div>
       <div class="mf-row">
         <div class="mf">
-          <label>이메일</label>
+          <label>Email</label>
           <input type="email" id="mc-email" placeholder="email@example.com">
         </div>
         <div class="mf">
-          <label>국적</label>
+          <label>Nationality</label>
           <select id="mc-nationality">
             <option value="Korean">Korean</option>
             <option value="Filipino">Filipino</option>
@@ -330,48 +330,48 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
         </div>
       </div>
       <div class="mf">
-        <label>담당 직원</label>
+        <label>Agent</label>
         <select id="mc-agent">
-          <option value="">미배정</option>
+          <option value="">Unassigned</option>
         </select>
       </div>
       <div class="mf">
-        <label>메모</label>
-        <textarea id="mc-remarks" placeholder="요구사항, 특이사항 등 자유롭게 입력"></textarea>
+        <label>Notes</label>
+        <textarea id="mc-remarks" placeholder="Remarks, requirements, etc."></textarea>
       </div>
     </div>
     <div class="modal-ft">
-      <button class="btn btn-o" onclick="closeModal('modal-contact')">취소</button>
-      <button class="btn btn-g" onclick="saveNewContact()"><i class="ti ti-user-plus"></i> 고객 저장</button>
+      <button class="btn btn-o" onclick="closeModal('modal-contact')">Cancel</button>
+      <button class="btn btn-g" onclick="saveNewContact()"><i class="ti ti-user-plus"></i> Contact Save</button>
     </div>
   </div>
 </div>
 
-<!-- ── 매물 추가 모달 ── -->
+<!-- ── Listing Add 모달 ── -->
 <div class="modal-overlay" id="modal-listing" style="display:none" onclick="if(event.target===this)closeModal('modal-listing')">
   <div class="modal">
     <div class="modal-hd">
       <div>
-        <h2>매물 추가</h2>
-        <p>새 매물 정보를 입력하세요</p>
+        <h2>Listing Add</h2>
+        <p>새 Listing 정보를 입력하세요</p>
       </div>
       <button class="modal-close" onclick="closeModal('modal-listing')"><i class="ti ti-x"></i></button>
     </div>
     <div class="modal-body">
       <div class="mf">
-        <label>매물명 *</label>
+        <label>Listing명 *</label>
         <input type="text" id="ml-name" placeholder="예) Bonifacio Ridge 1207B">
       </div>
       <div class="mf-row">
         <div class="mf">
-          <label>거래 유형 *</label>
+          <label>거래 Type *</label>
           <select id="ml-trade">
-            <option value="RENT">임대 (Rent)</option>
-            <option value="SALE">매매 (Sale)</option>
+            <option value="RENT">Rent (Rent)</option>
+            <option value="SALE">Sale (Sale)</option>
           </select>
         </div>
         <div class="mf">
-          <label>매물 유형</label>
+          <label>Listing Type</label>
           <select id="ml-ptype">
             <option value="CONDO">CONDO</option>
             <option value="OFFICE">OFFICE</option>
@@ -384,17 +384,17 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       </div>
       <div class="mf-row">
         <div class="mf">
-          <label>가격 (PHP) *</label>
+          <label>Price (PHP) *</label>
           <input type="number" id="ml-price" placeholder="0">
         </div>
         <div class="mf">
-          <label>면적 (sqm)</label>
+          <label>Area (sqm) (sqm)</label>
           <input type="number" id="ml-area" placeholder="0">
         </div>
       </div>
       <div class="mf-row">
         <div class="mf">
-          <label>침실</label>
+          <label>Bedrooms</label>
           <select id="ml-beds">
             <option value="">-</option>
             <option value="0">Studio</option>
@@ -405,7 +405,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
           </select>
         </div>
         <div class="mf">
-          <label>주차</label>
+          <label>Parking</label>
           <select id="ml-park">
             <option value="0">없음</option>
             <option value="1">1대</option>
@@ -416,49 +416,49 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       </div>
       <div class="mf-row">
         <div class="mf">
-          <label>가구 여부</label>
+          <label>Furnished 여부</label>
           <select id="ml-furnished">
-            <option value="false">비가구 (Bare)</option>
-            <option value="true">풀퍼니시드 (Full)</option>
+            <option value="false">비Furnished (Bare)</option>
+            <option value="true">Fully Furnished (Full)</option>
           </select>
         </div>
         <div class="mf">
-          <label>반려동물</label>
+          <label>Pet Friendly</label>
           <select id="ml-pet">
-            <option value="false">불가 (No Pets)</option>
-            <option value="true">가능 (Pets OK)</option>
+            <option value="false">Not Allowed (No Pets)</option>
+            <option value="true">Allowed (Pets OK)</option>
           </select>
         </div>
       </div>
       <div class="mf">
-        <label>주소</label>
+        <label>Address</label>
         <input type="text" id="ml-addr" placeholder="예) 1st Ave, BGC, Taguig">
       </div>
       <div class="mf">
-        <label>임대인 / 소유주 (Owner)</label>
+        <label>Rent인 / 소유주 (Owner)</label>
         <select id="ml-source">
-          <option value="">선택 (선택사항)</option>
+          <option value="">Select (Select사항)</option>
         </select>
-        <div style="font-size:10px;color:var(--m);margin-top:4px">고객 중 임대인·매도인·Co-Broker 유형만 표시됩니다</div>
+        <div style="font-size:10px;color:var(--m);margin-top:4px">Contact 중 Rent인·매도인·Co-Broker Type만 표시됩니다</div>
       </div>
       <div class="mf">
-        <label>담당 직원</label>
+        <label>Agent</label>
         <select id="ml-agent">
-          <option value="">미배정</option>
+          <option value="">Unassigned</option>
         </select>
       </div>
       <div class="mf">
-        <label>외부 링크 (Lamudi 등)</label>
+        <label>External Link (Lamudi etc.)</label>
         <input type="url" id="ml-link" placeholder="https://...">
       </div>
       <div class="mf">
-        <label>메모</label>
-        <textarea id="ml-remarks" placeholder="특이사항, 조건 등"></textarea>
+        <label>Notes</label>
+        <textarea id="ml-remarks" placeholder="Remarks, conditions, etc."></textarea>
       </div>
     </div>
     <div class="modal-ft">
-      <button class="btn btn-o" onclick="closeModal('modal-listing')">취소</button>
-      <button class="btn btn-g" onclick="saveNewListing()"><i class="ti ti-building-plus"></i> 매물 저장</button>
+      <button class="btn btn-o" onclick="closeModal('modal-listing')">Cancel</button>
+      <button class="btn btn-g" onclick="saveNewListing()"><i class="ti ti-building-plus"></i> Listing Save</button>
     </div>
   </div>
 </div>
@@ -478,7 +478,7 @@ async function api(method, path, body) {
     body: body ? JSON.stringify(body) : undefined
   })
   const d = await r.json()
-  if (!r.ok) throw new Error(d.error || 'API 오류')
+  if (!r.ok) throw new Error(d.error || 'API Error')
   return d
 }
 
@@ -488,33 +488,33 @@ const fmtK = n => n >= 1e6 ? '₱' + (n / 1e6).toFixed(1) + 'M' : n >= 1000 ? '�
 const tod  = () => new Date().toISOString().slice(0, 10)
 
 const ACT_TYPE = {
-  CALL:     { l:'통화',    bg:'#E6F1FB', c:'#185FA5', icon:'ti-phone'     },
-  MESSAGE:  { l:'메시지',  bg:'#EEEDFE', c:'#534AB7', icon:'ti-message'   },
-  VISIT:    { l:'현장방문',bg:'#E1F5EE', c:'#0F6E56', icon:'ti-home'      },
-  OFFER:    { l:'매물제안',bg:'#FDF0DC', c:'#854F0B', icon:'ti-clipboard' },
-  CONTRACT: { l:'계약',    bg:'#E0F3ED', c:'#19846B', icon:'ti-file-text' },
-  OTHER:    { l:'기타',    bg:'#F1EFE8', c:'#5F5E5A', icon:'ti-dots'      }
+  CALL:     { l:'Call',    bg:'#E6F1FB', c:'#185FA5', icon:'ti-phone'     },
+  MESSAGE:  { l:'Message',  bg:'#EEEDFE', c:'#534AB7', icon:'ti-message'   },
+  VISIT:    { l:'Site Visit',bg:'#E1F5EE', c:'#0F6E56', icon:'ti-home'      },
+  OFFER:    { l:'Listing Offer',bg:'#FDF0DC', c:'#854F0B', icon:'ti-clipboard' },
+  CONTRACT: { l:'Contract',    bg:'#E0F3ED', c:'#19846B', icon:'ti-file-text' },
+  OTHER:    { l:'Other',    bg:'#F1EFE8', c:'#5F5E5A', icon:'ti-dots'      }
 }
 const LEAD_STATUS_LABELS = {
-  NEW:'신규', SEARCHING:'매물탐색', OFFER_SENT:'제안완료',
-  NEGOTIATING:'협상중', CLOSED_WON:'계약성사', CLOSED_LOST:'미성사'
+  NEW:'New', SEARCHING:'Searching', OFFER_SENT:'Offer Sent',
+  NEGOTIATING:'Negotiating', CLOSED_WON:'Closed Won', CLOSED_LOST:'Closed Lost'
 }
 
 const SL = {
-  NEW:{l:'신규',bg:'#E6F1FB',c:'#185FA5'}, SEARCHING:{l:'매물탐색',bg:'#FDF0DC',c:'#854F0B'},
-  OFFER_SENT:{l:'제안완료',bg:'#EEEDFE',c:'#534AB7'}, NEGOTIATING:{l:'협상중',bg:'#FFF3E0',c:'#E65100'},
-  CLOSED_WON:{l:'계약성사',bg:'#E0F3ED',c:'#19846B'}, CLOSED_LOST:{l:'미성사',bg:'#FDEAEA',c:'#DC4A4A'}
+  NEW:{l:'New',bg:'#E6F1FB',c:'#185FA5'}, SEARCHING:{l:'Searching',bg:'#FDF0DC',c:'#854F0B'},
+  OFFER_SENT:{l:'Offer Sent',bg:'#EEEDFE',c:'#534AB7'}, NEGOTIATING:{l:'Negotiating',bg:'#FFF3E0',c:'#E65100'},
+  CLOSED_WON:{l:'Closed Won',bg:'#E0F3ED',c:'#19846B'}, CLOSED_LOST:{l:'Closed Lost',bg:'#FDEAEA',c:'#DC4A4A'}
 }
 const CT = {
-  OWNER:     {l:'임대인',     bg:'#E6F1FB', c:'#185FA5'},
-  TENANT:    {l:'임차인',    bg:'#E1F5EE', c:'#0F6E56'},
-  BUYER:     {l:'매수인',     bg:'#EEEDFE', c:'#534AB7'},
-  SELLER:    {l:'매도인',    bg:'#FDF0DC', c:'#854F0B'},
+  OWNER:     {l:'Lessor/Owner',     bg:'#E6F1FB', c:'#185FA5'},
+  TENANT:    {l:'Lessee/Tenant',    bg:'#E1F5EE', c:'#0F6E56'},
+  BUYER:     {l:'Buyer',     bg:'#EEEDFE', c:'#534AB7'},
+  SELLER:    {l:'Seller',    bg:'#FDF0DC', c:'#854F0B'},
   'CO-BROKER':{l:'Co-Broker',bg:'#F1EFE8', c:'#5F5E5A'}
 }
 const SLS = {
-  ACTIVE:{l:'활동중',bg:'#E0F3ED',c:'#19846B'}, 'ON-HOLD':{l:'보류',bg:'#FDF0DC',c:'#854F0B'},
-  CONTRACTED:{l:'계약완료',bg:'#E6F1FB',c:'#185FA5'}, CLOSED:{l:'완료',bg:'#F1EFE8',c:'#5F5E5A'}
+  ACTIVE:{l:'Active',bg:'#E0F3ED',c:'#19846B'}, 'ON-HOLD':{l:'On Hold',bg:'#FDF0DC',c:'#854F0B'},
+  CONTRACTED:{l:'Contracted',bg:'#E6F1FB',c:'#185FA5'}, CLOSED:{l:'Closed',bg:'#F1EFE8',c:'#5F5E5A'}
 }
 const bdg = (l, bg, c) => `<span class="bdg" style="background:${bg};color:${c}">${l}</span>`
 function agBdg(ag) {
@@ -526,34 +526,34 @@ function agBdg(ag) {
 }
 function toast(msg) {
   const el = document.getElementById('toast')
-  document.getElementById('tmsg').textContent = msg || '저장되었습니다'
+  document.getElementById('tmsg').textContent = msg || 'Saved'
   el.style.display = 'flex'; setTimeout(() => el.style.display = 'none', 2500)
 }
 function vc(html) { document.getElementById('vc').innerHTML = html }
-function err(e) { vc(`<div class="loading" style="color:var(--R)"><i class="ti ti-alert-circle"></i> 오류: ${e.message}</div>`) }
+function err(e) { vc(`<div class="loading" style="color:var(--R)"><i class="ti ti-alert-circle"></i> Error: ${e.message}</div>`) }
 
 // ═══════════ AUTH ═══════════
 document.getElementById('lf').addEventListener('submit', async e => {
   e.preventDefault()
   const btn = document.getElementById('lbtn')
   const er  = document.getElementById('login-err')
-  btn.textContent = '로그인 중...'; btn.disabled = true; er.style.display = 'none'
+  btn.textContent = 'Sign In 중...'; btn.disabled = true; er.style.display = 'none'
   try {
     const d = await fetch('/api/auth/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: document.getElementById('lem').value, password: document.getElementById('lpw').value })
     }).then(r => r.json())
-    if (!d.token) throw new Error(d.error || '로그인 실패')
+    if (!d.token) throw new Error(d.error || 'Sign In 실패')
     token = d.token; me = d.user
     document.getElementById('login-screen').style.display = 'none'
     document.getElementById('app').style.display = 'block'
-    document.getElementById('sb-user').textContent = me.name + (me.role==='admin'?' · 관리자':' · 직원')
+    document.getElementById('sb-user').textContent = me.name + (me.role==='admin'?' · Admin':' · Staff')
     // 역할 기반 메뉴: admin만 회계 표시
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = me.role==='admin' ? '' : 'none')
     nav('dashboard')
     setTimeout(loadNotifications, 1200)
     setInterval(loadNotifications, 5*60*1000)
-  } catch(e) { er.style.display = 'block'; btn.textContent = '로그인'; btn.disabled = false }
+  } catch(e) { er.style.display = 'block'; btn.textContent = 'Sign In'; btn.disabled = false }
 })
 function doLogout() {
   token = null; me = null
@@ -590,7 +590,7 @@ function renderNotifList(items) {
   if (!items.length) return `
     <div style="padding:24px;text-align:center;color:var(--m)">
       <i class="ti ti-check" style="font-size:28px;display:block;margin-bottom:8px;color:var(--G)" aria-hidden="true"></i>
-      <div style="font-size:13px;font-weight:600;color:var(--G)">오늘 팔로업 완료!</div>
+      <div style="font-size:13px;font-weight:600;color:var(--G)">All follow-ups done today!</div>
     </div>`
 
   const today = new Date().toISOString().split('T')[0]
@@ -643,7 +643,7 @@ document.addEventListener('click', e => {
 // ═══════════ NAV ═══════════
 function nav(v) {
   document.querySelectorAll('.nav-it').forEach(e => e.classList.toggle('active', e.dataset.v === v))
-  vc('<div class="loading">불러오는 중...</div>')
+  vc('<div class="loading">Loading...</div>')
   const views = { dashboard: vDash, customers: vCust, listings: vList, deals: vDeals, accounting: vAcct, staff: vStaff }
   if (views[v]) views[v]()
 }
@@ -662,30 +662,30 @@ async function vDashAdmin() {
     const tot  = Math.max(Object.values(pp).reduce((s, n) => s + n, 0), 1)
     vc(`
 <div class="ph">
-  <div><div class="ph-title">대시보드</div><div class="ph-sub">${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long'})} 운영 현황</div></div>
+  <div><div class="ph-title">Dashboard</div><div class="ph-sub">${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long'})} 운영 현황</div></div>
   <div style="font-size:11px;color:var(--m)">${new Date().toLocaleDateString('ko-KR',{weekday:'long',month:'long',day:'numeric'})}</div>
 </div>
 <div class="pb">
 <div class="kpi-grid">
-  <div class="kpi"><div class="kpi-l">이달 수수료 수입</div><div class="kpi-v" style="color:var(--N)">${fmtK(kpi.gross_commission)}</div><div class="kpi-s">${kpi.deal_count}건 계약</div></div>
-  <div class="kpi"><div class="kpi-l">회사 순수입</div><div class="kpi-v" style="color:var(--G)">${fmtK(kpi.net_income)}</div><div class="kpi-s">인센티브 차감 후</div></div>
-  <div class="kpi"><div class="kpi-l">이달 지출</div><div class="kpi-v" style="color:var(--R)">${fmtK(kpi.expenses)}</div><div class="kpi-s">운영비 합계</div></div>
-  <div class="kpi"><div class="kpi-l">이달 영업이익</div><div class="kpi-v" style="color:${kpi.operating_profit>=0?'var(--G)':'var(--R)'}">${fmtK(kpi.operating_profit)}</div><div class="kpi-s">순수입 − 운영비</div></div>
+  <div class="kpi"><div class="kpi-l">Monthly Commission</div><div class="kpi-v" style="color:var(--N)">${fmtK(kpi.gross_commission)}</div><div class="kpi-s">${kpi.deal_count}deals</div></div>
+  <div class="kpi"><div class="kpi-l">Company Net Income</div><div class="kpi-v" style="color:var(--G)">${fmtK(kpi.net_income)}</div><div class="kpi-s">After agent incentives</div></div>
+  <div class="kpi"><div class="kpi-l">Monthly Expenses</div><div class="kpi-v" style="color:var(--R)">${fmtK(kpi.expenses)}</div><div class="kpi-s">Total operating costs</div></div>
+  <div class="kpi"><div class="kpi-l">Operating Profit</div><div class="kpi-v" style="color:${kpi.operating_profit>=0?'var(--G)':'var(--R)'}">${fmtK(kpi.operating_profit)}</div><div class="kpi-s">Net income − expenses</div></div>
 </div>
 <div class="g2">
   <div>
     <div class="card">
-      <div class="card-h"><span><i class="ti ti-bell-ringing"></i> 오늘 팔로업 필요</span>${bdg(fu.length+'건','#FDEAEA','#DC4A4A')}</div>
+      <div class="card-h"><span><i class="ti ti-bell-ringing"></i> Today's Follow-ups</span>${bdg(fu.length+'deals','#FDEAEA','#DC4A4A')}</div>
       ${fu.length ? fu.map(l => {const s=SL[l.status]||{};return`
       <div style="padding:9px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:flex-start">
         <div><div style="font-weight:600">${l.contact_name||'-'}</div>
         <div style="font-size:10px;color:var(--m);margin-top:1px">${l.location_pref||''} · ${fmt(l.budget)}${l.request_type==='RENT'?'/월':''}</div>
         <div style="font-size:10px;color:var(--m)">${l.remarks||''}</div></div>
         <div style="flex-shrink:0;margin-left:10px">${bdg(s.l||l.status,s.bg||'#eee',s.c||'#666')}<div style="font-size:10px;color:var(--m);margin-top:3px">${l.agent_name||''}</div></div>
-      </div>`}).join('') : `<div style="padding:20px;text-align:center;color:var(--m)">오늘 팔로업 없음 ✓</div>`}
+      </div>`}).join('') : `<div style="padding:20px;text-align:center;color:var(--m)">No follow-ups today ✓</div>`}
     </div>
     <div class="card">
-      <div class="card-h"><i class="ti ti-filter"></i> 리드 파이프라인</div>
+      <div class="card-h"><i class="ti ti-filter"></i> Lead Pipeline</div>
       <div class="card-b">
         ${pArr.map(s=>{const st=SL[s];const cnt=pp[s]||0;return`
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
@@ -698,17 +698,17 @@ async function vDashAdmin() {
   </div>
   <div>
     <div class="card">
-      <div class="card-h"><i class="ti ti-receipt"></i> 최근 계약</div>
+      <div class="card-h"><i class="ti ti-receipt"></i> Recent Deals</div>
       ${rd.length ? rd.map(d=>`
       <div style="padding:9px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">
         <div><div style="font-weight:600;font-size:12px">${d.listing?.name||'-'}</div>
         <div style="font-size:10px;color:var(--m)">${d.contract_date}${d.is_co_broke?' · Co-broke':''}</div></div>
         <div style="text-align:right"><div style="font-size:13px;font-weight:700">${fmt(d.gross_commission)}</div>
         <div style="font-size:11px;color:var(--G)">순 ${fmt(d.net_company_income)}</div></div>
-      </div>`).join('') : `<div style="padding:20px;text-align:center;color:var(--m)">이달 계약 없음</div>`}
+      </div>`).join('') : `<div style="padding:20px;text-align:center;color:var(--m)">No deals this month</div>`}
     </div>
     <div class="card">
-      <div class="card-h"><i class="ti ti-building"></i> 활동중 매물 (${al.length}건)</div>
+      <div class="card-h"><i class="ti ti-building"></i> Active Listings (${al.length}deals)</div>
       ${al.slice(0,5).map(l=>`
       <div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">
         <div><div style="font-size:12px;font-weight:600">${l.name}</div>
@@ -721,7 +721,7 @@ async function vDashAdmin() {
   } catch(e) { err(e) }
 }
 
-// 직원 대시보드 (고객·매물 중심)
+// 직원 대시보드 (Contact·Listing 중심)
 async function vDashAgent() {
   try {
     const [leads, listings] = await Promise.all([
@@ -735,41 +735,41 @@ async function vDashAgent() {
     const tot      = Math.max(myActive.length, 1)
     vc(`
 <div class="ph">
-  <div><div class="ph-title">대시보드</div><div class="ph-sub">${me.name} · ${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long'})}</div></div>
+  <div><div class="ph-title">Dashboard</div><div class="ph-sub">${me.name} · ${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long'})}</div></div>
   <div style="font-size:11px;color:var(--m)">${new Date().toLocaleDateString('ko-KR',{weekday:'long',month:'long',day:'numeric'})}</div>
 </div>
 <div class="pb">
 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
-  <div class="kpi"><div class="kpi-l">활성 리드</div><div class="kpi-v" style="color:var(--N)">${myActive.length}</div><div class="kpi-s">진행중인 고객</div></div>
-  <div class="kpi"><div class="kpi-l">담당 매물</div><div class="kpi-v" style="color:var(--N)">${listings.length}</div><div class="kpi-s">활동중 ${listings.filter(l=>l.status==='ACTIVE').length}건</div></div>
+  <div class="kpi"><div class="kpi-l">Active Leads</div><div class="kpi-v" style="color:var(--N)">${myActive.length}</div><div class="kpi-s">진행중인 Contact</div></div>
+  <div class="kpi"><div class="kpi-l">담당 Listing</div><div class="kpi-v" style="color:var(--N)">${listings.length}</div><div class="kpi-s">Active ${listings.filter(l=>l.status==='ACTIVE').length}deals</div></div>
   <div class="kpi"><div class="kpi-l">오늘 팔로업</div><div class="kpi-v" style="color:${myFU.length>0?'var(--R)':'var(--G)'}">${myFU.length}</div><div class="kpi-s">${myFU.length>0?'확인 필요':'모두 완료'}</div></div>
 </div>
 <div class="g2">
   <div>
     <div class="card">
-      <div class="card-h"><span><i class="ti ti-bell-ringing"></i> 오늘 팔로업 필요</span>${myFU.length>0?`<span class="bdg" style="background:#FDEAEA;color:#DC4A4A">${myFU.length}건</span>`:''}</div>
+      <div class="card-h"><span><i class="ti ti-bell-ringing"></i> Today's Follow-ups</span>${myFU.length>0?`<span class="bdg" style="background:#FDEAEA;color:#DC4A4A">${myFU.length}deals</span>`:''}</div>
       ${myFU.length ? myFU.map(l=>{const s=SL[l.status]||{};return`
       <div style="padding:9px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:flex-start">
         <div><div style="font-weight:600">${l.contact?.name||'-'}</div>
         <div style="font-size:10px;color:var(--m);margin-top:1px">${l.property_type||''} · ${fmt(l.budget)}${l.request_type==='RENT'?'/월':''}</div>
         <div style="font-size:10px;color:var(--m)">${l.remarks||''}</div></div>
         <div style="flex-shrink:0;margin-left:10px">${bdg(s.l||l.status,s.bg||'#eee',s.c||'#666')}</div>
-      </div>`}).join('') : `<div style="padding:20px;text-align:center;color:var(--m)">오늘 팔로업 없음 ✓</div>`}
+      </div>`}).join('') : `<div style="padding:20px;text-align:center;color:var(--m)">No follow-ups today ✓</div>`}
     </div>
     <div class="card">
-      <div class="card-h"><i class="ti ti-building"></i> 내 담당 매물 (${listings.length}건)</div>
+      <div class="card-h"><i class="ti ti-building"></i> 내 담당 Listing (${listings.length}deals)</div>
       ${listings.slice(0,5).map(l=>{const st=SLS[l.status]||{l:l.status,bg:'#eee',c:'#666'};return`
       <div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">
         <div><div style="font-size:12px;font-weight:600">${l.name}</div>
         <div style="font-size:10px;color:var(--m)">${l.code||''}</div></div>
         <div style="text-align:right"><div style="font-size:12px;font-weight:600">${fmt(l.price)}${l.transaction_type==='RENT'?'/월':''}</div>${bdg(st.l,st.bg,st.c)}</div>
       </div>`}).join('')}
-      <div style="padding:10px 14px"><button class="btn btn-o" style="width:100%;justify-content:center;font-size:11px" onclick="nav('listings')"><i class="ti ti-arrow-right"></i>전체 매물 보기</button></div>
+      <div style="padding:10px 14px"><button class="btn btn-o" style="width:100%;justify-content:center;font-size:11px" onclick="nav('listings')"><i class="ti ti-arrow-right"></i>All Listing 보기</button></div>
     </div>
   </div>
   <div>
     <div class="card">
-      <div class="card-h"><i class="ti ti-filter"></i> 내 리드 파이프라인</div>
+      <div class="card-h"><i class="ti ti-filter"></i> 내 Lead Pipeline</div>
       <div class="card-b">
         ${pArr.map(s=>{const st=SL[s];const cnt=myLeads.filter(l=>l.status===s).length;return`
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
@@ -778,17 +778,17 @@ async function vDashAgent() {
           <span style="font-size:12px;font-weight:700;color:${st.c};min-width:16px">${cnt}</span>
         </div>`}).join('')}
       </div>
-      <div style="padding:0 14px 12px"><button class="btn btn-o" style="width:100%;justify-content:center;font-size:11px" onclick="nav('customers')"><i class="ti ti-arrow-right"></i>파이프라인 전체 보기</button></div>
+      <div style="padding:0 14px 12px"><button class="btn btn-o" style="width:100%;justify-content:center;font-size:11px" onclick="nav('customers')"><i class="ti ti-arrow-right"></i>파이프라인 All 보기</button></div>
     </div>
     <div class="card">
-      <div class="card-h"><i class="ti ti-users"></i> 내 활성 고객</div>
+      <div class="card-h"><i class="ti ti-users"></i> 내 활성 Contact</div>
       ${myActive.slice(0,5).map(l=>{const s=SL[l.status]||{};return`
       <div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">
         <div><div style="font-weight:600;font-size:12px">${l.contact?.name||'-'}</div>
         <div style="font-size:10px;color:var(--m)">${l.location_pref||''} · ${fmt(l.budget)}${l.request_type==='RENT'?'/월':''}</div></div>
         ${bdg(s.l||l.status,s.bg||'#eee',s.c||'#666')}
       </div>`}).join('')}
-      <div style="padding:10px 14px"><button class="btn btn-o" style="width:100%;justify-content:center;font-size:11px" onclick="nav('customers')"><i class="ti ti-arrow-right"></i>고객 전체 보기</button></div>
+      <div style="padding:10px 14px"><button class="btn btn-o" style="width:100%;justify-content:center;font-size:11px" onclick="nav('customers')"><i class="ti ti-arrow-right"></i>Contact All 보기</button></div>
     </div>
   </div>
 </div></div>`)
@@ -797,7 +797,7 @@ async function vDashAgent() {
 
 // ═══════════ CONTACT DETAIL ═══════════
 async function vContactDetail(id) {
-  vc(`<div class="loading">고객 정보 불러오는 중...</div>`)
+  vc(`<div class="loading">Contact 정보 Loading...</div>`)
   try {
     const [contact, leads, activities, deals, staff, listings] = await Promise.all([
       api('GET', `/api/contacts/${id}`),
@@ -815,7 +815,7 @@ async function vContactDetail(id) {
 <div class="ph">
   <div style="display:flex;align-items:center;gap:12px">
     <button onclick="nav('customers')" class="btn btn-o" style="padding:7px 12px">
-      <i class="ti ti-arrow-left" aria-hidden="true"></i> 목록
+      <i class="ti ti-arrow-left" aria-hidden="true"></i> Back
     </button>
     <div>
       <div class="ph-title">${contact.name}</div>
@@ -824,45 +824,45 @@ async function vContactDetail(id) {
   </div>
   <div style="display:flex;gap:8px;align-items:center">
     ${bdg(ct.l, ct.bg, ct.c)}
-    ${bdg(contact.status==='ACTIVE'?'활동중':'비활동', contact.status==='ACTIVE'?'#E0F3ED':'#F1EFE8', contact.status==='ACTIVE'?'#19846B':'#5F5E5A')}
+    ${bdg(contact.status==='ACTIVE'?'Active':'Inactive', contact.status==='ACTIVE'?'#E0F3ED':'#F1EFE8', contact.status==='ACTIVE'?'#19846B':'#5F5E5A')}
     <button onclick="toggleContactEdit('${id}')" class="btn btn-o">
-      <i class="ti ti-edit" aria-hidden="true"></i> 수정
+      <i class="ti ti-edit" aria-hidden="true"></i> Edit
     </button>
   </div>
 </div>
 <div class="pb">
 <div class="g2" style="align-items:flex-start">
 
-  <!-- 왼쪽: 기본 정보 + 빠른 활동 -->
+  <!-- 왼쪽: Contact Info + 빠른 활동 -->
   <div>
     <!-- 연락처 정보 (보기) -->
     <div class="card" id="contact-view-${id}">
-      <div class="card-h"><i class="ti ti-user" aria-hidden="true"></i> 기본 정보</div>
+      <div class="card-h"><i class="ti ti-user" aria-hidden="true"></i> Contact Info</div>
       <div class="card-b">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-          ${[['유형',ct.l],['연락처',contact._private?'🔒 비공개':(contact.mobile||'-')],['플랫폼',contact.platform||'-'],['국적',contact.nationality||'-'],['이메일',contact._private?'비공개':(contact.email||'-')],['담당자',contact.assigned_user?.name||'-']].map(([k,v])=>`
+          ${[['Type',ct.l],['연락처',contact._private?'🔒 Private':(contact.mobile||'-')],['Platform',contact.platform||'-'],['Nationality',contact.nationality||'-'],['Email',contact._private?'Private':(contact.email||'-')],['담당자',contact.assigned_user?.name||'-']].map(([k,v])=>`
           <div style="padding:10px;background:#F8F5F0;border-radius:8px">
             <div style="font-size:10px;color:var(--m);margin-bottom:3px">${k}</div>
             <div style="font-size:13px;font-weight:600;word-break:break-all">${v}</div>
           </div>`).join('')}
         </div>
-        ${contact.remarks?`<div style="padding:10px 12px;background:#F8F5F0;border-radius:8px;font-size:12px;color:var(--N);line-height:1.6"><div style="font-size:10px;color:var(--m);margin-bottom:4px">메모</div>${contact.remarks}</div>`:''}
+        ${contact.remarks?`<div style="padding:10px 12px;background:#F8F5F0;border-radius:8px;font-size:12px;color:var(--N);line-height:1.6"><div style="font-size:10px;color:var(--m);margin-bottom:4px">Notes</div>${contact.remarks}</div>`:''}
         <div style="display:flex;gap:8px;margin-top:12px">
-          ${contact.mobile&&!contact._private?`<a href="tel:${contact.mobile}" class="btn btn-o" style="flex:1;justify-content:center;font-size:12px"><i class="ti ti-phone" aria-hidden="true"></i> 전화</a>`:''}
+          ${contact.mobile&&!contact._private?`<a href="tel:${contact.mobile}" class="btn btn-o" style="flex:1;justify-content:center;font-size:12px"><i class="ti ti-phone" aria-hidden="true"></i> Call</a>`:''}
           <button onclick="addLeadForContact('${id}','${contact.name}')" class="btn btn-n" style="flex:1;justify-content:center;font-size:12px">
-            <i class="ti ti-plus" aria-hidden="true"></i> 리드 추가
+            <i class="ti ti-plus" aria-hidden="true"></i> Add Lead
           </button>
         </div>
       </div>
     </div>
 
-    <!-- 수정 폼 (숨김) -->
+    <!-- Edit 폼 (숨김) -->
     <div class="card" id="contact-edit-${id}" style="display:none">
-      <div class="card-h"><i class="ti ti-edit" aria-hidden="true"></i> 고객 정보 수정</div>
+      <div class="card-h"><i class="ti ti-edit" aria-hidden="true"></i> Contact 정보 Edit</div>
       <div class="card-b">
         <div class="fg2">
-          <div class="ff"><label class="fl">이름</label><input class="fi" id="ce-name" value="${contact.name}"></div>
-          <div class="ff"><label class="fl">유형</label>
+          <div class="ff"><label class="fl">Name</label><input class="fi" id="ce-name" value="${contact.name}"></div>
+          <div class="ff"><label class="fl">Type</label>
             <select class="fs" id="ce-type">
               ${Object.entries(CT).map(([k,v])=>`<option value="${k}" ${contact.type===k?'selected':''}>${v.l}</option>`).join('')}
               <option value="CO-BROKER" ${contact.type==='CO-BROKER'?'selected':''}>Co-Broker</option>
@@ -870,41 +870,41 @@ async function vContactDetail(id) {
         </div>
         <div class="fg2">
           <div class="ff"><label class="fl">연락처</label><input class="fi" id="ce-mobile" value="${contact.mobile||''}"></div>
-          <div class="ff"><label class="fl">이메일</label><input class="fi" type="email" id="ce-email" value="${contact.email||''}"></div>
+          <div class="ff"><label class="fl">Email</label><input class="fi" type="email" id="ce-email" value="${contact.email||''}"></div>
         </div>
         <div class="fg2">
-          <div class="ff"><label class="fl">플랫폼</label>
+          <div class="ff"><label class="fl">Platform</label>
             <select class="fs" id="ce-platform">
-              <option value="">선택</option>
+              <option value="">Select</option>
               ${['Telegram','KakaoTalk','Viber','WhatsApp','Line','SMS','Email','기타'].map(p=>`<option value="${p}" ${contact.platform===p?'selected':''}>${p}</option>`).join('')}
             </select></div>
-          <div class="ff"><label class="fl">국적</label><input class="fi" id="ce-nationality" value="${contact.nationality||'Korean'}"></div>
+          <div class="ff"><label class="fl">Nationality</label><input class="fi" id="ce-nationality" value="${contact.nationality||'Korean'}"></div>
         </div>
         <div class="fg2">
-          <div class="ff"><label class="fl">담당 직원</label>
+          <div class="ff"><label class="fl">Agent</label>
             <select class="fs" id="ce-agent">
-              <option value="">선택</option>
+              <option value="">Select</option>
               ${staff.map(s=>`<option value="${s.id}" ${contact.assigned_user?.id===s.id?'selected':''}>${s.name}</option>`).join('')}
             </select></div>
           <div class="ff"><label class="fl">상태</label>
             <select class="fs" id="ce-status">
-              <option value="ACTIVE" ${contact.status==='ACTIVE'?'selected':''}>활동중</option>
-              <option value="INACTIVE" ${contact.status==='INACTIVE'?'selected':''}>비활동</option>
+              <option value="ACTIVE" ${contact.status==='ACTIVE'?'selected':''}>Active</option>
+              <option value="INACTIVE" ${contact.status==='INACTIVE'?'selected':''}>Inactive</option>
             </select></div>
         </div>
-        <div class="ff"><label class="fl">메모</label>
+        <div class="ff"><label class="fl">Notes</label>
           <textarea class="fi" id="ce-remarks" rows="3" style="resize:vertical">${contact.remarks||''}</textarea></div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-g" style="flex:1;justify-content:center" onclick="saveContactEdit('${id}')">
-            <i class="ti ti-device-floppy" aria-hidden="true"></i> 저장</button>
-          <button class="btn btn-o" onclick="toggleContactEdit('${id}')">취소</button>
+            <i class="ti ti-device-floppy" aria-hidden="true"></i> Save</button>
+          <button class="btn btn-o" onclick="toggleContactEdit('${id}')">Cancel</button>
         </div>
       </div>
     </div>
 
-    <!-- 빠른 활동 기록 -->
+    <!-- Quick Activity Log -->
     <div class="card">
-      <div class="card-h"><i class="ti ti-bolt" aria-hidden="true"></i> 빠른 활동 기록</div>
+      <div class="card-h"><i class="ti ti-bolt" aria-hidden="true"></i> Quick Activity Log</div>
       <div class="card-b">
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px">
           ${Object.entries(ACT_TYPE).map(([k,v])=>`
@@ -916,26 +916,26 @@ async function vContactDetail(id) {
         ${activeLeads.length?`
         <div class="ff"><label class="fl">관련 리드</label>
           <select class="fs" id="cact-lead" onchange="onCActLeadChange()">
-            <option value="">선택 (선택사항)</option>
+            <option value="">Select (Select사항)</option>
             ${activeLeads.map(l=>`<option value="${l.id}">${LEAD_STATUS_LABELS[l.status]} · ${fmt(l.budget)}${l.request_type==='RENT'?'/월':''} · ${l.location_pref||''}</option>`).join('')}
           </select></div>
         <div class="ff" id="cact-status-wrap" style="display:none;padding:10px 12px;background:#F8F5F0;border-radius:8px">
           <label class="fl">리드 상태 변경</label>
           <select class="fs" id="cact-lead-status">
-            <option value="">상태 유지</option>
+            <option value="">Keep status</option>
             ${Object.entries(LEAD_STATUS_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
           </select></div>`:''}
-        <div class="ff"><label class="fl">관련 매물</label>
+        <div class="ff"><label class="fl">관련 Listing</label>
           <select class="fs" id="cact-listing">
-            <option value="">선택 (선택사항)</option>
+            <option value="">Select (Select사항)</option>
             ${listings.map(l=>`<option value="${l.id}">[${l.code||''}] ${l.name}</option>`).join('')}
           </select></div>
-        <div class="ff"><label class="fl">내용·메모</label>
+        <div class="ff"><label class="fl">Notes</label>
           <textarea class="fi" id="cact-notes" rows="3" placeholder="통화/방문/메시지 내용을 입력하세요" style="resize:vertical;font-size:12px;line-height:1.6"></textarea></div>
         <div class="ff"><label class="fl"><i class="ti ti-calendar-event" aria-hidden="true"></i> 다음 팔로업</label>
           <input class="fi" type="date" id="cact-followup"></div>
         <button class="btn btn-g" style="width:100%;justify-content:center" onclick="saveContactActivity('${id}')">
-          <i class="ti ti-device-floppy" aria-hidden="true"></i> 활동 저장
+          <i class="ti ti-device-floppy" aria-hidden="true"></i> Save Activity
         </button>
       </div>
     </div>
@@ -943,11 +943,11 @@ async function vContactDetail(id) {
 
   <!-- 오른쪽: 리드 + 계약 + 활동이력 -->
   <div>
-    <!-- 리드 현황 -->
+    <!-- Lead Status -->
     <div class="card" style="margin-bottom:12px">
       <div class="card-h">
-        <span><i class="ti ti-filter" aria-hidden="true"></i> 리드 현황</span>
-        <span style="font-size:11px;color:var(--m)">${activeLeads.length}개 진행중 · 총 ${leads.length}건</span>
+        <span><i class="ti ti-filter" aria-hidden="true"></i> Lead Status</span>
+        <span style="font-size:11px;color:var(--m)">${activeLeads.length}개 진행중 · 총 ${leads.length}deals</span>
       </div>
       ${leads.length ? leads.map(l=>{
         const s=SL[l.status]||{l:l.status,bg:'#eee',c:'#666'}
@@ -956,7 +956,7 @@ async function vContactDetail(id) {
           <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
               <span class="bdg" style="background:${s.bg};color:${s.c}">${s.l}</span>
-              <span class="bdg" style="background:#F1EFE8;color:#5F5E5A">${l.request_type==='RENT'?'임대':'매매'}</span>
+              <span class="bdg" style="background:#F1EFE8;color:#5F5E5A">${l.request_type==='RENT'?'Rent':'Sale'}</span>
               ${l.property_type?`<span class="bdg" style="background:#EEEDFE;color:#534AB7">${l.property_type}</span>`:''}
             </div>
             ${isActive?`<select class="fs" style="font-size:11px;padding:4px 8px;width:auto" onchange="quickLeadStatusChange('${l.id}','${id}',this.value)">
@@ -968,20 +968,20 @@ async function vContactDetail(id) {
             <div><span style="color:var(--m)">지역 </span><strong>${l.location_pref||'-'}</strong></div>
           </div>
           ${l.remarks?`<div style="font-size:11px;color:var(--m);margin-top:5px;line-height:1.5">${l.remarks}</div>`:''}
-          ${l.next_followup_at?`<div style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;background:#FDF0DC;color:#854F0B;font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px"><i class="ti ti-calendar-event" aria-hidden="true"></i> 팔로업: ${l.next_followup_at}</div>`:''}
-        </div>`}).join('') : `<div style="padding:24px;text-align:center;color:var(--m)"><i class="ti ti-filter-off" style="font-size:28px;display:block;margin-bottom:8px" aria-hidden="true"></i>리드가 없습니다<br><button onclick="addLeadForContact('${id}','${contact.name}')" class="btn btn-n" style="margin-top:10px;font-size:12px"><i class="ti ti-plus" aria-hidden="true"></i> 리드 추가</button></div>`}
+          ${l.next_followup_at?`<div style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;background:#FDF0DC;color:#854F0B;font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px"><i class="ti ti-calendar-event" aria-hidden="true"></i> Follow-up: ${l.next_followup_at}</div>`:''}
+        </div>`}).join('') : `<div style="padding:24px;text-align:center;color:var(--m)"><i class="ti ti-filter-off" style="font-size:28px;display:block;margin-bottom:8px" aria-hidden="true"></i>No leads found<br><button onclick="addLeadForContact('${id}','${contact.name}')" class="btn btn-n" style="margin-top:10px;font-size:12px"><i class="ti ti-plus" aria-hidden="true"></i> Add Lead</button></div>`}
     </div>
 
-    <!-- 관련 계약 -->
+    <!-- Related Deals -->
     ${relDeals.length?`<div class="card" style="margin-bottom:12px">
-      <div class="card-h"><i class="ti ti-receipt" aria-hidden="true"></i> 관련 계약 (${relDeals.length}건)</div>
+      <div class="card-h"><i class="ti ti-receipt" aria-hidden="true"></i> Related Deals (${relDeals.length}deals)</div>
       ${relDeals.map(d=>`<div style="padding:10px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div style="font-weight:600;font-size:12px">${d.listing?.name||'-'}</div>
-          <div style="font-size:11px;color:var(--m);margin-top:2px">${d.contract_date} · ${d.contract_type==='RENT'?'임대':'매매'}</div>
+          <div style="font-size:11px;color:var(--m);margin-top:2px">${d.contract_date} · ${d.contract_type==='RENT'?'Rent':'Sale'}</div>
           <div style="margin-top:4px;display:flex;gap:5px">
-            ${d.owner_contact_id===id?bdg('임대인측','#E6F1FB','#185FA5'):''}
-            ${d.tenant_contact_id===id?bdg('임차인측','#E1F5EE','#0F6E56'):''}
+            ${d.owner_contact_id===id?bdg('Rent인측','#E6F1FB','#185FA5'):''}
+            ${d.tenant_contact_id===id?bdg('Lessee Side','#E1F5EE','#0F6E56'):''}
           </div>
         </div>
         <div style="text-align:right">
@@ -991,9 +991,9 @@ async function vContactDetail(id) {
       </div>`).join('')}
     </div>`:''}
 
-    <!-- 활동 이력 -->
+    <!-- Activity History -->
     <div class="card">
-      <div class="card-h"><span><i class="ti ti-history" aria-hidden="true"></i> 활동 이력 (${activities.length}건)</span></div>
+      <div class="card-h"><span><i class="ti ti-history" aria-hidden="true"></i> Activity History (${activities.length}deals)</span></div>
       <div style="max-height:480px;overflow-y:auto">
         ${activities.length ? activities.map(a=>{
           const t=ACT_TYPE[a.type]||{l:a.type,bg:'#eee',c:'#666',icon:'ti-dots'}
@@ -1006,10 +1006,10 @@ async function vContactDetail(id) {
               <span style="font-size:10px;color:var(--m);margin-left:auto">${ds}</span>
             </div>
             ${a.notes?`<div style="font-size:12px;color:var(--N);line-height:1.6;white-space:pre-wrap">${a.notes}</div>`:''}
-            ${a.next_followup_at?`<div style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;background:#FDF0DC;color:#854F0B;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px"><i class="ti ti-calendar-event" aria-hidden="true"></i> 팔로업: ${a.next_followup_at}</div>`:''}
+            ${a.next_followup_at?`<div style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;background:#FDF0DC;color:#854F0B;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px"><i class="ti ti-calendar-event" aria-hidden="true"></i> Follow-up: ${a.next_followup_at}</div>`:''}
             <div style="font-size:10px;color:var(--m);margin-top:3px">${a.created_by_user?.name||''}</div>
           </div>`
-        }).join('') : `<div style="padding:30px;text-align:center;color:var(--m)"><i class="ti ti-history" style="font-size:28px;display:block;margin-bottom:8px" aria-hidden="true"></i>활동 이력이 없습니다</div>`}
+        }).join('') : `<div style="padding:30px;text-align:center;color:var(--m)"><i class="ti ti-history" style="font-size:28px;display:block;margin-bottom:8px" aria-hidden="true"></i>Activity History이 없습니다</div>`}
       </div>
     </div>
   </div>
@@ -1057,8 +1057,8 @@ async function saveContactEdit(id) {
       status:          document.getElementById('ce-status').value,
       remarks:         document.getElementById('ce-remarks').value  ||null,
     })
-    toast('저장되었습니다'); vContactDetail(id)
-  } catch(e) { alert('저장 오류: '+e.message) }
+    toast('Saved'); vContactDetail(id)
+  } catch(e) { alert('Save Error: '+e.message) }
 }
 async function saveContactActivity(contactId) {
   const notes   = document.getElementById('cact-notes')?.value.trim()
@@ -1071,9 +1071,9 @@ async function saveContactActivity(contactId) {
     await api('POST','/api/activities',{type:_cActType,contact_id:contactId,lead_id:leadId,listing_id:listing,notes,next_followup_at:followup,created_by:me?.id})
     if (leadId&&newStat) await api('PATCH',`/api/leads/${leadId}`,{status:newStat,...(followup?{next_followup_at:followup}:{})})
     else if (leadId&&followup) await api('PATCH',`/api/leads/${leadId}`,{next_followup_at:followup})
-    toast('활동이 기록되었습니다'+(newStat?` · 리드 → ${LEAD_STATUS_LABELS[newStat]}`:''))
+    toast('Activity saved'+(newStat?` · 리드 → ${LEAD_STATUS_LABELS[newStat]}`:''))
     vContactDetail(contactId)
-  } catch(e) { alert('저장 오류: '+e.message) }
+  } catch(e) { alert('Save Error: '+e.message) }
 }
 async function quickLeadStatusChange(leadId, contactId, status) {
   try {
@@ -1083,15 +1083,15 @@ async function quickLeadStatusChange(leadId, contactId, status) {
   } catch(e) { alert(e.message) }
 }
 async function addLeadForContact(contactId, contactName) {
-  const type=prompt(`${contactName}의 요청 유형:\nRENT (임대)\nBUY (매매)`)?.toUpperCase()
+  const type=prompt(`${contactName}의 요청 Type:\nRENT (Rent)\nBUY (Sale)`)?.toUpperCase()
   if (!['RENT','BUY'].includes(type)) return
   const budget=parseFloat(prompt('예산 (PHP):'))
   if (!budget) return
   const location=prompt('선호 지역 (예: BGC, Makati):')
-  const remarks=prompt('요구사항 메모:')
+  const remarks=prompt('요구사항 Notes:')
   try {
     await api('POST','/api/leads',{contact_id:contactId,request_type:type,budget,location_pref:location||null,remarks:remarks||null,assigned_user_id:me?.id,status:'NEW'})
-    toast('리드가 추가되었습니다'); vContactDetail(contactId)
+    toast('리드가 Added'); vContactDetail(contactId)
   } catch(e) { alert(e.message) }
 }
 
@@ -1106,14 +1106,14 @@ function renderCustView() {
   const active = _leads.filter(l => !l.status.startsWith('CLOSED')).length
   vc(`
 <div class="ph">
-  <div><div class="ph-title">고객관리</div><div class="ph-sub">연락처 ${_contacts.length}명 · 활성 리드 ${active}건</div></div>
-  <button class="btn btn-n" onclick="addContact()"><i class="ti ti-plus"></i>고객 추가</button>
+  <div><div class="ph-title">Customers</div><div class="ph-sub">연락처 ${_contacts.length}명 · Active Leads ${active}deals</div></div>
+  <button class="btn btn-n" onclick="addContact()"><i class="ti ti-plus"></i>Contact Add</button>
 </div>
 <div class="pb">
   <div class="tabs">
-    <button class="tab on" onclick="custTab('c',this)">연락처 관리</button>
-    <button class="tab" onclick="custTab('p',this)">리드 파이프라인</button>
-    <button class="tab" onclick="custTab('a',this)">활동 이력</button>
+    <button class="tab on" onclick="custTab('c',this)">Contacts</button>
+    <button class="tab" onclick="custTab('p',this)">Lead Pipeline</button>
+    <button class="tab" onclick="custTab('a',this)">Activity History</button>
   </div>
   <div id="cc">${renderContacts()}</div>
 </div>`)
@@ -1122,17 +1122,17 @@ function renderContacts() {
   const rows = _contacts.filter(c => (_cTypeF==='ALL'||c.type===_cTypeF) && c.name.toLowerCase().includes(_cQ))
   return `
 <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-  <input class="fi" style="max-width:200px" placeholder="이름 검색" oninput="filterC(this.value)">
-  ${['ALL','OWNER','TENANT','BUYER','SELLER','CO-BROKER'].map((tp,i)=>`<button class="tab ${(i===0&&_cTypeF==='ALL')||_cTypeF===tp?'on':''}" onclick="setTF('${tp}',this)">${tp==='ALL'?'전체':CT[tp]?.l||tp}</button>`).join('')}
+  <input class="fi" style="max-width:200px" placeholder="Name 검색" oninput="filterC(this.value)">
+  ${['ALL','OWNER','TENANT','BUYER','SELLER','CO-BROKER'].map((tp,i)=>`<button class="tab ${(i===0&&_cTypeF==='ALL')||_cTypeF===tp?'on':''}" onclick="setTF('${tp}',this)">${tp==='ALL'?'All':CT[tp]?.l||tp}</button>`).join('')}
 </div>
 <div class="card"><div class="scroll-x"><table class="tbl">
-  <tr><th>이름</th><th>유형</th><th>연락처</th><th>담당</th><th>상태</th><th>등록일</th><th>비고</th></tr>
+  <tr><th>Name</th><th>Type</th><th>Mobile</th><th>Agent</th><th>Status</th><th>등록일</th><th>비고</th></tr>
   ${rows.map(c=>{const ct=CT[c.type]||{l:c.type,bg:'#eee',c:'#666'};return`<tr>
     <td style="font-weight:600;cursor:pointer;color:var(--N);text-decoration:underline;text-underline-offset:3px" onclick="vContactDetail('${c.id}')">${c.name}</td>
     <td>${bdg(ct.l,ct.bg,ct.c)}</td>
-    <td style="font-family:monospace;font-size:11px">${c._private ? '<span style="color:var(--m);font-size:11px">🔒 비공개</span>' : (c.mobile||'-')}</td>
+    <td style="font-family:monospace;font-size:11px">${c._private ? '<span style="color:var(--m);font-size:11px">🔒 Private</span>' : (c.mobile||'-')}</td>
     <td>${agBdg(c.assigned_user)}</td>
-    <td>${bdg(c.status==='ACTIVE'?'활동중':'비활동','#E0F3ED','#19846B')}</td>
+    <td>${bdg(c.status==='ACTIVE'?'Active':'Inactive','#E0F3ED','#19846B')}</td>
     <td style="color:var(--m);font-size:11px">${(c.created_at||'').slice(0,10)}</td>
     <td style="color:var(--m);font-size:11px">${c.remarks||''}</td>
   </tr>`}).join('')}
@@ -1182,7 +1182,7 @@ async function openProfile() {
   }
   ;['prof-curr-pw','prof-new-pw','prof-confirm-pw'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = ''
-    // 비밀번호 입력 타입 초기화
+    // Password 입력 타입 초기화
     if(el) el.type = 'password'
   })
   // 눈 아이콘 초기화
@@ -1206,18 +1206,18 @@ async function saveProfile() {
   const mobile          = document.getElementById('prof-mobile').value.trim()
 
   if (!currentPassword) {
-    errEl.textContent = '현재 비밀번호를 입력하세요'
+    errEl.textContent = '현재 Password를 입력하세요'
     errEl.style.display = 'block'
     document.getElementById('prof-curr-pw').focus()
     return
   }
   if (newPassword && newPassword.length < 6) {
-    errEl.textContent = '새 비밀번호는 6자 이상이어야 합니다'
+    errEl.textContent = '새 Password는 6자 이상이어야 합니다'
     errEl.style.display = 'block'
     return
   }
   if (newPassword && newPassword !== confirmPassword) {
-    errEl.textContent = '새 비밀번호가 일치하지 않습니다'
+    errEl.textContent = '새 Password가 일치하지 않습니다'
     errEl.style.display = 'block'
     document.getElementById('prof-confirm-pw').focus()
     return
@@ -1229,12 +1229,12 @@ async function saveProfile() {
       newPassword:     newPassword     || undefined,
       confirmPassword: confirmPassword || undefined
     })
-    toast('✓ 개인정보가 수정되었습니다')
-    // 화면의 사용자 이름 업데이트
+    toast('✓ 개인정보가 Edit되었습니다')
+    // 화면의 사용자 Name 업데이트
     if(result.user?.email) me.email = result.user.email
     closeModal('modal-profile')
   } catch(e) {
-    errEl.textContent = e.message || '저장 중 오류가 발생했습니다'
+    errEl.textContent = e.message || 'Save 중 Error가 발생했습니다'
     errEl.style.display = 'block'
   }
 }
@@ -1244,7 +1244,7 @@ function closeModal(id) {
 
 async function addContact() {
   const sel = document.getElementById('mc-agent')
-  sel.innerHTML = '<option value="">미배정</option>'
+  sel.innerHTML = '<option value="">Unassigned</option>'
   try {
     const st = _staff.length ? _staff : await api('GET', '/api/staff')
     st.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.name}</option>`)
@@ -1274,19 +1274,19 @@ async function saveNewContact() {
       remarks:          document.getElementById('mc-remarks').value  || null,
       status: 'ACTIVE'
     })
-    toast(`✓ ${name} 고객이 추가되었습니다`)
+    toast(`✓ ${name} Contact이 Added`)
     closeModal('modal-contact')
     vCust()
-  } catch(e) { alert('저장 오류: ' + e.message) }
+  } catch(e) { alert('Save Error: ' + e.message) }
 }
 
 async function addListing() {
-  // 담당 직원 목록
+  // Agent Back
   const sel = document.getElementById('ml-agent')
-  sel.innerHTML = '<option value="">미배정</option>'
-  // 소유주 목록 (임대인·매도인·Co-Broker)
+  sel.innerHTML = '<option value="">Unassigned</option>'
+  // 소유주 Back (Rent인·매도인·Co-Broker)
   const srcSel = document.getElementById('ml-source')
-  srcSel.innerHTML = '<option value="">선택 (선택사항)</option>'
+  srcSel.innerHTML = '<option value="">Select (Select사항)</option>'
   try {
     const st = _staff.length ? _staff : await api('GET', '/api/staff')
     st.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.name}</option>`)
@@ -1330,10 +1330,10 @@ async function saveNewListing() {
       remarks:           document.getElementById('ml-remarks').value || null,
       status: 'ACTIVE'
     })
-    toast(`✓ ${name} 매물이 추가되었습니다`)
+    toast(`✓ ${name} Listing이 Added`)
     closeModal('modal-listing')
     vList()
-  } catch(e) { alert('저장 오류: ' + e.message) }
+  } catch(e) { alert('Save Error: ' + e.message) }
 }
 
 // ESC 키로 모달 닫기
@@ -1350,7 +1350,7 @@ let _photoMode = 'main' // 'main' | 'gallery'
 let _galleryListingId = null
 
 async function vListingDetail(id) {
-  vc(`<div class="loading">매물 정보 불러오는 중...</div>`)
+  vc(`<div class="loading">Listing 정보 Loading...</div>`)
   try {
     const [listing, activities, deals] = await Promise.all([
       api('GET', `/api/listings/${id}`),
@@ -1365,7 +1365,7 @@ async function vListingDetail(id) {
     vc(`
 <div class="ph">
   <div style="display:flex;align-items:center;gap:12px">
-    <button onclick="vList()" class="btn btn-o" style="padding:7px 12px"><i class="ti ti-arrow-left" aria-hidden="true"></i> 목록</button>
+    <button onclick="vList()" class="btn btn-o" style="padding:7px 12px"><i class="ti ti-arrow-left" aria-hidden="true"></i> Back</button>
     <div>
       <div class="ph-title">${listing.name}</div>
       <div class="ph-sub">${listing.code||''} · ${listing.address||''}</div>
@@ -1373,11 +1373,11 @@ async function vListingDetail(id) {
   </div>
   <div style="display:flex;gap:8px;align-items:center">
     ${bdg(st.l,st.bg,st.c)}
-    ${bdg(listing.transaction_type==='RENT'?'임대':'매매',listing.transaction_type==='RENT'?'#E6F1FB':'#FDF0DC',listing.transaction_type==='RENT'?'#185FA5':'#854F0B')}
+    ${bdg(listing.transaction_type==='RENT'?'Rent':'Sale',listing.transaction_type==='RENT'?'#E6F1FB':'#FDF0DC',listing.transaction_type==='RENT'?'#185FA5':'#854F0B')}
     <select class="fs" style="font-size:12px;padding:6px 10px;width:auto" onchange="quickStatusChange('${id}',this.value)">
       ${Object.entries(SLS).map(([k,v])=>`<option value="${k}" ${listing.status===k?'selected':''}>${v.l}</option>`).join('')}
     </select>
-    <button onclick="toggleListingEdit('${id}')" class="btn btn-o"><i class="ti ti-edit" aria-hidden="true"></i> 수정</button>
+    <button onclick="toggleListingEdit('${id}')" class="btn btn-o"><i class="ti ti-edit" aria-hidden="true"></i> Edit</button>
   </div>
 </div>
 <div class="pb">
@@ -1389,16 +1389,16 @@ async function vListingDetail(id) {
     <!-- 사진 갤러리 -->
     <div class="card" style="margin-bottom:12px">
       <div class="card-h">
-        <span><i class="ti ti-photo" aria-hidden="true"></i> 매물 사진</span>
-        <button onclick="triggerGalleryPhoto('${id}')" class="btn btn-o" style="font-size:11px;padding:4px 10px"><i class="ti ti-plus" aria-hidden="true"></i> 사진 추가</button>
+        <span><i class="ti ti-photo" aria-hidden="true"></i> Listing 사진</span>
+        <button onclick="triggerGalleryPhoto('${id}')" class="btn btn-o" style="font-size:11px;padding:4px 10px"><i class="ti ti-plus" aria-hidden="true"></i> 사진 Add</button>
       </div>
       <div class="card-b" style="padding:12px">
         ${allPhotos.length ? `
-        <!-- 메인 사진 (클릭 → 원본 보기) -->
+        <!-- Main 사진 (클릭 → 원본 보기) -->
         <div style="margin-bottom:10px;border-radius:10px;overflow:hidden;background:#111;max-height:300px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative" onclick="viewPhoto('${allPhotos[0]}','${listing.name}')">
           <img src="${allPhotos[0]}" style="width:100%;max-height:300px;object-fit:cover">
           <div style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;padding:3px 8px;border-radius:20px">
-            ${allPhotos.length}장 · 클릭하면 원본 보기
+            ${allPhotos.length}장 · Click to view
           </div>
         </div>
         <!-- 썸네일 그리드 (항상 표시) -->
@@ -1406,46 +1406,46 @@ async function vListingDetail(id) {
           ${allPhotos.map((p,i)=>`
           <div style="position:relative;border-radius:7px;overflow:hidden;aspect-ratio:1;cursor:pointer;border:${i===0?'2.5px solid var(--A)':'1.5px solid var(--b)'}"
             onclick="${i===0?`viewPhoto('${p}','${listing.name}')`:`setMainPhoto('${id}','${p}')`}"
-            title="${i===0?'메인 사진 (클릭=원본)':'클릭하여 메인으로 설정'}">
+            title="${i===0?'Main 사진 (클릭=원본)':'클릭하여 Main으로 설정'}">
             <img src="${p}" style="width:100%;height:100%;object-fit:cover">
-            ${i===0?`<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(200,137,42,.75);color:#fff;font-size:9px;text-align:center;padding:2px;font-weight:700">메인</div>`:''}
+            ${i===0?`<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(200,137,42,.75);color:#fff;font-size:9px;text-align:center;padding:2px;font-weight:700">Main</div>`:''}
             <button onclick="event.stopPropagation();removeGalleryPhoto('${id}','${p}')"
               style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center">✕</button>
           </div>`).join('')}
-          <!-- + 사진 추가 버튼 -->
+          <!-- + 사진 Add 버튼 -->
           <div onclick="triggerGalleryPhoto('${id}')"
             style="border-radius:7px;border:1.5px dashed #C8C3BA;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--m);font-size:10px;gap:3px;background:#F8F5F0"
-            title="사진 추가 (여러 장 동시 선택 가능)">
+            title="사진 Add (여러 장 동시 Select Allowed)">
             <i class="ti ti-plus" style="font-size:18px"></i>
-            <span>추가</span>
+            <span>Add</span>
           </div>
         </div>
         ` : `
         <div style="text-align:center;padding:36px;color:var(--m)">
           <i class="ti ti-photo-off" style="font-size:36px;display:block;margin-bottom:10px"></i>
-          <div style="font-size:13px;margin-bottom:14px">사진이 없습니다</div>
+          <div style="font-size:13px;margin-bottom:14px">No photos yet</div>
           <button onclick="triggerGalleryPhoto('${id}')" class="btn btn-n" style="font-size:12px">
-            <i class="ti ti-camera-plus"></i> 사진 업로드 (여러 장 가능)
+            <i class="ti ti-camera-plus"></i> Upload Photos (multiple allowed)
           </button>
         </div>`}
       </div>
     </div>
 
-    <!-- 기본 정보 (보기 모드) -->
+    <!-- Contact Info (보기 모드) -->
     <div class="card" id="listing-view-${id}">
-      <div class="card-h"><i class="ti ti-info-circle" aria-hidden="true"></i> 매물 정보</div>
+      <div class="card-h"><i class="ti ti-info-circle" aria-hidden="true"></i> Listing 정보</div>
       <div class="card-b">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           ${[
             ['가격', `${fmt(listing.price)}${listing.transaction_type==='RENT'?'/월':''}`],
-            ['유형', listing.property_type||'-'],
-            ['면적', listing.area_sqm ? listing.area_sqm+'㎡' : '-'],
-            ['층수', listing.floor||'-'],
-            ['침실', listing.bedrooms!=null ? listing.bedrooms+'개' : '-'],
-            ['욕실', listing.bathrooms!=null ? listing.bathrooms+'개' : '-'],
-            ['주차', listing.parking!=null ? listing.parking+'대' : '-'],
-            ['가구', listing.is_furnished ? '✅ 풀퍼니시드' : '❌ 비가구'],
-            ['반려동물', listing.pet_friendly ? '✅ 가능' : '❌ 불가'],
+            ['Type', listing.property_type||'-'],
+            ['Area (sqm)', listing.area_sqm ? listing.area_sqm+'㎡' : '-'],
+            ['Floor', listing.floor||'-'],
+            ['Bedrooms', listing.bedrooms!=null ? listing.bedrooms+'개' : '-'],
+            ['Bathrooms', listing.bathrooms!=null ? listing.bathrooms+'개' : '-'],
+            ['Parking', listing.parking!=null ? listing.parking+'대' : '-'],
+            ['Furnished', listing.is_furnished ? '✅ Fully Furnished' : '❌ 비Furnished'],
+            ['Pet Friendly', listing.pet_friendly ? '✅ Allowed' : '❌ Not Allowed'],
             ['담당', listing.assigned_user?.name||'-'],
           ].map(([k,v])=>`
           <div style="padding:10px;background:#F8F5F0;border-radius:8px">
@@ -1455,56 +1455,56 @@ async function vListingDetail(id) {
         </div>
         ${listing.listing_source ? `
         <div style="margin-top:12px;padding:10px 12px;background:#E6F1FB;border-radius:8px;display:flex;align-items:center;justify-content:space-between">
-          <div><div style="font-size:10px;color:#185FA5;margin-bottom:2px">임대인 · 소유주</div>
+          <div><div style="font-size:10px;color:#185FA5;margin-bottom:2px">Rent인 · 소유주</div>
           <div style="font-weight:600;color:#185FA5">${listing.listing_source.name}</div></div>
           <span class="bdg" style="background:#fff;color:#185FA5">${CT[listing.listing_source.type]?.l||listing.listing_source.type||''}</span>
         </div>` : ''}
         ${listing.hyperlink ? `
         <a href="${listing.hyperlink}" target="_blank" class="btn btn-o" style="margin-top:10px;width:100%;justify-content:center;font-size:12px">
-          <i class="ti ti-external-link" aria-hidden="true"></i> 외부 링크 (Lamudi 등)
+          <i class="ti ti-external-link" aria-hidden="true"></i> External Link (Lamudi etc.)
         </a>` : ''}
         ${listing.remarks ? `<div style="margin-top:10px;padding:10px 12px;background:#F8F5F0;border-radius:8px;font-size:12px;color:var(--N);line-height:1.6">${listing.remarks}</div>` : ''}
       </div>
     </div>
 
-    <!-- 수정 폼 (숨김) -->
+    <!-- Edit 폼 (숨김) -->
     <div class="card" id="listing-edit-${id}" style="display:none">
-      <div class="card-h"><i class="ti ti-edit" aria-hidden="true"></i> 매물 정보 수정</div>
+      <div class="card-h"><i class="ti ti-edit" aria-hidden="true"></i> Listing 정보 Edit</div>
       <div class="card-b">
         <div class="fg2">
           <div class="ff"><label class="fl">가격 (PHP)</label><input class="fi" id="e-price" type="number" value="${listing.price||''}"></div>
-          <div class="ff"><label class="fl">층수</label><input class="fi" id="e-floor" value="${listing.floor||''}"></div>
+          <div class="ff"><label class="fl">Floor</label><input class="fi" id="e-floor" value="${listing.floor||''}"></div>
         </div>
         <div class="fg2">
-          <div class="ff"><label class="fl">면적 (sqm)</label><input class="fi" id="e-area" type="number" value="${listing.area_sqm||''}"></div>
-          <div class="ff"><label class="fl">유형</label>
+          <div class="ff"><label class="fl">Area (sqm) (sqm)</label><input class="fi" id="e-area" type="number" value="${listing.area_sqm||''}"></div>
+          <div class="ff"><label class="fl">Type</label>
             <select class="fs" id="e-ptype">
               ${['CONDO','OFFICE','COMMERCIAL','BUILDING','LAND','OTHER'].map(t=>`<option value="${t}" ${listing.property_type===t?'selected':''}>${t}</option>`).join('')}
             </select></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-          <div class="ff"><label class="fl">침실</label><input class="fi" id="e-bed" type="number" value="${listing.bedrooms||0}"></div>
-          <div class="ff"><label class="fl">욕실</label><input class="fi" id="e-bath" type="number" value="${listing.bathrooms||0}"></div>
-          <div class="ff"><label class="fl">주차</label><input class="fi" id="e-park" type="number" value="${listing.parking||0}"></div>
+          <div class="ff"><label class="fl">Bedrooms</label><input class="fi" id="e-bed" type="number" value="${listing.bedrooms||0}"></div>
+          <div class="ff"><label class="fl">Bathrooms</label><input class="fi" id="e-bath" type="number" value="${listing.bathrooms||0}"></div>
+          <div class="ff"><label class="fl">Parking</label><input class="fi" id="e-park" type="number" value="${listing.parking||0}"></div>
         </div>
         <div class="fg2">
-          <div class="ff"><label class="fl">가구 여부</label>
+          <div class="ff"><label class="fl">Furnished 여부</label>
             <select class="fs" id="e-furnished">
-              <option value="false" ${!listing.is_furnished?'selected':''}>비가구</option>
-              <option value="true"  ${listing.is_furnished?'selected':''}>풀퍼니시드</option>
+              <option value="false" ${!listing.is_furnished?'selected':''}>비Furnished</option>
+              <option value="true"  ${listing.is_furnished?'selected':''}>Fully Furnished</option>
             </select></div>
-          <div class="ff"><label class="fl">반려동물</label>
+          <div class="ff"><label class="fl">Pet Friendly</label>
             <select class="fs" id="e-pet">
-              <option value="false" ${!listing.pet_friendly?'selected':''}>불가</option>
-              <option value="true"  ${listing.pet_friendly?'selected':''}>가능</option>
+              <option value="false" ${!listing.pet_friendly?'selected':''}>Not Allowed</option>
+              <option value="true"  ${listing.pet_friendly?'selected':''}>Allowed</option>
             </select></div>
         </div>
-        <div class="ff"><label class="fl">주소</label><input class="fi" id="e-addr" value="${listing.address||''}"></div>
-        <div class="ff"><label class="fl">외부 링크 (Lamudi 등)</label><input class="fi" id="e-link" value="${listing.hyperlink||''}"></div>
+        <div class="ff"><label class="fl">Address</label><input class="fi" id="e-addr" value="${listing.address||''}"></div>
+        <div class="ff"><label class="fl">External Link (Lamudi etc.)</label><input class="fi" id="e-link" value="${listing.hyperlink||''}"></div>
         <div class="ff"><label class="fl">비고</label><textarea class="fi" id="e-rem" rows="3" style="resize:vertical">${listing.remarks||''}</textarea></div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-g" style="flex:1;justify-content:center" onclick="saveListingEdit('${id}')"><i class="ti ti-device-floppy" aria-hidden="true"></i> 저장</button>
-          <button class="btn btn-o" onclick="toggleListingEdit('${id}')">취소</button>
+          <button class="btn btn-g" style="flex:1;justify-content:center" onclick="saveListingEdit('${id}')"><i class="ti ti-device-floppy" aria-hidden="true"></i> Save</button>
+          <button class="btn btn-o" onclick="toggleListingEdit('${id}')">Cancel</button>
         </div>
       </div>
     </div>
@@ -1513,30 +1513,30 @@ async function vListingDetail(id) {
   <!-- 오른쪽: 활동 + 계약 -->
   <div>
 
-    <!-- 관련 계약 -->
+    <!-- Related Deals -->
     ${relDeals.length ? `
     <div class="card" style="margin-bottom:12px">
-      <div class="card-h"><i class="ti ti-receipt" aria-hidden="true"></i> 관련 계약 (${relDeals.length}건)</div>
+      <div class="card-h"><i class="ti ti-receipt" aria-hidden="true"></i> Related Deals (${relDeals.length}deals)</div>
       ${relDeals.map(d=>`
       <div style="padding:10px 14px;border-bottom:1px solid var(--b)">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div>
-            <div style="font-size:12px;font-weight:600">${d.contract_date} · ${d.contract_type==='RENT'?'임대':'매매'}</div>
-            <div style="font-size:11px;color:var(--m);margin-top:2px">수수료: ${fmt(d.gross_commission)}</div>
+            <div style="font-size:12px;font-weight:600">${d.contract_date} · ${d.contract_type==='RENT'?'Rent':'Sale'}</div>
+            <div style="font-size:11px;color:var(--m);margin-top:2px">Commission: ${fmt(d.gross_commission)}</div>
           </div>
           <div style="text-align:right">
             <div style="font-size:13px;font-weight:700;color:var(--G)">${fmt(d.net_company_income)}</div>
-            <div style="font-size:10px;color:var(--m)">순수익</div>
+            <div style="font-size:10px;color:var(--m)">Net Income</div>
           </div>
         </div>
       </div>`).join('')}
     </div>` : ''}
 
-    <!-- 이 매물 관련 활동 이력 -->
+    <!-- 이 Listing 관련 Activity History -->
     <div class="card">
       <div class="card-h">
-        <span><i class="ti ti-history" aria-hidden="true"></i> 활동 이력</span>
-        <button onclick="addActivityForListing('${id}','${listing.name}')" class="btn btn-o" style="font-size:11px;padding:4px 10px"><i class="ti ti-plus" aria-hidden="true"></i> 기록 추가</button>
+        <span><i class="ti ti-history" aria-hidden="true"></i> Activity History</span>
+        <button onclick="addActivityForListing('${id}','${listing.name}')" class="btn btn-o" style="font-size:11px;padding:4px 10px"><i class="ti ti-plus" aria-hidden="true"></i> Add Activity</button>
       </div>
       ${activities.length ? activities.map(a=>{
         const t = ACT_TYPE[a.type]||{l:a.type,bg:'#eee',c:'#666',icon:'ti-dots'}
@@ -1548,9 +1548,9 @@ async function vListingDetail(id) {
             <span style="font-size:10px;color:var(--m);margin-left:auto">${(a.created_at||'').slice(0,10)}</span>
           </div>
           ${a.notes?`<div style="font-size:12px;color:var(--N);line-height:1.6;white-space:pre-wrap">${a.notes}</div>`:''}
-          ${a.next_followup_at?`<div style="font-size:11px;color:var(--A);font-weight:600;margin-top:4px"><i class="ti ti-calendar-event" aria-hidden="true"></i> 팔로업: ${a.next_followup_at}</div>`:''}
+          ${a.next_followup_at?`<div style="font-size:11px;color:var(--A);font-weight:600;margin-top:4px"><i class="ti ti-calendar-event" aria-hidden="true"></i> Follow-up: ${a.next_followup_at}</div>`:''}
         </div>`
-      }).join('') : `<div style="padding:24px;text-align:center;color:var(--m);font-size:12px">이 매물 관련 활동 없음</div>`}
+      }).join('') : `<div style="padding:24px;text-align:center;color:var(--m);font-size:12px">이 Listing 관련 활동 없음</div>`}
     </div>
 
   </div>
@@ -1563,7 +1563,7 @@ async function vListingDetail(id) {
 async function quickStatusChange(id, status) {
   try {
     await api('PATCH', `/api/listings/${id}`, { status })
-    toast('상태가 변경되었습니다: ' + SLS[status]?.l)
+    toast('Status updated: ' + SLS[status]?.l)
   } catch(e) { alert(e.message) }
 }
 
@@ -1577,7 +1577,7 @@ function toggleListingEdit(id) {
   edit.style.display = isEdit ? 'none' : ''
 }
 
-// 편집 저장
+// 편집 Save
 async function saveListingEdit(id) {
   try {
     await api('PATCH', `/api/listings/${id}`, {
@@ -1594,9 +1594,9 @@ async function saveListingEdit(id) {
       hyperlink:    document.getElementById('e-link').value || null,
       remarks:      document.getElementById('e-rem').value  || null,
     })
-    toast('저장되었습니다')
+    toast('Saved')
     vListingDetail(id)
-  } catch(e) { alert('저장 오류: ' + e.message) }
+  } catch(e) { alert('Save Error: ' + e.message) }
 }
 
 // 갤러리 사진 업로드 트리거
@@ -1606,7 +1606,7 @@ function triggerGalleryPhoto(listingId) {
   document.getElementById('photo-input').click()
 }
 
-// 갤러리 사진 추가 처리
+// 갤러리 사진 Add 처리
 async function onPhotoSelected(input) {
   if (!input.files.length) return
 
@@ -1633,7 +1633,7 @@ async function onPhotoSelected(input) {
         const res = await fetch('/api/upload/photo', { method:'POST', headers:{'Authorization':'Bearer '+token}, body:formData })
         const d = await res.json()
         if (!res.ok) throw new Error(d.error)
-        if (!mainUrl) { mainUrl = d.url }  // 첫 번째가 메인
+        if (!mainUrl) { mainUrl = d.url }  // 첫 번째가 Main
         else          { photos.push(d.url) }
         success++
       } catch(e) { console.error('업로드 실패:', file.name, e.message) }
@@ -1646,7 +1646,7 @@ async function onPhotoSelected(input) {
     _photoMode = 'main'
 
   } else {
-    // ── 매물 목록에서 메인 사진 1장 교체 ─────────────────
+    // ── Listing Back에서 Main 사진 1장 교체 ─────────────────
     if (!input.files[0] || !_photoListingId) return
     const file = input.files[0]
     if (file.size > 10*1024*1024) { alert('10MB 초과'); input.value=''; return }
@@ -1659,41 +1659,41 @@ async function onPhotoSelected(input) {
       const d = await res.json()
       if (!res.ok) throw new Error(d.error)
       await api('PATCH', `/api/listings/${_photoListingId}`, { photo_url: d.url })
-      toast('✓ 사진이 저장되었습니다')
+      toast('✓ 사진이 Saved')
       vList()
-    } catch(e) { alert('업로드 오류: ' + e.message) }
+    } catch(e) { alert('업로드 Error: ' + e.message) }
     input.value = ''
   }
 }
 
-// 갤러리에서 사진 삭제
+// 갤러리에서 사진 Delete
 async function removeGalleryPhoto(listingId, photoUrl) {
-  if (!confirm('이 사진을 삭제하시겠습니까?')) return
+  if (!confirm('이 사진을 Delete하시겠습니까?')) return
   try {
     const listing = await api('GET', `/api/listings/${listingId}`)
     const photos  = Array.isArray(listing.photos) ? listing.photos : []
     if (listing.photo_url === photoUrl) {
-      // 메인 사진 삭제 → 다음 사진을 메인으로
+      // Main 사진 Delete → 다음 사진을 Main으로
       const next = photos.find(p => p !== photoUrl) || null
       await api('PATCH', `/api/listings/${listingId}`, { photo_url: next, photos: photos.filter(p=>p!==photoUrl) })
     } else {
       await api('PATCH', `/api/listings/${listingId}`, { photos: photos.filter(p=>p!==photoUrl) })
     }
-    toast('사진이 삭제되었습니다')
+    toast('사진이 Deleted')
     vListingDetail(listingId)
   } catch(e) { alert(e.message) }
 }
 
-// 사진을 메인으로 설정
+// 사진을 Main으로 설정
 async function setMainPhoto(listingId, photoUrl) {
   try {
     await api('PATCH', `/api/listings/${listingId}`, { photo_url: photoUrl })
-    toast('메인 사진으로 설정되었습니다')
+    toast('Main 사진으로 설정되었습니다')
     vListingDetail(listingId)
   } catch(e) { alert(e.message) }
 }
 
-// 매물 상세에서 활동 추가 바로가기
+// Listing 상세에서 활동 Add 바로가기
 function addActivityForListing(listingId, listingName) {
   nav('customers')
   setTimeout(() => {
@@ -1716,21 +1716,21 @@ async function vList() {
     const data = await api('GET','/api/listings')
     vc(`
 <div class="ph">
-  <div><div class="ph-title">매물관리</div><div class="ph-sub">총 ${data.length}건 · 활동중 ${data.filter(l=>l.status==='ACTIVE').length}건</div></div>
-  <button class="btn btn-n" onclick="addListing()"><i class="ti ti-plus"></i>매물 추가</button>
+  <div><div class="ph-title">Listings</div><div class="ph-sub">총 ${data.length}deals · Active ${data.filter(l=>l.status==='ACTIVE').length}deals</div></div>
+  <button class="btn btn-n" onclick="addListing()"><i class="ti ti-plus"></i>Listing Add</button>
 </div>
 <div class="pb">
   <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-    ${['ALL','RENT','SALE'].map((tp,i)=>`<button class="tab ${i===0?'on':''}" onclick="fLS('${tp}','type',this)">${tp==='ALL'?'전체':tp==='RENT'?'임대':'매매'}</button>`).join('')}
+    ${['ALL','RENT','SALE'].map((tp,i)=>`<button class="tab ${i===0?'on':''}" onclick="fLS('${tp}','type',this)">${tp==='ALL'?'All':tp==='RENT'?'Rent':'Sale'}</button>`).join('')}
     ${['ACTIVE','ON-HOLD','CONTRACTED'].map(s=>{const st=SLS[s];return`<button class="tab" onclick="fLS('${s}','status',this)">${st.l}</button>`}).join('')}
   </div>
   <div class="card"><div class="scroll-x"><table class="tbl" id="ltbl">
-    <tr><th>사진</th><th>코드</th><th>매물명</th><th>거래</th><th>유형</th><th>가격</th><th>소유주</th><th>담당</th><th>상태</th></tr>
+    <tr><th>Photo</th><th>Code</th><th>Property Name</th><th>Trade</th><th>Type</th><th>Price</th><th>Owner</th><th>Agent</th><th>Status</th></tr>
     ${data.map(l=>{const st=SLS[l.status]||{l:l.status,bg:'#eee',c:'#666'};const src=l.listing_source;return`
     <tr data-ltype="${l.transaction_type}" data-lstatus="${l.status}">
       <td style="width:48px">
         ${l.photo_url
-          ? `<img src="${l.photo_url}" style="width:40px;height:40px;border-radius:7px;object-fit:cover;cursor:pointer;border:0.5px solid var(--b)" onclick="viewPhoto('${l.photo_url}','${l.name}')" title="클릭하면 원본 보기">`
+          ? `<img src="${l.photo_url}" style="width:40px;height:40px;border-radius:7px;object-fit:cover;cursor:pointer;border:0.5px solid var(--b)" onclick="viewPhoto('${l.photo_url}','${l.name}')" title="Click to view">`
           : `<button onclick="triggerPhoto('${l.id}')" style="width:40px;height:40px;border-radius:7px;border:1.5px dashed var(--b);background:var(--bg);cursor:pointer;color:var(--m);font-size:16px" title="사진 업로드"><i class="ti ti-camera"></i></button>`
         }
       </td>
@@ -1738,15 +1738,15 @@ async function vList() {
       <td>
         <div style="font-weight:600;cursor:pointer;color:var(--N);text-decoration:underline;text-underline-offset:3px" onclick="vListingDetail('${l.id}')">${l.name}</div>
         <div style="font-size:10px;color:var(--m)">${l.address||''}</div>
-        ${l.photo_url?`<button onclick="triggerPhoto('${l.id}')" style="font-size:10px;color:var(--m);background:none;border:none;cursor:pointer;padding:0;margin-top:2px"><i class="ti ti-camera"></i> 사진 변경</button>`:``}
+        ${l.photo_url?`<button onclick="triggerPhoto('${l.id}')" style="font-size:10px;color:var(--m);background:none;border:none;cursor:pointer;padding:0;margin-top:2px"><i class="ti ti-camera"></i> Change Photo</button>`:``}
       </td>
-      <td>${bdg(l.transaction_type==='RENT'?'임대':'매매',l.transaction_type==='RENT'?'#E6F1FB':'#FDF0DC',l.transaction_type==='RENT'?'#185FA5':'#854F0B')}</td>
+      <td>${bdg(l.transaction_type==='RENT'?'Rent':'Sale',l.transaction_type==='RENT'?'#E6F1FB':'#FDF0DC',l.transaction_type==='RENT'?'#185FA5':'#854F0B')}</td>
       <td>${bdg(l.property_type||'-','#EEEDFE','#534AB7')}</td>
       <td style="font-weight:600">${fmt(l.price)}${l.transaction_type==='RENT'?'/월':''}</td>
       <td>
         ${src ? `<div style="font-size:12px;font-weight:600">${src.name}</div>
         <div style="font-size:10px;color:var(--m)">${CT[src.type]?.l||src.type}${!src._private&&src.mobile?' · '+src.mobile:''}</div>
-        ${src._private?'<span style="font-size:10px;color:var(--m)">🔒 연락처 비공개</span>':''}` : '-'}
+        ${src._private?'<span style="font-size:10px;color:var(--m)">🔒 연락처 Private</span>':''}` : '-'}
       </td>
       <td>${agBdg(l.assigned_user)}</td>
       <td>${bdg(st.l,st.bg,st.c)}</td>
@@ -1775,66 +1775,64 @@ async function vDeals() {
     const total = deals.reduce((s,d)=>s+Number(d.gross_commission||0),0)
     vc(`
 <div class="ph">
-  <div><div class="ph-title">계약 · 커미션</div><div class="ph-sub">${deals.length}건 · 수수료 합계 ${fmt(total)}</div></div>
+  <div><div class="ph-title">계약 · 커미션</div><div class="ph-sub">${deals.length}deals · Commission 합계 ${fmt(total)}</div></div>
 </div>
 <div class="pb">
 <div class="g2">
   <div>
     <div class="card">
-      <div class="card-h"><i class="ti ti-file-plus"></i> 신규 계약 등록</div>
+      <div class="card-h"><i class="ti ti-file-plus"></i> New Deal</div>
       <div class="card-b">
         <div style="display:flex;gap:8px;margin-bottom:12px">
-          <button type="button" id="dbt-r" class="btn btn-n" style="flex:1" onclick="setDT('RENT')">임대 RENT</button>
-          <button type="button" id="dbt-s" class="btn btn-o" style="flex:1" onclick="setDT('SALE')">매매 SALE</button>
+          <button type="button" id="dbt-r" class="btn btn-n" style="flex:1" onclick="setDT('RENT')">Rent RENT</button>
+          <button type="button" id="dbt-s" class="btn btn-o" style="flex:1" onclick="setDT('SALE')">Sale SALE</button>
         </div>
-        <div class="ff"><label class="fl">매물 선택</label>
-          <select class="fs" id="d-ls" onchange="onDLs()"><option value="">-- 선택 --</option>
+        <div class="ff"><label class="fl">Select Listing</label>
+          <select class="fs" id="d-ls" onchange="onDLs()"><option value="">-- Select --</option>
             ${listings.map(l=>`<option value="${l.id}|${l.price}|${l.transaction_type}">[${l.code||''}] ${l.name} · ${fmt(l.price)}${l.transaction_type==='RENT'?'/월':''}</option>`).join('')}
           </select></div>
         <div class="fg2">
-          <div class="ff"><label class="fl">수수료 총액 (PHP)</label>
+          <div class="ff"><label class="fl">Gross Commission (PHP)</label>
             <input class="fi" type="number" id="d-gross" oninput="calcD()" placeholder="자동계산"></div>
-          <div class="ff"><label class="fl">계약일</label>
+          <div class="ff"><label class="fl">Contract Date</label>
             <input class="fi" type="date" id="d-date" value="${tod()}"></div>
         </div>
         <div class="sep"></div>
         <div class="fg2">
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--m);margin-bottom:8px" id="d-own-lbl">임대인 (Lessor) 측</div>
-            <div class="ff"><label class="fl">고객</label>
-              <select class="fs" id="d-own-c"><option value="">선택</option>
+            <div style="font-size:11px;font-weight:700;color:var(--m);margin-bottom:8px" id="d-own-lbl">Rent인 (Lessor) 측</div>
+            <div class="ff"><label class="fl">Contact</label>
+              <select class="fs" id="d-own-c"><option value="">Select</option>
                 ${cl.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
               </select></div>
-            <div class="ff"><label class="fl">담당 직원</label>
-              <select class="fs" id="d-own-a" onchange="calcD()"><option value="">선택</option>
+            <div class="ff"><label class="fl">Agent</label>
+              <select class="fs" id="d-own-a" onchange="calcD()"><option value="">Select</option>
                 ${staff.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}
-                <option value="owner_may">대표 → May귀속</option>
-                <option value="ext">타 중개사</option>
+                                <option value="ext">External Broker</option>
               </select></div>
           </div>
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--m);margin-bottom:8px" id="d-ten-lbl">임차인 (Lessee) 측</div>
-            <div class="ff"><label class="fl">고객</label>
-              <select class="fs" id="d-ten-c"><option value="">선택</option>
+            <div style="font-size:11px;font-weight:700;color:var(--m);margin-bottom:8px" id="d-ten-lbl">Lessee Side</div>
+            <div class="ff"><label class="fl">Contact</label>
+              <select class="fs" id="d-ten-c"><option value="">Select</option>
                 ${cl.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
               </select></div>
-            <div class="ff"><label class="fl">담당 직원</label>
-              <select class="fs" id="d-ten-a" onchange="calcD()"><option value="">선택</option>
+            <div class="ff"><label class="fl">Agent</label>
+              <select class="fs" id="d-ten-a" onchange="calcD()"><option value="">Select</option>
                 ${staff.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}
-                <option value="owner_may">대표 → May귀속</option>
-                <option value="ext">타 중개사</option>
+                                <option value="ext">External Broker</option>
               </select></div>
           </div>
         </div>
         <div id="d-cb-rate-wrap" style="display:none;margin-bottom:12px;padding:10px 12px;background:var(--AL);border-radius:8px;border:1px solid #E8C97A">
-          <label class="fl" style="color:var(--A)"><i class="ti ti-adjustments-horizontal"></i> Co-broke 수수료율 (%)</label>
+          <label class="fl" style="color:var(--A)"><i class="ti ti-adjustments-horizontal"></i> Co-broke Rate (%)</label>
           <div style="display:flex;align-items:center;gap:10px">
             <input class="fi" type="number" id="d-cb-rate" value="50" min="1" max="99" step="1" oninput="calcD()" style="width:90px;font-weight:700;font-size:15px">
-            <span style="font-size:12px;color:var(--A)">% — 협상에 따라 변경 가능 (기본 50%)</span>
+            <span style="font-size:12px;color:var(--A)">% — negotiable (default 50%)</span>
           </div>
         </div>
         <button class="btn btn-g" style="width:100%;justify-content:center" onclick="saveDeal()">
-          <i class="ti ti-device-floppy"></i>계약 저장 + 회계 자동 반영
+          <i class="ti ti-device-floppy"></i>Save Deal + Auto Accounting
         </button>
       </div>
     </div>
@@ -1842,22 +1840,22 @@ async function vDeals() {
   <div>
     <div class="comm-card">
       <div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;align-items:center">
-        <div><div style="font-size:13px;font-weight:700">커미션 계산기</div><div style="font-size:10px;opacity:.45;margin-top:1px">실시간 자동 계산</div></div>
-        <span id="d-rbdg" style="background:rgba(200,137,42,.3);color:#FAC775;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px">임대 · 10%</span>
+        <div><div style="font-size:13px;font-weight:700">Commission Calculator</div><div style="font-size:10px;opacity:.45;margin-top:1px">Real-time Auto Calculation</div></div>
+        <span id="d-rbdg" style="background:rgba(200,137,42,.3);color:#FAC775;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px">Rent · 10%</span>
       </div>
       <div style="padding:4px 0">
-        <div class="cr"><span style="opacity:.6">수수료 총액</span><span id="dc-g" style="font-size:15px;font-weight:700">₱0</span></div>
+        <div class="cr"><span style="opacity:.6">Commission 총액</span><span id="dc-g" style="font-size:15px;font-weight:700">₱0</span></div>
         <div id="dc-cb-r" style="display:none">
           <div class="cr"><span id="dc-cb-lbl" style="opacity:.6">Co-broke 공제</span><span id="dc-cb-a" style="color:#FBBF24"></span></div>
-          <div class="cr"><span style="opacity:.6">당사 수수료</span><span id="dc-our" style="font-weight:700"></span></div>
+          <div class="cr"><span style="opacity:.6">당사 Commission</span><span id="dc-our" style="font-weight:700"></span></div>
         </div>
         <div class="cs"></div>
         <div id="dc-or" class="cr" style="display:none"><span id="dc-ol" style="opacity:.6;font-size:11px"></span><span id="dc-of" style="color:#FCA5A5"></span></div>
         <div id="dc-tr" class="cr" style="display:none"><span id="dc-tl" style="opacity:.6;font-size:11px"></span><span id="dc-tf" style="color:#FCA5A5"></span></div>
-        <div id="dc-tot-r" style="display:none"><div class="cs"></div><div class="cr"><span style="opacity:.6">인센티브 합계</span><span id="dc-tot" style="color:#FCA5A5"></span></div></div>
+        <div id="dc-tot-r" style="display:none"><div class="cs"></div><div class="cr"><span style="opacity:.6">Incentive 합계</span><span id="dc-tot" style="color:#FCA5A5"></span></div></div>
         <div class="cs"></div>
         <div style="padding:12px 14px;background:rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center">
-          <div><div style="font-size:10px;opacity:.5;margin-bottom:3px">회사 순수익</div>
+          <div><div style="font-size:10px;opacity:.5;margin-bottom:3px">회사 Net Income</div>
             <div id="dc-net" style="font-size:26px;font-weight:800;letter-spacing:-.02em;color:rgba(255,255,255,.25)">₱0</div>
             <div id="dc-pct" style="font-size:10px;opacity:.45;margin-top:2px"></div></div>
         </div>
@@ -1869,13 +1867,13 @@ async function vDeals() {
   </div>
 </div>
 <div class="card">
-  <div class="card-h"><i class="ti ti-receipt"></i> 계약 내역</div>
+  <div class="card-h"><i class="ti ti-receipt"></i> Deal History</div>
   <div class="scroll-x"><table class="tbl">
-    <tr><th>날짜</th><th>매물</th><th>유형</th><th>수수료</th><th>임대인측</th><th>임차인측</th><th>순수익</th></tr>
+    <tr><th>날짜</th><th>Listing</th><th>Type</th><th>Commission</th><th>Rent인측</th><th>Lessee Side</th><th>Net Income</th></tr>
     ${deals.map(d=>`<tr>
       <td style="color:var(--m);font-size:11px">${d.contract_date}</td>
       <td style="font-weight:600">${d.listing?.name||'-'}</td>
-      <td>${bdg(d.contract_type==='RENT'?'임대':'매매',d.contract_type==='RENT'?'#E6F1FB':'#FDF0DC',d.contract_type==='RENT'?'#185FA5':'#854F0B')}</td>
+      <td>${bdg(d.contract_type==='RENT'?'Rent':'Sale',d.contract_type==='RENT'?'#E6F1FB':'#FDF0DC',d.contract_type==='RENT'?'#185FA5':'#854F0B')}</td>
       <td style="font-weight:600">${fmt(d.gross_commission)}</td>
       <td>${agBdg(d.owner_agent)}</td><td>${agBdg(d.tenant_agent)}</td>
       <td style="font-weight:700;color:var(--G)">${fmt(d.net_company_income)}</td>
@@ -1890,9 +1888,9 @@ function setDT(t) {
   document.getElementById('d-ls').value=''; document.getElementById('d-gross').value=''
   document.getElementById('dbt-r').className='btn '+(t==='RENT'?'btn-n':'btn-o')
   document.getElementById('dbt-s').className='btn '+(t==='SALE'?'btn-a':'btn-o')
-  document.getElementById('d-own-lbl').textContent=t==='RENT'?'임대인 (Lessor) 측':'매도인 (Seller) 측'
-  document.getElementById('d-ten-lbl').textContent=t==='RENT'?'임차인 (Lessee) 측':'매수인 (Buyer) 측'
-  document.getElementById('d-rbdg').textContent=t==='RENT'?'임대 · 10%':'매매 · 15%'
+  document.getElementById('d-own-lbl').textContent=t==='RENT'?'Rent인 (Lessor) 측':'Seller Side'
+  document.getElementById('d-ten-lbl').textContent=t==='RENT'?'Lessee Side':'Buyer Side'
+  document.getElementById('d-rbdg').textContent=t==='RENT'?'Rent · 10%':'Sale · 15%'
   calcD()
 }
 function onDLs() {
@@ -1924,14 +1922,14 @@ function calcD() {
   if(teF>0){g('dc-tr').style.display='flex';g('dc-tf').textContent='− '+fmt(teF)}else g('dc-tr').style.display='none'
   if(tot>0){g('dc-tot-r').style.display='';g('dc-tot').textContent='− '+fmt(tot)}else g('dc-tot-r').style.display='none'
   const ne=g('dc-net'); ne.textContent=fmt(net); ne.style.color=net>0?'#5DCAA5':'rgba(255,255,255,.25)'
-  g('dc-pct').textContent=gross>0?'순수익률 '+Math.round(net/gross*100)+'%':''
+  g('dc-pct').textContent=gross>0?'Net Income률 '+Math.round(net/gross*100)+'%':''
   const T=gross||1
   g('db-n').style.flex=net>0?net/T:0; g('db-o').style.flex=owF/T; g('db-t').style.flex=teF/T
 }
 async function saveDeal() {
   const lsVal=document.getElementById('d-ls').value
   const gross=parseFloat(document.getElementById('d-gross').value)||(_dType==='RENT'?_dPrice:_dPrice*0.03)
-  if(!lsVal||!gross){alert('매물과 수수료를 입력하세요');return}
+  if(!lsVal||!gross){alert('Listing과 Commission를 입력하세요');return}
   const [listingId]=lsVal.split('|')
   const owA=document.getElementById('d-own-a').value, teA=document.getElementById('d-ten-a').value
   const cb = owA==='ext'||teA==='ext'
@@ -1944,7 +1942,7 @@ async function saveDeal() {
       gross_commission:gross,
       co_broke_rate: cbRate,
       owner_contact_id:document.getElementById('d-own-c').value||null,
-      owner_agent_user_id:owA==='ext'?null:owA==='owner_may'?mayUser?.id:owA||null,
+      owner_agent_user_id:owA==='ext'?null:owA||null,
       owner_agent_is_external:owA==='ext',
       tenant_contact_id:document.getElementById('d-ten-c').value||null,
       tenant_agent_user_id:teA==='ext'?null:teA||null,
@@ -1952,9 +1950,9 @@ async function saveDeal() {
       is_co_broke: cb,
       created_by:me?.id
     })
-    toast('계약 저장 완료! 회계에 자동 반영됩니다')
+    toast('계약 Save 완료! 회계에 자동 반영됩니다')
     vDeals()
-  } catch(e) { alert('저장 오류: '+e.message) }
+  } catch(e) { alert('Save Error: '+e.message) }
 }
 
 // ═══════════ PHOTO UPLOAD ═══════════
@@ -1974,7 +1972,7 @@ let _actFilter = { type:'', q:'' }
 
 async function vActivities() {
   const cc = document.getElementById('cc')
-  cc.innerHTML = `<div class="loading">활동 이력 불러오는 중...</div>`
+  cc.innerHTML = `<div class="loading">Activity History Loading...</div>`
   try {
     const [acts, contacts, listings, leads] = await Promise.all([
       api('GET', '/api/activities?limit=80'),
@@ -1985,7 +1983,7 @@ async function vActivities() {
     _actAllData = { acts, cl: contacts.data||contacts, listings, leads }
     renderActivityView()
   } catch(e) {
-    cc.innerHTML = `<div style="color:var(--R);padding:20px">오류: ${e.message}</div>`
+    cc.innerHTML = `<div style="color:var(--R);padding:20px">Error: ${e.message}</div>`
   }
 }
 
@@ -1998,12 +1996,12 @@ function renderActivityView() {
   <!-- 왼쪽: 기록 입력 폼 -->
   <div>
     <div class="card">
-      <div class="card-h"><i class="ti ti-edit" aria-hidden="true"></i> 활동 기록 추가</div>
+      <div class="card-h"><i class="ti ti-edit" aria-hidden="true"></i> Add Activity</div>
       <div class="card-b">
 
-        <!-- 활동 유형 -->
+        <!-- 활동 Type -->
         <div class="ff">
-          <label class="fl">활동 유형</label>
+          <label class="fl">활동 Type</label>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
             ${Object.entries(ACT_TYPE).map(([k,v])=>`
             <button type="button" id="atype-${k}" onclick="setActType('${k}')"
@@ -2014,44 +2012,44 @@ function renderActivityView() {
           </div>
         </div>
 
-        <!-- 고객 선택 -->
+        <!-- Contact Select -->
         <div class="ff">
-          <label class="fl">고객</label>
+          <label class="fl">Contact</label>
           <select class="fs" id="act-contact" onchange="onActContactChange()">
-            <option value="">고객 선택 (선택사항)</option>
+            <option value="">Contact Select (Select사항)</option>
             ${cl.map(c=>`<option value="${c.id}">${c.name} · ${CT[c.type]?.l||c.type}</option>`).join('')}
           </select>
         </div>
 
-        <!-- 리드 연결 (고객 선택 시 표시) -->
+        <!-- 리드 연결 (Contact Select 시 표시) -->
         <div class="ff" id="act-lead-wrap" style="display:none">
-          <label class="fl">관련 리드 (선택)</label>
+          <label class="fl">관련 리드 (Select)</label>
           <select class="fs" id="act-lead">
-            <option value="">리드 선택</option>
+            <option value="">리드 Select</option>
           </select>
         </div>
 
-        <!-- 리드 상태 변경 (리드 선택 시 표시) -->
+        <!-- 리드 상태 변경 (리드 Select 시 표시) -->
         <div class="ff" id="act-status-wrap" style="display:none;padding:10px 12px;background:#F8F5F0;border-radius:8px">
-          <label class="fl">리드 상태 변경 (선택)</label>
+          <label class="fl">Update Lead Status (optional)</label>
           <select class="fs" id="act-lead-status">
-            <option value="">상태 유지</option>
+            <option value="">Keep status</option>
             ${Object.entries(LEAD_STATUS_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
           </select>
         </div>
 
-        <!-- 관련 매물 -->
+        <!-- 관련 Listing -->
         <div class="ff">
-          <label class="fl">관련 매물 (선택)</label>
+          <label class="fl">관련 Listing (Select)</label>
           <select class="fs" id="act-listing">
-            <option value="">매물 선택</option>
+            <option value="">Select Listing</option>
             ${listings.map(l=>`<option value="${l.id}">[${l.code||''}] ${l.name} · ${fmt(l.price)}${l.transaction_type==='RENT'?'/월':''}</option>`).join('')}
           </select>
         </div>
 
-        <!-- 메모 -->
+        <!-- Notes -->
         <div class="ff">
-          <label class="fl">내용·메모</label>
+          <label class="fl">Notes</label>
           <textarea class="fi" id="act-notes" rows="4"
             placeholder="통화: 예산 ₱35K, BGC 선호, 다음주 방문 희망&#10;방문: 1207B 쇼잉 완료, 가격 협상 의향 있음&#10;메시지: 계약 진행 의사 확인, 서류 안내 완료"
             style="resize:vertical;line-height:1.7;font-size:12px"></textarea>
@@ -2059,35 +2057,35 @@ function renderActivityView() {
 
         <!-- 다음 팔로업 -->
         <div class="ff">
-          <label class="fl"><i class="ti ti-calendar-event" aria-hidden="true"></i> 다음 팔로업 날짜</label>
+          <label class="fl"><i class="ti ti-calendar-event" aria-hidden="true"></i> Next Follow-up Date</label>
           <input class="fi" type="date" id="act-followup">
         </div>
 
         <button class="btn btn-g" style="width:100%;justify-content:center;padding:11px" onclick="saveActivity()">
-          <i class="ti ti-device-floppy" aria-hidden="true"></i>활동 저장
+          <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Activity
         </button>
       </div>
     </div>
   </div>
 
-  <!-- 오른쪽: 활동 이력 목록 -->
+  <!-- 오른쪽: Activity History Back -->
   <div>
     <div class="card">
       <div class="card-h">
-        <span><i class="ti ti-history" aria-hidden="true"></i> 활동 이력</span>
-        <span id="act-count" style="font-size:11px;color:var(--m)">${acts.length}건</span>
+        <span><i class="ti ti-history" aria-hidden="true"></i> Activity History</span>
+        <span id="act-count" style="font-size:11px;color:var(--m)">${acts.length}deals</span>
       </div>
 
       <!-- 필터 -->
       <div style="padding:10px 14px;border-bottom:1px solid var(--b)">
-        <input class="fi" style="margin-bottom:8px" placeholder="고객 이름 검색..." oninput="filterActs(this.value,'q')">
+        <input class="fi" style="margin-bottom:8px" placeholder="Contact Search by name..." oninput="filterActs(this.value,'q')">
         <div style="display:flex;gap:5px;flex-wrap:wrap">
-          <button class="tab on" onclick="filterActs('','type',this)">전체</button>
+          <button class="tab on" onclick="filterActs('','type',this)">All</button>
           ${Object.entries(ACT_TYPE).map(([k,v])=>`<button class="tab" onclick="filterActs('${k}','type',this)">${v.l}</button>`).join('')}
         </div>
       </div>
 
-      <!-- 목록 -->
+      <!-- Back -->
       <div id="act-list" style="max-height:560px;overflow-y:auto">
         ${renderActList(acts)}
       </div>
@@ -2098,7 +2096,7 @@ function renderActivityView() {
 }
 
 function renderActList(acts) {
-  if (!acts.length) return `<div style="padding:30px;text-align:center;color:var(--m)"><i class="ti ti-history" style="font-size:28px;display:block;margin-bottom:8px" aria-hidden="true"></i>활동 이력이 없습니다</div>`
+  if (!acts.length) return `<div style="padding:30px;text-align:center;color:var(--m)"><i class="ti ti-history" style="font-size:28px;display:block;margin-bottom:8px" aria-hidden="true"></i>Activity History이 없습니다</div>`
 
   // 날짜별 그룹핑
   const today     = new Date().toDateString()
@@ -2139,13 +2137,13 @@ function renderActList(acts) {
             ${a.notes ? `<div style="font-size:12px;color:var(--N);line-height:1.6;white-space:pre-wrap;word-break:break-word">${a.notes}</div>` : ''}
             ${a.next_followup_at ? `
             <div style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;background:#FDF0DC;color:#854F0B;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px">
-              <i class="ti ti-calendar-event" aria-hidden="true"></i> 팔로업: ${a.next_followup_at}
+              <i class="ti ti-calendar-event" aria-hidden="true"></i> Follow-up: ${a.next_followup_at}
             </div>` : ''}
           </div>
           <div style="text-align:right;flex-shrink:0">
             <div style="font-size:10px;color:var(--m)">${new Date(a.created_at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</div>
             <div style="font-size:10px;color:var(--m);margin-top:2px">${a.created_by_user?.name||''}</div>
-            <button onclick="deleteActivity('${a.id}')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:12px;padding:2px;margin-top:4px" title="삭제">
+            <button onclick="deleteActivity('${a.id}')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:12px;padding:2px;margin-top:4px" title="Delete">
               <i class="ti ti-trash" aria-hidden="true"></i>
             </button>
           </div>
@@ -2177,7 +2175,7 @@ function filterActs(val, field, btn) {
   const list = document.getElementById('act-list')
   const cnt  = document.getElementById('act-count')
   if (list) list.innerHTML = renderActList(filtered)
-  if (cnt)  cnt.textContent = filtered.length + '건'
+  if (cnt)  cnt.textContent = filtered.length + 'deals'
 }
 
 function onActContactChange() {
@@ -2192,11 +2190,11 @@ function onActContactChange() {
     return
   }
 
-  // 해당 고객의 활성 리드 필터링
+  // 해당 Contact의 Active Leads 필터링
   const myLeads = _actAllData.leads.filter(l => l.contact_id === contactId && !l.status.startsWith('CLOSED'))
   if (myLeads.length) {
     leadWrap.style.display = ''
-    leadSel.innerHTML = `<option value="">리드 선택 (선택사항)</option>` +
+    leadSel.innerHTML = `<option value="">리드 Select (Select사항)</option>` +
       myLeads.map(l => `<option value="${l.id}">${LEAD_STATUS_LABELS[l.status]||l.status} · ${fmt(l.budget)}${l.request_type==='RENT'?'/월':''} · ${l.location_pref||''}</option>`).join('')
     leadSel.onchange = () => {
       stWrap.style.display = leadSel.value ? '' : 'none'
@@ -2230,7 +2228,7 @@ async function saveActivity() {
   const followup  = document.getElementById('act-followup')?.value
   const newStatus = document.getElementById('act-lead-status')?.value
 
-  if (!notes && !contactId) { alert('고객 또는 메모 중 하나는 입력해주세요'); return }
+  if (!notes && !contactId) { alert('Contact 또는 Notes 중 하나는 입력해주세요'); return }
 
   try {
     await api('POST', '/api/activities', {
@@ -2243,14 +2241,14 @@ async function saveActivity() {
       created_by:      me?.id
     })
 
-    // 리드 상태 변경 (선택했을 경우)
+    // 리드 상태 변경 (Select했을 경우)
     if (leadId && newStatus) {
       await api('PATCH', `/api/leads/${leadId}`, { status: newStatus, next_followup_at: followup||undefined })
     } else if (leadId && followup) {
       await api('PATCH', `/api/leads/${leadId}`, { next_followup_at: followup })
     }
 
-    toast('활동이 기록되었습니다' + (newStatus ? ` · 리드 상태 → ${LEAD_STATUS_LABELS[newStatus]}` : ''))
+    toast('Activity saved' + (newStatus ? ` · 리드 상태 → ${LEAD_STATUS_LABELS[newStatus]}` : ''))
 
     // 폼 초기화
     ;['act-notes','act-followup'].forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
@@ -2260,16 +2258,16 @@ async function saveActivity() {
     if (lw) lw.style.display = 'none'
     if (sw) sw.style.display = 'none'
 
-    // 목록 새로고침
+    // Back 새로고침
     vActivities()
-  } catch(e) { alert('저장 오류: ' + e.message) }
+  } catch(e) { alert('Save Error: ' + e.message) }
 }
 
 async function deleteActivity(id) {
-  if (!confirm('이 활동 기록을 삭제하시겠습니까?')) return
+  if (!confirm('이 활동 기록을 Delete하시겠습니까?')) return
   try {
     await api('DELETE', `/api/activities/${id}`)
-    toast('삭제되었습니다')
+    toast('Deleted')
     vActivities()
   } catch(e) { alert(e.message) }
 }
@@ -2280,50 +2278,50 @@ async function vAcct() {
     const {income,expenses,profit}=d
     vc(`
 <div class="ph">
-  <div><div class="ph-title">회계 관리</div><div class="ph-sub">${period} 수입·지출 현황</div></div>
+  <div><div class="ph-title">Accounting</div><div class="ph-sub">${period} 수입·지출 현황</div></div>
 </div>
 <div class="pb">
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
-  <div class="kpi"><div class="kpi-l">수수료 총 수입</div><div class="kpi-v" style="color:var(--G)">${fmt(income.gross)}</div><div class="kpi-s">${income.deal_count}건</div></div>
-  <div class="kpi"><div class="kpi-l">직원 인센티브</div><div class="kpi-v" style="color:var(--R)">− ${fmt(income.agent_fees)}</div><div class="kpi-s">May · Rai · Grace</div></div>
-  <div class="kpi"><div class="kpi-l">운영비 지출</div><div class="kpi-v" style="color:var(--R)">− ${fmt(expenses.total)}</div><div class="kpi-s">${expenses.items.length}개 항목</div></div>
-  <div class="kpi"><div class="kpi-l">이달 영업이익</div><div class="kpi-v" style="color:${profit>=0?'var(--G)':'var(--R)'}">${fmt(profit)}</div><div class="kpi-s">순수입 − 운영비</div></div>
+  <div class="kpi"><div class="kpi-l">Commission 총 수입</div><div class="kpi-v" style="color:var(--G)">${fmt(income.gross)}</div><div class="kpi-s">${income.deal_count}deals</div></div>
+  <div class="kpi"><div class="kpi-l">Agent Incentives</div><div class="kpi-v" style="color:var(--R)">− ${fmt(income.agent_fees)}</div><div class="kpi-s">May · Rai · Grace</div></div>
+  <div class="kpi"><div class="kpi-l">Operating Expenses</div><div class="kpi-v" style="color:var(--R)">− ${fmt(expenses.total)}</div><div class="kpi-s">${expenses.items.length}개 항목</div></div>
+  <div class="kpi"><div class="kpi-l">Operating Profit</div><div class="kpi-v" style="color:${profit>=0?'var(--G)':'var(--R)'}">${fmt(profit)}</div><div class="kpi-s">Net income − expenses</div></div>
 </div>
 <div class="g2">
   <div>
     <div class="card">
-      <div class="card-h"><i class="ti ti-trending-up"></i> 수입 내역</div>
+      <div class="card-h"><i class="ti ti-trending-up"></i> Income Details</div>
       <table class="tbl">
         <tr><th>날짜</th><th>내용</th><th>금액</th></tr>
         ${(d.deals||[]).flatMap(x=>[
-          `<tr><td style="color:var(--m);font-size:11px">${x.contract_date||''}</td><td style="font-weight:600">${x.listing?.name||'매물'} 중개수수료</td><td style="color:var(--G);font-weight:700">${fmt(x.gross_commission)}</td></tr>`,
-          `<tr><td></td><td style="font-size:11px;color:var(--m)">인센티브 지급</td><td style="color:var(--R)">− ${fmt(x.total_agent_fees)}</td></tr>`
+          `<tr><td style="color:var(--m);font-size:11px">${x.contract_date||''}</td><td style="font-weight:600">${x.listing?.name||'Listing'} 중개Commission</td><td style="color:var(--G);font-weight:700">${fmt(x.gross_commission)}</td></tr>`,
+          `<tr><td></td><td style="font-size:11px;color:var(--m)">Incentive 지급</td><td style="color:var(--R)">− ${fmt(x.total_agent_fees)}</td></tr>`
         ]).join('')}
-        <tr style="background:#F8F5F0"><td colspan="2" style="font-weight:700">순 수수료 수입</td><td style="font-weight:800;color:var(--G)">${fmt(income.net_from_deals)}</td></tr>
+        <tr style="background:#F8F5F0"><td colspan="2" style="font-weight:700">순 Commission 수입</td><td style="font-weight:800;color:var(--G)">${fmt(income.net_from_deals)}</td></tr>
       </table>
     </div>
     <div class="card">
-      <div class="card-h"><i class="ti ti-plus"></i> 지출 추가</div>
+      <div class="card-h"><i class="ti ti-plus"></i> Add Expense</div>
       <div class="card-b">
         <div class="fg2 ff">
           <div><label class="fl">날짜</label><input class="fi" type="date" id="e-date" value="${tod()}"></div>
-          <div><label class="fl">분류</label><select class="fs" id="e-cat">
-            <option>인건비</option><option>임차료</option><option>광고선전비</option>
+          <div><label class="fl">Category</label><select class="fs" id="e-cat">
+            <option>인deals비</option><option>임차료</option><option>광고선전비</option>
             <option>통신비</option><option>교통비</option><option>접대비</option>
             <option>세금과공과</option><option>소모품비</option><option>기타</option>
           </select></div>
         </div>
         <div class="fg2 ff">
           <div><label class="fl">금액 (PHP)</label><input class="fi" type="number" id="e-amt" placeholder="0"></div>
-          <div><label class="fl">내용</label><input class="fi" type="text" id="e-desc" placeholder="지출 내용"></div>
+          <div><label class="fl">내용</label><input class="fi" type="text" id="e-desc" placeholder="Description"></div>
         </div>
-        <button class="btn btn-n" style="width:100%;justify-content:center" onclick="addExp()"><i class="ti ti-plus"></i>지출 추가</button>
+        <button class="btn btn-n" style="width:100%;justify-content:center" onclick="addExp()"><i class="ti ti-plus"></i>Add Expense</button>
       </div>
     </div>
   </div>
   <div>
     <div class="card">
-      <div class="card-h"><span><i class="ti ti-trending-down"></i> 지출 내역</span><span style="font-weight:700;color:var(--R)">${fmt(expenses.total)}</span></div>
+      <div class="card-h"><span><i class="ti ti-trending-down"></i> Expense List</span><span style="font-weight:700;color:var(--R)">${fmt(expenses.total)}</span></div>
       <div id="exp-list">${expenses.items.map(e=>`
       <div style="padding:9px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">
         <div><div style="font-weight:600;font-size:12px">${e.description||'-'}</div>
@@ -2332,7 +2330,7 @@ async function vAcct() {
       </div>`).join('')}</div>
     </div>
     <div class="card">
-      <div class="card-h"><i class="ti ti-chart-pie"></i> 지출 분류</div>
+      <div class="card-h"><i class="ti ti-chart-pie"></i> By Category</div>
       <div class="card-b">
         ${Object.entries(expenses.by_category||{}).map(([cat,amt])=>`
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
@@ -2346,7 +2344,7 @@ async function vAcct() {
         </div>`).join('')}
         <div class="sep"></div>
         <div style="display:flex;justify-content:space-between;font-weight:800;font-size:15px">
-          <span>이달 영업이익</span>
+          <span>Operating Profit</span>
           <span style="color:${profit>=0?'var(--G)':'var(--R)'}">${fmt(profit)}</span>
         </div>
       </div>
@@ -2363,7 +2361,7 @@ async function addExp() {
       description:document.getElementById('e-desc').value,
       amount:amt, date:document.getElementById('e-date').value, created_by:me?.id
     })
-    toast('지출이 추가되었습니다'); vAcct()
+    toast('지출이 Added'); vAcct()
   } catch(e) { alert(e.message) }
 }
 
@@ -2376,7 +2374,7 @@ async function vStaff() {
     const totB=data.reduce((s,a)=>s+a.base_salary,0)
     vc(`
 <div class="ph">
-  <div><div class="ph-title">직원 실적</div><div class="ph-sub">${period} 커미션 정산</div></div>
+  <div><div class="ph-title">Staff Performance</div><div class="ph-sub">${period} 커미션 정산</div></div>
 </div>
 <div class="pb">
 <div class="g3">
@@ -2386,38 +2384,38 @@ async function vStaff() {
       <div style="padding:14px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:12px">
         <div style="width:44px;height:44px;border-radius:50%;background:#E6F1FB;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#185FA5">${ag.name[0]}</div>
         <div><div style="font-size:15px;font-weight:700">${ag.name}</div>
-        <div style="font-size:11px;color:var(--m)">${ag.work_mode} · 기본급 ${fmt(ag.base_salary)}</div></div>
+        <div style="font-size:11px;color:var(--m)">${ag.work_mode} · Base Salary ${fmt(ag.base_salary)}</div></div>
       </div>
       <div class="card-b">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
           <div style="text-align:center;padding:10px;background:#F8F5F0;border-radius:8px">
             <div style="font-size:20px;font-weight:800;color:var(--N)">${ag.deal_count}</div>
-            <div style="font-size:10px;color:var(--m);margin-top:1px">이달 계약</div>
+            <div style="font-size:10px;color:var(--m);margin-top:1px">Deals This Month</div>
           </div>
           <div style="text-align:center;padding:10px;background:#E0F3ED;border-radius:8px">
             <div style="font-size:16px;font-weight:800;color:var(--G)">${fmt(ag.total_commission)}</div>
-            <div style="font-size:10px;color:var(--m);margin-top:1px">인센티브</div>
+            <div style="font-size:10px;color:var(--m);margin-top:1px">Incentive</div>
           </div>
         </div>
         <div class="sep"></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--m)">기본급</span><span style="font-weight:600">${fmt(ag.base_salary)}</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--m)">임대인측</span><span style="color:var(--G);font-weight:600">${fmt(ag.owner_commission)}</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:10px"><span style="color:var(--m)">임차인측</span><span style="color:var(--G);font-weight:600">${fmt(ag.tenant_commission)}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--m)">Base Salary</span><span style="font-weight:600">${fmt(ag.base_salary)}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--m)">Rent인측</span><span style="color:var(--G);font-weight:600">${fmt(ag.owner_commission)}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px"><span style="color:var(--m)">Lessee Side</span><span style="color:var(--G);font-weight:600">${fmt(ag.tenant_commission)}</span></div>
         <div style="background:var(--N);color:#fff;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:11px;opacity:.7">이달 총 지급</span>
+          <span style="font-size:11px;opacity:.7">Total Monthly Pay</span>
           <span style="font-size:18px;font-weight:800">${fmt(ag.total_payout)}</span>
         </div>
         <div class="sep"></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--m)">활성 리드</span><span style="font-weight:600">${ag.active_leads}건</span></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">담당 매물</span><span style="font-weight:600">${ag.active_listings}건</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--m)">Active Leads</span><span style="font-weight:600">${ag.active_leads}deals</span></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">담당 Listing</span><span style="font-weight:600">${ag.active_listings}deals</span></div>
       </div>
     </div>
   </div>`).join('')}
 </div>
 <div class="card">
-  <div class="card-h"><i class="ti ti-table"></i> 급여 정산 요약표</div>
+  <div class="card-h"><i class="ti ti-table"></i> Payroll Summary</div>
   <div class="scroll-x"><table class="tbl">
-    <tr><th>직원</th><th>기본급</th><th>임대인측</th><th>임차인측</th><th>인센티브 합계</th><th>이달 지급 총액</th></tr>
+    <tr><th>직원</th><th>Base Salary</th><th>Rent인측</th><th>Lessee Side</th><th>Incentive 합계</th><th>This month 지급 총액</th></tr>
     ${data.map(ag=>`<tr>
       <td style="font-weight:600">${ag.name}</td>
       <td>${fmt(ag.base_salary)}</td>
