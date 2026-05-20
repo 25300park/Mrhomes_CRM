@@ -417,6 +417,95 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
   </div>
 </div>
 
+<!-- ── AI Quick Input 모달 (매물) ── -->
+<div class="modal-overlay" id="modal-quick-listing" style="display:none" onclick="if(event.target===this)closeModal('modal-quick-listing')">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-hd">
+      <div><h2>✨ Quick Input — Listing</h2><p>Paste property message → AI auto-fills the form</p></div>
+      <button class="modal-close" onclick="closeModal('modal-quick-listing')"><i class="ti ti-x"></i></button>
+    </div>
+    <!-- Step 1 -->
+    <div class="modal-body" id="ql-step1">
+      <div class="mf">
+        <label>PASTE MESSAGE HERE</label>
+        <textarea id="ql-text" rows="7" class="fi"
+          placeholder="Paste property details here&#10;&#10;Example:&#10;Bonifacio Ridge 1207B&#10;임대 ₱87,550/월&#10;113sqm 3BR 2Bath 주차2&#10;풀퍼니시드, 반려동물 불가&#10;22층&#10;임대인: Kim Dalhyun 010-1234-5678"
+          style="resize:vertical;font-size:13px;line-height:1.7"></textarea>
+      </div>
+      <div id="ql-error" style="display:none;background:#FDEAEA;color:#DC4A4A;border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:12px"></div>
+      <button class="btn btn-g" style="width:100%;justify-content:center;padding:12px;font-size:14px" onclick="parseListingAI()">
+        <i class="ti ti-sparkles"></i> Analyze with AI
+      </button>
+    </div>
+    <!-- Step 2: 결과 -->
+    <div class="modal-body" id="ql-step2" style="display:none">
+      <div style="background:#E0F3ED;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#085041;display:flex;align-items:center;gap:8px">
+        <i class="ti ti-check" style="font-size:16px"></i>
+        <span>AI analysis complete. Please review and confirm.</span>
+      </div>
+      <div class="mf"><label>PROPERTY NAME *</label><input class="fi" id="ql-name" placeholder="e.g. Bonifacio Ridge 1207B"></div>
+      <div class="mf-row">
+        <div class="mf"><label>TRANSACTION</label>
+          <select class="fs" id="ql-trade"><option value="RENT">Rent</option><option value="SALE">Sale</option></select>
+        </div>
+        <div class="mf"><label>TYPE</label>
+          <select class="fs" id="ql-ptype">
+            <option value="CONDO">CONDO</option><option value="OFFICE">OFFICE</option>
+            <option value="COMMERCIAL">COMMERCIAL</option><option value="BUILDING">BUILDING</option>
+            <option value="LAND">LAND</option><option value="OTHER">OTHER</option>
+          </select>
+        </div>
+      </div>
+      <div class="mf-row">
+        <div class="mf"><label>PRICE (PHP) *</label><input class="fi" id="ql-price" type="number"></div>
+        <div class="mf"><label>AREA (sqm)</label><input class="fi" id="ql-area" type="number"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+        <div class="mf"><label>FLOOR</label><input class="fi" id="ql-floor" placeholder="22F"></div>
+        <div class="mf"><label>BED</label><input class="fi" id="ql-beds" type="number"></div>
+        <div class="mf"><label>BATH</label><input class="fi" id="ql-baths" type="number"></div>
+        <div class="mf"><label>PARKING</label><input class="fi" id="ql-park" type="number"></div>
+      </div>
+      <div class="mf-row">
+        <div class="mf"><label>FURNISHED</label>
+          <select class="fs" id="ql-furnished"><option value="true">Fully Furnished</option><option value="false">Bare/Unfurnished</option></select>
+        </div>
+        <div class="mf"><label>PET FRIENDLY</label>
+          <select class="fs" id="ql-pet"><option value="false">Not Allowed</option><option value="true">Allowed</option></select>
+        </div>
+      </div>
+      <div class="mf"><label>ADDRESS</label><input class="fi" id="ql-addr" placeholder="e.g. 1st Ave, BGC, Taguig"></div>
+
+      <!-- 임대인 정보 -->
+      <div id="ql-owner-section" style="display:none;background:#F8F5F0;border-radius:10px;padding:14px;margin-top:4px">
+        <div style="font-size:11px;font-weight:600;color:var(--m);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Owner / Lessor Info (auto-detected)</div>
+        <div class="mf-row">
+          <div class="mf"><label>OWNER NAME</label><input class="fi" id="ql-owner-name"></div>
+          <div class="mf"><label>MOBILE</label><input class="fi" id="ql-owner-mobile"></div>
+        </div>
+        <div style="font-size:11px;color:var(--m);margin-top:4px">
+          <i class="ti ti-info-circle"></i> If this owner exists in Contacts, it will be linked automatically.
+        </div>
+      </div>
+
+      <div class="mf" style="margin-top:10px"><label>REMARKS</label><textarea class="fi" id="ql-remarks" rows="2" style="resize:vertical"></textarea></div>
+
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn btn-o" onclick="qlReset()"><i class="ti ti-arrow-left"></i> Back</button>
+        <button class="btn btn-g" style="flex:1;justify-content:center" onclick="saveListingFromAI()">
+          <i class="ti ti-building-plus"></i> Save Listing
+        </button>
+      </div>
+    </div>
+    <!-- 로딩 -->
+    <div class="modal-body" id="ql-loading" style="display:none;text-align:center;padding:40px 24px">
+      <div style="font-size:36px;margin-bottom:12px">✨</div>
+      <div style="font-size:14px;font-weight:600;color:var(--N);margin-bottom:6px">AI Analyzing...</div>
+      <div style="font-size:12px;color:var(--m)">Extracting property information from your message</div>
+    </div>
+  </div>
+</div>
+
 <input type="file" id="photo-input" accept="image/*" multiple style="display:none" onchange="onPhotoSelected(this)">
 
 <!-- ── Contact Add 모달 ── -->
@@ -1336,7 +1425,118 @@ function custTab(t,btn) {
 }
 function filterC(q) { _cQ=q.toLowerCase(); document.getElementById('cc').innerHTML=renderContacts() }
 function setTF(t,btn) { _cTypeF=t; document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); document.getElementById('cc').innerHTML=renderContacts() }
-// ═══════════ PROFILE MODAL ═══════════
+// ── Listing Quick Input ─────────────────────────────────────
+function openListingQuickInput() {
+  qlReset()
+  document.getElementById('modal-quick-listing').style.display = 'flex'
+  setTimeout(() => document.getElementById('ql-text')?.focus(), 100)
+}
+function qlReset() {
+  document.getElementById('ql-step1').style.display = ''
+  document.getElementById('ql-step2').style.display = 'none'
+  document.getElementById('ql-loading').style.display = 'none'
+  const e = document.getElementById('ql-error'); if(e) e.style.display = 'none'
+}
+async function parseListingAI() {
+  const text  = document.getElementById('ql-text').value.trim()
+  const errEl = document.getElementById('ql-error')
+  if (!text) { errEl.textContent = 'Please paste a message first'; errEl.style.display='block'; return }
+  document.getElementById('ql-step1').style.display = 'none'
+  document.getElementById('ql-loading').style.display = ''
+  errEl.style.display = 'none'
+  try {
+    const result = await api('POST', '/api/ai/parse-listing', { text })
+    const d = result.data
+    const set = (id, val) => { const el=document.getElementById(id); if(el&&val!=null) el.value=val }
+    set('ql-name',  d.name||'')
+    set('ql-price', d.price||'')
+    set('ql-area',  d.area_sqm||'')
+    set('ql-floor', d.floor||'')
+    set('ql-beds',  d.bedrooms!=null?d.bedrooms:'')
+    set('ql-baths', d.bathrooms!=null?d.bathrooms:'')
+    set('ql-park',  d.parking!=null?d.parking:'')
+    set('ql-addr',  d.address||'')
+    set('ql-remarks', d.remarks||'')
+    const trEl = document.getElementById('ql-trade')
+    if (trEl && d.transaction_type) trEl.value = d.transaction_type
+    const ptEl = document.getElementById('ql-ptype')
+    if (ptEl && d.property_type) ptEl.value = d.property_type
+    const fuEl = document.getElementById('ql-furnished')
+    if (fuEl) fuEl.value = d.is_furnished ? 'true' : 'false'
+    const petEl = document.getElementById('ql-pet')
+    if (petEl) petEl.value = d.pet_friendly ? 'true' : 'false'
+    // 임대인 정보
+    const ownerSec = document.getElementById('ql-owner-section')
+    if (d.owner && (d.owner.name || d.owner.mobile)) {
+      if(ownerSec) ownerSec.style.display = ''
+      set('ql-owner-name',   d.owner.name||'')
+      set('ql-owner-mobile', d.owner.mobile||'')
+    } else if(ownerSec) ownerSec.style.display = 'none'
+    document.getElementById('ql-loading').style.display = 'none'
+    document.getElementById('ql-step2').style.display = ''
+  } catch(e) {
+    document.getElementById('ql-loading').style.display = 'none'
+    document.getElementById('ql-step1').style.display = ''
+    document.getElementById('ql-error').textContent = 'AI Error: ' + e.message
+    document.getElementById('ql-error').style.display = 'block'
+  }
+}
+async function saveListingFromAI() {
+  const name  = document.getElementById('ql-name').value.trim()
+  const price = parseFloat(document.getElementById('ql-price').value)
+  if (!name)  { alert('Property name is required'); document.getElementById('ql-name').focus();  return }
+  if (!price) { alert('Price is required');          document.getElementById('ql-price').focus(); return }
+
+  try {
+    // 임대인 정보가 있으면 먼저 고객 검색 또는 생성
+    let listing_source_id = null
+    const ownerName   = document.getElementById('ql-owner-name')?.value.trim()
+    const ownerMobile = document.getElementById('ql-owner-mobile')?.value.trim()
+    const ownerSec    = document.getElementById('ql-owner-section')?.style.display
+
+    if (ownerName && ownerSec !== 'none') {
+      // 기존 고객 검색
+      const existing = await api('GET', `/api/contacts?q=${encodeURIComponent(ownerName)}&limit=5`)
+      const cl = existing.data || existing
+      const found = cl.find(c => c.name.toLowerCase().includes(ownerName.toLowerCase()))
+      if (found) {
+        listing_source_id = found.id
+        toast(`Linked to existing contact: ${found.name}`)
+      } else {
+        // 새 고객 생성
+        const newContact = await api('POST', '/api/contacts', {
+          name: ownerName, mobile: ownerMobile || null,
+          type: 'OWNER', assigned_user_id: me?.id, status: 'ACTIVE'
+        })
+        listing_source_id = newContact.id
+        toast(`New owner contact created: ${ownerName}`)
+      }
+    }
+
+    await api('POST', '/api/listings', {
+      name,
+      transaction_type: document.getElementById('ql-trade').value,
+      property_type:    document.getElementById('ql-ptype').value,
+      price,
+      area_sqm:         parseFloat(document.getElementById('ql-area').value)  || null,
+      floor:            document.getElementById('ql-floor').value             || null,
+      bedrooms:         parseInt(document.getElementById('ql-beds').value)    || 0,
+      bathrooms:        parseInt(document.getElementById('ql-baths').value)   || 0,
+      parking:          parseInt(document.getElementById('ql-park').value)    || 0,
+      is_furnished:     document.getElementById('ql-furnished').value === 'true',
+      pet_friendly:     document.getElementById('ql-pet').value === 'true',
+      address:          document.getElementById('ql-addr').value              || null,
+      listing_source_id,
+      assigned_user_id: me?.id,
+      remarks:          document.getElementById('ql-remarks').value           || null,
+      status: 'ACTIVE'
+    })
+
+    toast(`✓ ${name} listing saved`)
+    closeModal('modal-quick-listing')
+    vList()
+  } catch(e) { alert('Save error: ' + e.message) }
+}
 function togglePwVis(inputId, btn) {
   const el = document.getElementById(inputId)
   const isText = el.type === 'text'
@@ -1974,7 +2174,10 @@ async function vList() {
     vc(`
 <div class="ph">
   <div><div class="ph-title">Listings</div><div class="ph-sub">총 ${data.length}deals · Active ${data.filter(l=>l.status==='ACTIVE').length}deals</div></div>
-  <button class="btn btn-n" onclick="addListing()"><i class="ti ti-plus"></i>Listing Add</button>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-n" onclick="addListing()"><i class="ti ti-plus"></i>Add Listing</button>
+    <button class="btn" style="background:#534AB7;color:#fff;gap:6px" onclick="openListingQuickInput()"><i class="ti ti-sparkles"></i>Quick Input</button>
+  </div>
 </div>
 <div class="pb">
   <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
