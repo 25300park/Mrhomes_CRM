@@ -118,11 +118,59 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 .notif-badge{position:absolute;top:-4px;right:-4px;background:#DC4A4A;color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--N)}
 .notif-panel{position:fixed;bottom:70px;left:10px;width:320px;max-height:460px;overflow-y:auto;background:#fff;border-radius:12px;border:1px solid var(--b);box-shadow:0 8px 30px rgba(0,0,0,.18);z-index:500;display:none}
 .notif-panel.open{display:block}
+
+/* ── Mobile Responsive ── */
+.mobile-bar{display:none;position:fixed;top:0;left:0;right:0;height:52px;background:var(--N);z-index:400;align-items:center;justify-content:space-between;padding:0 14px}
+.mobile-bar .m-logo{color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.hamburger{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:6px;display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:8px}
+.hamburger:hover{background:rgba(255,255,255,.12)}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:299}
+.sb-overlay.open{display:block}
+@media(max-width:767px){
+  :root{--sw:0px}
+  .mobile-bar{display:flex}
+  #sidebar{transform:translateX(-220px);transition:transform .25s ease;width:220px!important;z-index:350}
+  #sidebar.sb-open{transform:translateX(0)}
+  #main{margin-left:0!important;padding-top:52px}
+  .ph{padding:10px 14px;flex-wrap:wrap;gap:8px;top:52px}
+  .pb{padding:12px}
+  .g2{grid-template-columns:1fr!important}
+  .fg2{grid-template-columns:1fr!important}
+  .mf-row{grid-template-columns:1fr!important}
+  .scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tbl th,.tbl td{white-space:nowrap;font-size:11px;padding:8px 10px}
+  .modal-overlay{padding:0!important;align-items:flex-end!important}
+  .modal{max-width:100%!important;border-radius:18px 18px 0 0!important;max-height:92vh!important}
+  .notif-panel{left:8px;right:8px;width:auto;bottom:80px}
+  .btn{min-height:40px}
+  .tab{padding:7px 10px;font-size:11px}
+  .tabs{flex-wrap:wrap;gap:4px}
+  .ph>.btn{font-size:12px;padding:8px 12px}
+}
+@media(max-width:400px){
+  .pb{padding:10px}
+  .tbl th,.tbl td{font-size:10px;padding:6px 8px}
+}
 </style>
 </head>
 <body>
 
 <div id="toast"><i class="ti ti-check"></i><span id="tmsg">Saved</span></div>
+
+<!-- 모바일 상단 바 -->
+<div class="mobile-bar">
+  <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+    <i class="ti ti-menu-2"></i>
+  </button>
+  <div class="m-logo">🏠 RBS Homes</div>
+  <button class="notif-btn" onclick="toggleNotifPanel()" style="position:relative">
+    <i class="ti ti-bell"></i>
+    <span class="notif-badge" id="notif-badge-m" style="display:none">0</span>
+  </button>
+</div>
+
+<!-- 사이드바 오버레이 -->
+<div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
 
 <!-- LOGIN -->
 <div id="login-screen">
@@ -561,6 +609,18 @@ function doLogout() {
   document.getElementById('login-screen').style.display = 'flex'
 }
 
+// ── Mobile Sidebar ──────────────────────────
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar')
+  const ov = document.getElementById('sb-overlay')
+  sb.classList.toggle('sb-open')
+  ov.classList.toggle('open')
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('sb-open')
+  document.getElementById('sb-overlay').classList.remove('open')
+}
+
 // ═══════════ NOTIFICATIONS ═══════════
 let _notifOpen = false
 
@@ -575,9 +635,14 @@ async function loadNotifications() {
       badge.textContent = data.length > 9 ? '9+' : data.length
       badge.style.display = 'flex'
       btn.style.background = 'rgba(220,74,74,.3)'
+      // 모바일 배지 동기화
+      const mb = document.getElementById('notif-badge-m')
+      if (mb) { mb.textContent = badge.textContent; mb.style.display = 'flex' }
     } else {
       badge.style.display = 'none'
       btn.style.background = 'rgba(255,255,255,.1)'
+      const mb = document.getElementById('notif-badge-m')
+      if (mb) mb.style.display = 'none'
     }
 
     // 패널 내용 업데이트
@@ -646,6 +711,8 @@ function nav(v) {
   vc('<div class="loading">Loading...</div>')
   const views = { dashboard: vDash, customers: vCust, listings: vList, deals: vDeals, accounting: vAcct, staff: vStaff }
   if (views[v]) views[v]()
+  // 모바일: 메뉴 클릭 시 사이드바 닫기
+  if (window.innerWidth < 768) closeSidebar()
 }
 
 // ═══════════ DASHBOARD ═══════════
