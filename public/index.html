@@ -490,6 +490,22 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 
       <div class="mf" style="margin-top:10px"><label>REMARKS</label><textarea class="fi" id="ql-remarks" rows="2" style="resize:vertical"></textarea></div>
 
+      <!-- 사진 업로드 -->
+      <div class="mf" style="margin-top:10px">
+        <label>PHOTOS <span style="font-weight:400;text-transform:none;color:var(--m)">(optional — multiple allowed)</span></label>
+        <div id="ql-photo-drop"
+          onclick="document.getElementById('ql-photo-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--A)';this.style.background='#F0EDE8'"
+          ondragleave="this.style.borderColor='#C8C3BA';this.style.background='#FAFAF8'"
+          ondrop="handleQLPhotoDrop(event)"
+          style="border:2px dashed #C8C3BA;border-radius:10px;padding:18px;text-align:center;cursor:pointer;background:#FAFAF8;transition:all .15s">
+          <i class="ti ti-photo-plus" style="font-size:26px;color:var(--m);display:block;margin-bottom:6px"></i>
+          <div id="ql-drop-label" style="font-size:12px;color:var(--m)">Click to select or drag photos here</div>
+        </div>
+        <input type="file" id="ql-photo-input" accept="image/*" multiple style="display:none" onchange="handleQLPhotoSelect(this)">
+        <div id="ql-photo-preview" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px"></div>
+      </div>
+
       <div style="display:flex;gap:8px;margin-top:14px">
         <button class="btn btn-o" onclick="qlReset()"><i class="ti ti-arrow-left"></i> Back</button>
         <button class="btn btn-g" style="flex:1;justify-content:center" onclick="saveListingFromAI()">
@@ -1426,6 +1442,8 @@ function custTab(t,btn) {
 function filterC(q) { _cQ=q.toLowerCase(); document.getElementById('cc').innerHTML=renderContacts() }
 function setTF(t,btn) { _cTypeF=t; document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); document.getElementById('cc').innerHTML=renderContacts() }
 // ── Listing Quick Input ─────────────────────────────────────
+let _qlPhotos = []  // { file, url }
+
 function openListingQuickInput() {
   qlReset()
   document.getElementById('modal-quick-listing').style.display = 'flex'
@@ -1436,7 +1454,54 @@ function qlReset() {
   document.getElementById('ql-step2').style.display = 'none'
   document.getElementById('ql-loading').style.display = 'none'
   const e = document.getElementById('ql-error'); if(e) e.style.display = 'none'
+  // 사진 초기화
+  _qlPhotos.forEach(p => URL.revokeObjectURL(p.url))
+  _qlPhotos = []
+  renderQLPhotoPreview()
 }
+function handleQLPhotoSelect(input) {
+  addQLPhotos(Array.from(input.files))
+  input.value = ''
+}
+function handleQLPhotoDrop(event) {
+  event.preventDefault()
+  const el = document.getElementById('ql-photo-drop')
+  if(el){ el.style.borderColor='#C8C3BA'; el.style.background='#FAFAF8' }
+  const files = Array.from(event.dataTransfer.files).filter(f => f.type.startsWith('image/'))
+  addQLPhotos(files)
+}
+function addQLPhotos(files) {
+  const newFiles = files
+    .filter(f => f.size <= 10*1024*1024)
+    .map(f => ({ file: f, url: URL.createObjectURL(f) }))
+  _qlPhotos = [..._qlPhotos, ...newFiles]
+  if (files.some(f => f.size > 10*1024*1024)) alert('Some files exceed 10MB and were skipped')
+  renderQLPhotoPreview()
+}
+function removeQLPhoto(i) {
+  URL.revokeObjectURL(_qlPhotos[i].url)
+  _qlPhotos.splice(i, 1)
+  renderQLPhotoPreview()
+}
+function renderQLPhotoPreview() {
+  const preview  = document.getElementById('ql-photo-preview')
+  const dropLabel = document.getElementById('ql-drop-label')
+  if (!preview) return
+  if (_qlPhotos.length === 0) {
+    preview.innerHTML = ''
+    if(dropLabel) dropLabel.textContent = 'Click to select or drag photos here'
+    return
+  }
+  if(dropLabel) dropLabel.textContent = `${_qlPhotos.length} photo(s) selected · Click to add more`
+  preview.innerHTML = _qlPhotos.map((p, i) => `
+    <div style="position:relative;aspect-ratio:1;border-radius:7px;overflow:hidden;border:${i===0?'2px solid var(--A)':'1px solid var(--b)'}">
+      <img src="${p.url}" style="width:100%;height:100%;object-fit:cover">
+      ${i===0?'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(200,137,42,.8);color:#fff;font-size:9px;text-align:center;padding:2px;font-weight:700">MAIN</div>':''}
+      <button onclick="removeQLPhoto(${i})"
+        style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>`).join('')
+}
+
 async function parseListingAI() {
   const text  = document.getElementById('ql-text').value.trim()
   const errEl = document.getElementById('ql-error')
@@ -1465,7 +1530,6 @@ async function parseListingAI() {
     if (fuEl) fuEl.value = d.is_furnished ? 'true' : 'false'
     const petEl = document.getElementById('ql-pet')
     if (petEl) petEl.value = d.pet_friendly ? 'true' : 'false'
-    // 임대인 정보
     const ownerSec = document.getElementById('ql-owner-section')
     if (d.owner && (d.owner.name || d.owner.mobile)) {
       if(ownerSec) ownerSec.style.display = ''
@@ -1481,6 +1545,7 @@ async function parseListingAI() {
     document.getElementById('ql-error').style.display = 'block'
   }
 }
+
 async function saveListingFromAI() {
   const name  = document.getElementById('ql-name').value.trim()
   const price = parseFloat(document.getElementById('ql-price').value)
@@ -1488,32 +1553,28 @@ async function saveListingFromAI() {
   if (!price) { alert('Price is required');          document.getElementById('ql-price').focus(); return }
 
   try {
-    // 임대인 정보가 있으면 먼저 고객 검색 또는 생성
+    // 임대인 처리
     let listing_source_id = null
     const ownerName   = document.getElementById('ql-owner-name')?.value.trim()
     const ownerMobile = document.getElementById('ql-owner-mobile')?.value.trim()
     const ownerSec    = document.getElementById('ql-owner-section')?.style.display
-
     if (ownerName && ownerSec !== 'none') {
-      // 기존 고객 검색
       const existing = await api('GET', `/api/contacts?q=${encodeURIComponent(ownerName)}&limit=5`)
       const cl = existing.data || existing
       const found = cl.find(c => c.name.toLowerCase().includes(ownerName.toLowerCase()))
       if (found) {
         listing_source_id = found.id
-        toast(`Linked to existing contact: ${found.name}`)
       } else {
-        // 새 고객 생성
-        const newContact = await api('POST', '/api/contacts', {
-          name: ownerName, mobile: ownerMobile || null,
+        const newC = await api('POST', '/api/contacts', {
+          name: ownerName, mobile: ownerMobile||null,
           type: 'OWNER', assigned_user_id: me?.id, status: 'ACTIVE'
         })
-        listing_source_id = newContact.id
-        toast(`New owner contact created: ${ownerName}`)
+        listing_source_id = newC.id
       }
     }
 
-    await api('POST', '/api/listings', {
+    // 매물 저장
+    const listing = await api('POST', '/api/listings', {
       name,
       transaction_type: document.getElementById('ql-trade').value,
       property_type:    document.getElementById('ql-ptype').value,
@@ -1532,7 +1593,32 @@ async function saveListingFromAI() {
       status: 'ACTIVE'
     })
 
-    toast(`✓ ${name} listing saved`)
+    // 사진 업로드
+    if (_qlPhotos.length > 0) {
+      toast(`Uploading ${_qlPhotos.length} photo(s)...`)
+      let mainUrl  = null
+      const extras = []
+      for (const p of _qlPhotos) {
+        try {
+          const fd = new FormData()
+          fd.append('photo', p.file)
+          fd.append('folder', 'listings')
+          const res = await fetch('/api/upload/photo', { method:'POST', headers:{'Authorization':'Bearer '+token}, body:fd })
+          const d   = await res.json()
+          if (res.ok) {
+            if (!mainUrl) mainUrl = d.url
+            else extras.push(d.url)
+          }
+        } catch(e) { console.warn('Photo upload failed:', e.message) }
+      }
+      if (mainUrl) {
+        await api('PATCH', `/api/listings/${listing.id}`, { photo_url: mainUrl, photos: extras })
+      }
+      toast(`✓ ${name} saved with ${_qlPhotos.length} photo(s)`)
+    } else {
+      toast(`✓ ${name} listing saved`)
+    }
+
     closeModal('modal-quick-listing')
     vList()
   } catch(e) { alert('Save error: ' + e.message) }
