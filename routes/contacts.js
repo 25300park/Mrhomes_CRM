@@ -51,13 +51,14 @@ router.get('/:id', auth, async (req, res) => {
 
 // POST /api/contacts
 router.post('/', auth, async (req, res) => {
-  const { name, type, type2, mobile, email, nationality, platform, assigned_user_id, status, remarks } = req.body
+  const { name, type, type2, nickname, mobile, email, nationality, platform, assigned_user_id, status, remarks } = req.body
   if (!name || !type) return res.status(400).json({ error: '이름과 유형은 필수입니다' })
 
   const { data, error } = await req.supabase
     .from('contacts')
     .insert({
-      name, type, type2: type2||null, mobile, email, nationality, platform,
+      name, type, type2: type2||null, nickname: nickname||null,
+      mobile, email, nationality, platform,
       assigned_user_id: assigned_user_id || req.user.id,
       created_by: req.user.id,
       status: status || 'ACTIVE', remarks
@@ -69,7 +70,7 @@ router.post('/', auth, async (req, res) => {
 
 // PATCH /api/contacts/:id
 router.patch('/:id', auth, async (req, res) => {
-  const allowed = ['name','type','type2','mobile','email','nationality','platform','assigned_user_id','status','remarks']
+  const allowed = ['name','type','type2','nickname','mobile','email','nationality','platform','assigned_user_id','status','remarks']
   const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)))
   updates.updated_at = new Date().toISOString()
 

@@ -536,10 +536,14 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
     </div>
     <div class="modal-body">
       <div class="mf-row">
-        <div class="mf">
-          <label>Name *</label>
-          <input type="text" id="mc-name" placeholder="Contact Name" autofocus>
-        </div>
+      <div class="mf">
+        <label>Name *</label>
+        <input type="text" id="mc-name" placeholder="Full name (e.g. Park Yongsik)" autofocus>
+      </div>
+      <div class="mf">
+        <label>Nickname <span style="font-weight:400;font-size:10px;color:var(--m)">(optional — e.g. Mr. Park, Ate Mary)</span></label>
+        <input type="text" id="mc-nickname" placeholder="Short name used internally">
+      </div>
         <div class="mf">
           <label>Primary Type *</label>
           <select id="mc-type">
@@ -547,7 +551,8 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
             <option value="TENANT">Lessee/Tenant</option>
             <option value="BUYER">Buyer</option>
             <option value="SELLER">Seller</option>
-            <option value="CO-BROKER">Co-Broker</option>
+            <option value="BROKER">Broker (Licensed)</option>
+            <option value="AGENT">Agent (Unlicensed)</option>
           </select>
         </div>
       </div>
@@ -559,7 +564,8 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
           <option value="TENANT">Lessee/Tenant</option>
           <option value="BUYER">Buyer</option>
           <option value="SELLER">Seller</option>
-          <option value="CO-BROKER">Co-Broker</option>
+          <option value="BROKER">Broker (Licensed)</option>
+          <option value="AGENT">Agent (Unlicensed)</option>
         </select>
       </div>
       <div class="mf-row">
@@ -600,7 +606,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
         </div>
       </div>
       <div class="mf">
-        <label>Agent</label>
+        <label>Assigned Member</label>
         <select id="mc-agent">
           <option value="">Unassigned</option>
         </select>
@@ -712,7 +718,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
         <div style="font-size:10px;color:var(--m);margin-top:4px">Contact 중 Rent인·매도인·Co-Broker Type만 표시됩니다</div>
       </div>
       <div class="mf">
-        <label>Agent</label>
+        <label>Assigned Member</label>
         <select id="ml-agent">
           <option value="">Unassigned</option>
         </select>
@@ -1171,7 +1177,7 @@ async function vContactDetail(id) {
           <div class="ff"><label class="fl">Nationality</label><input class="fi" id="ce-nationality" value="${contact.nationality||'Korean'}"></div>
         </div>
         <div class="fg2">
-          <div class="ff"><label class="fl">Agent</label>
+          <div class="ff"><label class="fl">Assigned Member</label>
             <select class="fs" id="ce-agent">
               <option value="">Select</option>
               ${staff.map(s=>`<option value="${s.id}" ${contact.assigned_user?.id===s.id?'selected':''}>${s.name}</option>`).join('')}
@@ -1387,11 +1393,13 @@ async function addLeadForContact(contactId, contactName) {
 
 async function vCust() {
   try {
-    // 필터 파라미터 적용
+    // 본인 연락처만 표시 (admin은 전체)
     let url = '/api/contacts?limit=300'
     if (_cf.agent)  url += `&agent=${_cf.agent}`
     if (_cf.status) url += `&status=${_cf.status}`
     if (_cf.type)   url += `&type=${_cf.type}`
+    // 일반 직원: 본인이 입력한 연락처만
+    if (me?.role !== 'admin') url += `&agent=${me.id}`
     const [c, l, st] = await Promise.all([
       api('GET', url),
       api('GET', '/api/leads'),
@@ -1447,12 +1455,15 @@ function renderContacts() {
   ${(_cf.agent||_cf.status||_cf.type)?`<button class="btn btn-o" style="font-size:11px;padding:6px 10px" onclick="_cf={agent:'',status:'',type:''};vCust()"><i class="ti ti-x"></i> Clear</button>`:''}
 </div>
 <div class="card"><div class="scroll-x"><table class="tbl">
-  <tr><th>Name</th><th>Type</th><th>Mobile</th><th>Agent</th><th>Status</th><th>Date</th><th>Notes</th><th></th></tr>
-  ${rows.map(c=>{
+  <tr><th>No.</th><th>Name</th><th>Type</th><th>Mobile</th><th>Member</th><th>Status</th><th>Date</th><th>Notes</th><th></th></tr>
+  ${rows.map((c,idx)=>{
     const ct=CT[c.type]||{l:c.type,bg:'#eee',c:'#666'}
     const ct2=c.type2?CT[c.type2]:null
     return`<tr>
-    <td style="font-weight:600;cursor:pointer;color:var(--N);text-decoration:underline;text-underline-offset:3px" onclick="vContactDetail('${c.id}')">${c.name}</td>
+    <td style="color:var(--m);font-size:11px;text-align:center">${idx+1}</td>
+    <td style="font-weight:600;cursor:pointer;color:var(--N);text-decoration:underline;text-underline-offset:3px" onclick="vContactDetail('${c.id}')">
+      ${c.name}${c.nickname?`<span style="font-size:10px;color:var(--m);font-weight:400;margin-left:5px">(${c.nickname})</span>`:''}
+    </td>
     <td>${bdg(ct.l,ct.bg,ct.c)}${ct2?` <span style="margin-left:3px">${bdg(ct2.l,ct2.bg,ct2.c)}</span>`:''}</td>
     <td style="font-family:monospace;font-size:11px">${c._private ? '<span style="color:var(--m);font-size:11px">🔒 Private</span>' : (c.mobile||'-')}</td>
     <td>${agBdg(c.assigned_user)}</td>
@@ -1845,38 +1856,60 @@ async function addContact() {
     const st = _staff.length ? _staff : await api('GET', '/api/staff')
     st.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.name}</option>`)
   } catch(e) {}
-  ;['mc-name','mc-mobile','mc-email','mc-remarks'].forEach(id => {
+  ;['mc-name','mc-mobile','mc-email','mc-remarks','mc-nickname'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = ''
   })
-  document.getElementById('mc-type').value       = 'TENANT'
+  document.getElementById('mc-type').value       = 'AGENT'
   document.getElementById('mc-type2').value      = ''
-  document.getElementById('mc-platform').value   = 'Telegram'
-  document.getElementById('mc-nationality').value = 'Korean'
+  document.getElementById('mc-platform').value   = 'Viber'
+  document.getElementById('mc-nationality').value = 'Filipino'
   document.getElementById('modal-contact').style.display = 'flex'
   setTimeout(() => document.getElementById('mc-name')?.focus(), 100)
 }
 
 async function saveNewContact() {
-  const name = document.getElementById('mc-name').value.trim()
+  const name     = document.getElementById('mc-name').value.trim()
+  const mobile   = document.getElementById('mc-mobile').value.trim()
+  const email    = document.getElementById('mc-email').value.trim()
+  const nickname = document.getElementById('mc-nickname')?.value.trim() || ''
   if (!name) { document.getElementById('mc-name').style.borderColor='var(--R)'; document.getElementById('mc-name').focus(); return }
+
+  // ── 중복 감지 ──────────────────────────────────────────
+  try {
+    const existing = await api('GET', '/api/contacts?limit=500')
+    const all = existing.data || existing.contacts || (Array.isArray(existing)?existing:[])
+    const dups = all.filter(c => {
+      const sameName   = c.name.toLowerCase() === name.toLowerCase()
+      const sameMobile = mobile && c.mobile && c.mobile.replace(/\D/g,'') === mobile.replace(/\D/g,'')
+      const sameEmail  = email  && c.email  && c.email.toLowerCase() === email.toLowerCase()
+      return sameName || sameMobile || sameEmail
+    })
+    if (dups.length > 0) {
+      const info = dups.map(d=>`• ${d.name}${d.mobile?' · '+d.mobile:''} (${(d.created_at||'').slice(0,10)})`).join('\n')
+      if (!confirm(`⚠️ Duplicate contact found:\n\n${info}\n\nSave anyway?`)) return
+    }
+  } catch(e) {}
+
+  // ── 저장 ───────────────────────────────────────────────
   try {
     await api('POST', '/api/contacts', {
-      name,
+      name, nickname: nickname||null,
       type:             document.getElementById('mc-type').value,
-      type2:            document.getElementById('mc-type2').value   || null,
-      mobile:           document.getElementById('mc-mobile').value   || null,
-      email:            document.getElementById('mc-email').value    || null,
-      platform:         document.getElementById('mc-platform').value || null,
+      type2:            document.getElementById('mc-type2').value    || null,
+      mobile:           mobile || null,
+      email:            email  || null,
+      platform:         document.getElementById('mc-platform').value  || null,
       nationality:      document.getElementById('mc-nationality').value || null,
-      assigned_user_id: document.getElementById('mc-agent').value    || null,
-      remarks:          document.getElementById('mc-remarks').value  || null,
+      assigned_user_id: document.getElementById('mc-agent').value     || null,
+      remarks:          document.getElementById('mc-remarks').value   || null,
       status: 'ACTIVE'
     })
-    toast(`✓ ${name} Contact이 Added`)
+    toast(`✓ ${name} contact added`)
     closeModal('modal-contact')
     vCust()
-  } catch(e) { alert('Save Error: ' + e.message) }
+  } catch(e) { alert('Save error: ' + e.message) }
 }
+
 
 async function addListing() {
   // Agent Back
@@ -2343,9 +2376,10 @@ async function vList() {
     ${['ACTIVE','ON-HOLD','CONTRACTED'].map(s=>{const st=SLS[s];return`<button class="tab" onclick="fLS('${s}','status',this)">${st.l}</button>`}).join('')}
   </div>
   <div class="card"><div class="scroll-x"><table class="tbl" id="ltbl">
-    <tr><th>Photo</th><th>Code</th><th>Property Name</th><th>Trade</th><th>Type</th><th>Price</th><th>Owner</th><th>Agent</th><th>Status</th></tr>
-    ${data.map(l=>{const st=SLS[l.status]||{l:l.status,bg:'#eee',c:'#666'};const src=l.listing_source;return`
+    <tr><th>No.</th><th>Photo</th><th>Code</th><th>Property Name</th><th>Trade</th><th>Type</th><th>Price</th><th>Owner</th><th>Member</th><th>Status</th></tr>
+    ${data.map((l,idx)=>{const st=SLS[l.status]||{l:l.status,bg:'#eee',c:'#666'};const src=l.listing_source;return`
     <tr data-ltype="${l.transaction_type}" data-lstatus="${l.status}">
+      <td style="color:var(--m);font-size:11px;text-align:center">${idx+1}</td>
       <td style="width:48px">
         ${l.photo_url
           ? `<img src="${l.photo_url}" style="width:40px;height:40px;border-radius:7px;object-fit:cover;cursor:pointer;border:0.5px solid var(--b)" onclick="viewPhoto('${l.photo_url}','${l.name}')" title="Click to view">`
@@ -2423,7 +2457,7 @@ async function vDeals() {
               <select class="fs" id="d-own-c"><option value="">Select</option>
                 ${cl.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
               </select></div>
-            <div class="ff"><label class="fl">Agent</label>
+            <div class="ff"><label class="fl">Assigned Member</label>
               <select class="fs" id="d-own-a" onchange="calcD()"><option value="">Select</option>
                 ${staff.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}
                                 <option value="ext">External Broker</option>
@@ -2435,7 +2469,7 @@ async function vDeals() {
               <select class="fs" id="d-ten-c"><option value="">Select</option>
                 ${cl.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
               </select></div>
-            <div class="ff"><label class="fl">Agent</label>
+            <div class="ff"><label class="fl">Assigned Member</label>
               <select class="fs" id="d-ten-a" onchange="calcD()"><option value="">Select</option>
                 ${staff.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}
                                 <option value="ext">External Broker</option>
