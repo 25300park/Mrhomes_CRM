@@ -541,8 +541,8 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
         <input type="text" id="mc-name" placeholder="Full name (e.g. Park Yongsik)" autofocus>
       </div>
       <div class="mf">
-        <label>Nickname <span style="font-weight:400;font-size:10px;color:var(--m)">(optional — e.g. Mr. Park, Ate Mary)</span></label>
-        <input type="text" id="mc-nickname" placeholder="Short name used internally">
+        <label>Nickname</label>
+        <input type="text" id="mc-nickname" placeholder="Lead reference name">
       </div>
         <div class="mf">
           <label>Primary Type *</label>
@@ -1855,7 +1855,10 @@ async function addContact() {
   try {
     const st = _staff.length ? _staff : await api('GET', '/api/staff')
     st.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.name}</option>`)
+    if (!_staff.length) _staff = st
   } catch(e) {}
+  // 로그인 계정을 기본 담당자로 설정
+  sel.value = me?.id || ''
   ;['mc-name','mc-mobile','mc-email','mc-remarks','mc-nickname'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = ''
   })
