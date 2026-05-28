@@ -199,7 +199,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <div class="nav-sec">Main</div>
       <button class="nav-it active" onclick="nav('dashboard')" data-v="dashboard"><i class="ti ti-layout-dashboard"></i><span>Dashboard</span></button>
       <div class="nav-sec">CRM</div>
-      <button class="nav-it" onclick="nav('customers')" data-v="customers"><i class="ti ti-users"></i><span>Customers</span></button>
+      <button class="nav-it" onclick="nav('contacts')" data-v="contacts"><i class="ti ti-users"></i><span>Contacts</span></button>
       <button class="nav-it" onclick="nav('listings')" data-v="listings"><i class="ti ti-building"></i><span>Listings</span></button>
       <button class="nav-it" onclick="nav('deals')" data-v="deals"><i class="ti ti-file-text"></i><span>Deals & Commission</span></button>
       <div class="nav-sec admin-only">Management</div>
@@ -541,15 +541,26 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
           <input type="text" id="mc-name" placeholder="Contact Name" autofocus>
         </div>
         <div class="mf">
-          <label>Type *</label>
+          <label>Primary Type *</label>
           <select id="mc-type">
-            <option value="OWNER">Rent인 (Lessor/Owner)</option>
-            <option value="TENANT">임차인 (Lessee/Tenant)</option>
-            <option value="BUYER">매수인 (Buyer)</option>
-            <option value="SELLER">매도인 (Seller)</option>
+            <option value="OWNER">Lessor/Owner</option>
+            <option value="TENANT">Lessee/Tenant</option>
+            <option value="BUYER">Buyer</option>
+            <option value="SELLER">Seller</option>
             <option value="CO-BROKER">Co-Broker</option>
           </select>
         </div>
+      </div>
+      <div class="mf">
+        <label>Secondary Type <span style="font-weight:400;font-size:10px;color:var(--m)">(optional — e.g. Lessor also selling)</span></label>
+        <select id="mc-type2">
+          <option value="">None</option>
+          <option value="OWNER">Lessor/Owner</option>
+          <option value="TENANT">Lessee/Tenant</option>
+          <option value="BUYER">Buyer</option>
+          <option value="SELLER">Seller</option>
+          <option value="CO-BROKER">Co-Broker</option>
+        </select>
       </div>
       <div class="mf-row">
         <div class="mf">
@@ -726,7 +737,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 // ═══════════ STATE ═══════════
 let token = null, me = null, _dType = 'RENT', _dPrice = 0
 let _contacts = [], _leads = [], _listings = [], _staff = []
-let _cQ = '', _cTypeF = 'ALL'
+let _cQ = '', _cTypeF = 'ALL', _cf = { agent: '', status: '', type: '' }
 
 
 // ═══════════ API ═══════════
@@ -904,7 +915,7 @@ function goToContact(contactId) {
   if (!contactId) return
   toggleNotifPanel()
   vContactDetail(contactId)
-  nav('customers')
+  nav('contacts')
 }
 
 // 패널 외부 클릭 시 닫기
@@ -920,7 +931,7 @@ document.addEventListener('click', e => {
 function nav(v) {
   document.querySelectorAll('.nav-it').forEach(e => e.classList.toggle('active', e.dataset.v === v))
   vc('<div class="loading">Loading...</div>')
-  const views = { dashboard: vDash, customers: vCust, listings: vList, deals: vDeals, accounting: vAcct, staff: vStaff }
+  const views = { dashboard: vDash, contacts: vCust, listings: vList, deals: vDeals, accounting: vAcct, staff: vStaff }
   if (views[v]) views[v]()
   // 모바일: 메뉴 클릭 시 사이드바 닫기
   if (window.innerWidth < 768) closeSidebar()
@@ -1056,7 +1067,7 @@ async function vDashAgent() {
           <span style="font-size:12px;font-weight:700;color:${st.c};min-width:16px">${cnt}</span>
         </div>`}).join('')}
       </div>
-      <div style="padding:0 14px 12px"><button class="btn btn-o" style="width:100%;justify-content:center;font-size:11px" onclick="nav('customers')"><i class="ti ti-arrow-right"></i>파이프라인 All 보기</button></div>
+      <div style="padding:0 14px 12px"><button class="btn btn-o" style="width:100%;justify-content:center;font-size:11px" onclick="nav('contacts')"><i class="ti ti-arrow-right"></i>파이프라인 All 보기</button></div>
     </div>
     <div class="card">
       <div class="card-h"><i class="ti ti-users"></i> 내 활성 Contact</div>
@@ -1066,7 +1077,7 @@ async function vDashAgent() {
         <div style="font-size:10px;color:var(--m)">${l.location_pref||''} · ${fmt(l.budget)}${l.request_type==='RENT'?'/월':''}</div></div>
         ${bdg(s.l||l.status,s.bg||'#eee',s.c||'#666')}
       </div>`}).join('')}
-      <div style="padding:10px 14px"><button class="btn btn-o" style="width:100%;justify-content:center;font-size:11px" onclick="nav('customers')"><i class="ti ti-arrow-right"></i>Contact All 보기</button></div>
+      <div style="padding:10px 14px"><button class="btn btn-o" style="width:100%;justify-content:center;font-size:11px" onclick="nav('contacts')"><i class="ti ti-arrow-right"></i>Contact All 보기</button></div>
     </div>
   </div>
 </div></div>`)
@@ -1075,7 +1086,8 @@ async function vDashAgent() {
 
 // ═══════════ CONTACT DETAIL ═══════════
 async function vContactDetail(id) {
-  vc(`<div class="loading">Contact 정보 Loading...</div>`)
+  history.pushState({ view:'contact-detail', id }, '', '#contact/' + id)
+  vc(`<div class="loading">Loading contact...</div>`)
   try {
     const [contact, leads, activities, deals, staff, listings] = await Promise.all([
       api('GET', `/api/contacts/${id}`),
@@ -1092,7 +1104,7 @@ async function vContactDetail(id) {
     vc(`
 <div class="ph">
   <div style="display:flex;align-items:center;gap:12px">
-    <button onclick="nav('customers')" class="btn btn-o" style="padding:7px 12px">
+    <button onclick="nav('contacts')" class="btn btn-o" style="padding:7px 12px">
       <i class="ti ti-arrow-left" aria-hidden="true"></i> Back
     </button>
     <div>
@@ -1375,8 +1387,20 @@ async function addLeadForContact(contactId, contactName) {
 
 async function vCust() {
   try {
-    const [c, l] = await Promise.all([api('GET','/api/contacts?limit=200'), api('GET','/api/leads')])
-    _contacts = (c.data || c.contacts || (Array.isArray(c)?c:[])); _leads = l
+    // 필터 파라미터 적용
+    let url = '/api/contacts?limit=300'
+    if (_cf.agent)  url += `&agent=${_cf.agent}`
+    if (_cf.status) url += `&status=${_cf.status}`
+    if (_cf.type)   url += `&type=${_cf.type}`
+    const [c, l, st] = await Promise.all([
+      api('GET', url),
+      api('GET', '/api/leads'),
+      _staff.length ? Promise.resolve(_staff) : api('GET', '/api/staff')
+    ])
+    _contacts = (c.data || c.contacts || (Array.isArray(c)?c:[]))
+    _leads = l
+    if (!_staff.length) _staff = st
+    history.pushState({ view:'contacts' }, '', '#contacts')
     renderCustView()
   } catch(e) { err(e) }
 }
@@ -1384,7 +1408,7 @@ function renderCustView() {
   const active = _leads.filter(l => !l.status.startsWith('CLOSED')).length
   vc(`
 <div class="ph">
-  <div><div class="ph-title">Customers</div><div class="ph-sub">연락처 ${_contacts.length}명 · Active Leads ${active}deals</div></div>
+  <div><div class="ph-title">Contacts</div><div class="ph-sub">${_contacts.length} contacts · ${active} active leads</div></div>
   <div style="display:flex;gap:8px">
     <button class="btn btn-n" onclick="addContact()"><i class="ti ti-plus"></i>Add Contact</button>
     <button class="btn" style="background:#534AB7;color:#fff;gap:6px" onclick="openQuickInput()"><i class="ti ti-sparkles"></i>Quick Input</button>
@@ -1400,22 +1424,42 @@ function renderCustView() {
 </div>`)
 }
 function renderContacts() {
-  const rows = _contacts.filter(c => (_cTypeF==='ALL'||c.type===_cTypeF) && c.name.toLowerCase().includes(_cQ))
+  const rows = _contacts.filter(c => c.name.toLowerCase().includes(_cQ))
   return `
-<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-  <input class="fi" style="max-width:200px" placeholder="Name 검색" oninput="filterC(this.value)">
-  ${['ALL','OWNER','TENANT','BUYER','SELLER','CO-BROKER'].map((tp,i)=>`<button class="tab ${(i===0&&_cTypeF==='ALL')||_cTypeF===tp?'on':''}" onclick="setTF('${tp}',this)">${tp==='ALL'?'All':CT[tp]?.l||tp}</button>`).join('')}
+<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+  <input class="fi" style="max-width:180px;flex-shrink:0" placeholder="Search name..." oninput="filterC(this.value)">
+  <!-- Agent 필터 -->
+  <select class="fs" style="max-width:130px" onchange="_cf.agent=this.value;vCust()">
+    <option value="">All Agents</option>
+    ${_staff.map(s=>`<option value="${s.id}" ${_cf.agent===s.id?'selected':''}>${s.name}</option>`).join('')}
+  </select>
+  <!-- Status 필터 -->
+  <select class="fs" style="max-width:120px" onchange="_cf.status=this.value;vCust()">
+    <option value="">All Status</option>
+    <option value="ACTIVE"   ${_cf.status==='ACTIVE'?'selected':''}>Active</option>
+    <option value="INACTIVE" ${_cf.status==='INACTIVE'?'selected':''}>Inactive</option>
+  </select>
+  <!-- Type 필터 -->
+  <select class="fs" style="max-width:140px" onchange="_cf.type=this.value;vCust()">
+    <option value="">All Types</option>
+    ${Object.entries(CT).map(([k,v])=>`<option value="${k}" ${_cf.type===k?'selected':''}>${v.l}</option>`).join('')}
+  </select>
+  ${(_cf.agent||_cf.status||_cf.type)?`<button class="btn btn-o" style="font-size:11px;padding:6px 10px" onclick="_cf={agent:'',status:'',type:''};vCust()"><i class="ti ti-x"></i> Clear</button>`:''}
 </div>
 <div class="card"><div class="scroll-x"><table class="tbl">
-  <tr><th>Name</th><th>Type</th><th>Mobile</th><th>Agent</th><th>Status</th><th>등록일</th><th>비고</th></tr>
-  ${rows.map(c=>{const ct=CT[c.type]||{l:c.type,bg:'#eee',c:'#666'};return`<tr>
+  <tr><th>Name</th><th>Type</th><th>Mobile</th><th>Agent</th><th>Status</th><th>Date</th><th>Notes</th><th></th></tr>
+  ${rows.map(c=>{
+    const ct=CT[c.type]||{l:c.type,bg:'#eee',c:'#666'}
+    const ct2=c.type2?CT[c.type2]:null
+    return`<tr>
     <td style="font-weight:600;cursor:pointer;color:var(--N);text-decoration:underline;text-underline-offset:3px" onclick="vContactDetail('${c.id}')">${c.name}</td>
-    <td>${bdg(ct.l,ct.bg,ct.c)}</td>
+    <td>${bdg(ct.l,ct.bg,ct.c)}${ct2?` <span style="margin-left:3px">${bdg(ct2.l,ct2.bg,ct2.c)}</span>`:''}</td>
     <td style="font-family:monospace;font-size:11px">${c._private ? '<span style="color:var(--m);font-size:11px">🔒 Private</span>' : (c.mobile||'-')}</td>
     <td>${agBdg(c.assigned_user)}</td>
-    <td>${bdg(c.status==='ACTIVE'?'Active':'Inactive','#E0F3ED','#19846B')}</td>
+    <td>${bdg(c.status==='ACTIVE'?'Active':'Inactive',c.status==='ACTIVE'?'#E0F3ED':'#F1EFE8',c.status==='ACTIVE'?'#19846B':'#5F5E5A')}</td>
     <td style="color:var(--m);font-size:11px">${(c.created_at||'').slice(0,10)}</td>
-    <td style="color:var(--m);font-size:11px">${c.remarks||''}</td>
+    <td style="color:var(--m);font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.remarks||''}</td>
+    <td><button onclick="deleteContact('${c.id}','${c.name.replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:4px;border-radius:6px" title="Delete"><i class="ti ti-trash" style="font-size:14px"></i></button></td>
   </tr>`}).join('')}
 </table></div></div>`
 }
@@ -1441,6 +1485,15 @@ function custTab(t,btn) {
 }
 function filterC(q) { _cQ=q.toLowerCase(); document.getElementById('cc').innerHTML=renderContacts() }
 function setTF(t,btn) { _cTypeF=t; document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); document.getElementById('cc').innerHTML=renderContacts() }
+async function deleteContact(id, name) {
+  if (!confirm(`Delete "${name}"?\nThis will permanently remove this contact.`)) return
+  try {
+    await api('DELETE', `/api/contacts/${id}`)
+    toast(`${name} deleted`)
+    _contacts = _contacts.filter(c => c.id !== id)
+    document.getElementById('cc').innerHTML = renderContacts()
+  } catch(e) { alert('Error: ' + e.message) }
+}
 // ── Listing Quick Input ─────────────────────────────────────
 let _qlPhotos = []  // { file, url }
 
@@ -1796,6 +1849,7 @@ async function addContact() {
     const el = document.getElementById(id); if(el) el.value = ''
   })
   document.getElementById('mc-type').value       = 'TENANT'
+  document.getElementById('mc-type2').value      = ''
   document.getElementById('mc-platform').value   = 'Telegram'
   document.getElementById('mc-nationality').value = 'Korean'
   document.getElementById('modal-contact').style.display = 'flex'
@@ -1809,6 +1863,7 @@ async function saveNewContact() {
     await api('POST', '/api/contacts', {
       name,
       type:             document.getElementById('mc-type').value,
+      type2:            document.getElementById('mc-type2').value   || null,
       mobile:           document.getElementById('mc-mobile').value   || null,
       email:            document.getElementById('mc-email').value    || null,
       platform:         document.getElementById('mc-platform').value || null,
@@ -1884,6 +1939,22 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeModal('modal-contact')
     closeModal('modal-listing')
+    closeModal('modal-profile')
+    closeModal('modal-quick-contact')
+    closeModal('modal-quick-listing')
+  }
+})
+
+// 브라우저 뒤로가기 처리
+window.addEventListener('popstate', e => {
+  const v = e.state?.view
+  if (!v || !token) return
+  if (['dashboard','contacts','listings','deals','accounting','staff'].includes(v)) {
+    nav(v)
+  } else if (v === 'contact-detail' && e.state?.id) {
+    vContactDetail(e.state.id)
+  } else if (v === 'listing-detail' && e.state?.id) {
+    vListingDetail(e.state.id)
   }
 })
 
@@ -1893,7 +1964,8 @@ let _photoMode = 'main' // 'main' | 'gallery'
 let _galleryListingId = null
 
 async function vListingDetail(id) {
-  vc(`<div class="loading">Listing 정보 Loading...</div>`)
+  history.pushState({ view:'listing-detail', id }, '', '#listing/' + id)
+  vc(`<div class="loading">Loading listing...</div>`)
   try {
     const [listing, activities, deals] = await Promise.all([
       api('GET', `/api/listings/${id}`),
@@ -2238,7 +2310,7 @@ async function setMainPhoto(listingId, photoUrl) {
 
 // Listing 상세에서 활동 Add 바로가기
 function addActivityForListing(listingId, listingName) {
-  nav('customers')
+  nav('contacts')
   setTimeout(() => {
     const tabs = document.querySelectorAll('.tabs .tab')
     if (tabs[2]) { tabs[2].click() }

@@ -51,15 +51,15 @@ router.get('/:id', auth, async (req, res) => {
 
 // POST /api/contacts
 router.post('/', auth, async (req, res) => {
-  const { name, type, mobile, email, nationality, platform, assigned_user_id, status, remarks } = req.body
+  const { name, type, type2, mobile, email, nationality, platform, assigned_user_id, status, remarks } = req.body
   if (!name || !type) return res.status(400).json({ error: '이름과 유형은 필수입니다' })
 
   const { data, error } = await req.supabase
     .from('contacts')
     .insert({
-      name, type, mobile, email, nationality, platform,
+      name, type, type2: type2||null, mobile, email, nationality, platform,
       assigned_user_id: assigned_user_id || req.user.id,
-      created_by: req.user.id,           // ← 입력자 기록
+      created_by: req.user.id,
       status: status || 'ACTIVE', remarks
     })
     .select().single()
@@ -69,7 +69,7 @@ router.post('/', auth, async (req, res) => {
 
 // PATCH /api/contacts/:id
 router.patch('/:id', auth, async (req, res) => {
-  const allowed = ['name','type','mobile','email','nationality','platform','assigned_user_id','status','remarks']
+  const allowed = ['name','type','type2','mobile','email','nationality','platform','assigned_user_id','status','remarks']
   const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)))
   updates.updated_at = new Date().toISOString()
 
@@ -79,12 +79,12 @@ router.patch('/:id', auth, async (req, res) => {
   res.json(data)
 })
 
-// DELETE /api/contacts/:id  (soft delete)
+// DELETE /api/contacts/:id  (hard delete — admin 또는 본인 입력건)
 router.delete('/:id', auth, async (req, res) => {
   const { error } = await req.supabase
-    .from('contacts').update({ status: 'INACTIVE', updated_at: new Date().toISOString() }).eq('id', req.params.id)
+    .from('contacts').delete().eq('id', req.params.id)
   if (error) return res.status(500).json({ error: error.message })
-  res.json({ message: '비활성화 완료' })
+  res.json({ message: '삭제되었습니다' })
 })
 
 module.exports = router
