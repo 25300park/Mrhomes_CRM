@@ -96,4 +96,18 @@ router.patch('/:id', auth, async (req, res) => {
   res.json(data)
 })
 
+// DELETE /api/listings/:id
+router.delete('/:id', auth, async (req, res) => {
+  // 입력자 또는 admin만 삭제 가능
+  const { data: listing } = await req.supabase
+    .from('listings').select('assigned_user_id').eq('id', req.params.id).single()
+  if (!listing) return res.status(404).json({ error: 'Not found' })
+  if (req.user.role !== 'admin' && listing.assigned_user_id !== req.user.id)
+    return res.status(403).json({ error: 'Permission denied' })
+
+  const { error } = await req.supabase.from('listings').delete().eq('id', req.params.id)
+  if (error) return res.status(500).json({ error: error.message })
+  res.json({ message: 'Deleted' })
+})
+
 module.exports = router
