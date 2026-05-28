@@ -634,20 +634,22 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <button class="modal-close" onclick="closeModal('modal-listing')"><i class="ti ti-x"></i></button>
     </div>
     <div class="modal-body">
+      <!-- Property Name -->
       <div class="mf">
-        <label>Listing명 *</label>
-        <input type="text" id="ml-name" placeholder="예) Bonifacio Ridge 1207B">
+        <label>Property Name *</label>
+        <input type="text" id="ml-name" placeholder="e.g. Bonifacio Ridge 1207B">
       </div>
+      <!-- Trade / Type -->
       <div class="mf-row">
         <div class="mf">
-          <label>거래 Type *</label>
+          <label>Transaction Type *</label>
           <select id="ml-trade">
-            <option value="RENT">Rent (Rent)</option>
-            <option value="SALE">Sale (Sale)</option>
+            <option value="RENT">Rent</option>
+            <option value="SALE">Sale</option>
           </select>
         </div>
         <div class="mf">
-          <label>Listing Type</label>
+          <label>Property Type</label>
           <select id="ml-ptype">
             <option value="CONDO">CONDO</option>
             <option value="OFFICE">OFFICE</option>
@@ -658,19 +660,19 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
           </select>
         </div>
       </div>
+      <!-- Price / Area -->
       <div class="mf-row">
         <div class="mf">
           <label>Price (PHP) *</label>
           <input type="number" id="ml-price" placeholder="0">
         </div>
         <div class="mf">
-          <label>Area (sqm) (sqm)</label>
+          <label>Area (sqm)</label>
           <input type="number" id="ml-area" placeholder="0">
         </div>
       </div>
-      <div class="mf-row">
-        <div class="mf">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+      <!-- Bed / Bath / Parking / Floor -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
         <div class="mf">
           <label>Bed</label>
           <select id="ml-beds">
@@ -705,6 +707,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
           <input type="text" id="ml-floor" placeholder="e.g. 22F">
         </div>
       </div>
+      <!-- Furnished / Pet -->
       <div class="mf-row">
         <div class="mf">
           <label>Furnished</label>
@@ -721,6 +724,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
           </select>
         </div>
       </div>
+      <!-- Unit No. / Address -->
       <div class="mf-row">
         <div class="mf">
           <label>Unit No.</label>
@@ -731,6 +735,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
           <input type="text" id="ml-addr" placeholder="1st Ave, BGC, Taguig">
         </div>
       </div>
+      <!-- Contact Search -->
       <div class="mf">
         <label>Contact (Owner / Seller)</label>
         <div style="position:relative">
@@ -746,19 +751,22 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
         <input type="hidden" id="ml-source">
         <div style="font-size:10px;color:var(--m);margin-top:4px">Lessor, Seller, Broker, Agent type contacts</div>
       </div>
+      <!-- Assigned Member -->
       <div class="mf">
         <label>Assigned Member</label>
         <select id="ml-agent">
           <option value="">Unassigned</option>
         </select>
       </div>
+      <!-- External Link -->
       <div class="mf">
         <label>External Link (Lamudi etc.)</label>
         <input type="url" id="ml-link" placeholder="https://...">
       </div>
+      <!-- Notes -->
       <div class="mf">
         <label>Notes</label>
-        <textarea id="ml-remarks" placeholder="Remarks, conditions, etc."></textarea>
+        <textarea id="ml-remarks" placeholder="Remarks, conditions, etc." style="resize:vertical;min-height:64px"></textarea>
       </div>
     </div>
     <div class="modal-ft">
