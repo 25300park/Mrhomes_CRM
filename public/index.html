@@ -202,6 +202,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <button class="nav-it" onclick="nav('contacts')" data-v="contacts"><i class="ti ti-users"></i><span>Contacts</span></button>
       <button class="nav-it" onclick="nav('listings')" data-v="listings"><i class="ti ti-building"></i><span>Listings</span></button>
       <button class="nav-it" id="nav-deals" onclick="nav('deals')" data-v="deals" style="display:none"><i class="ti ti-file-text"></i><span>Deals & Commission</span></button>
+      <button class="nav-it" onclick="nav('tenants')" data-v="tenants"><i class="ti ti-building-community"></i><span>Tenants</span></button>
       <div class="nav-sec admin-only">Management</div>
       <button class="nav-it admin-only" onclick="nav('accounting')" data-v="accounting"><i class="ti ti-coin"></i><span>Accounting</span></button>
       <button class="nav-it admin-only" onclick="nav('staff')" data-v="staff"><i class="ti ti-chart-bar"></i><span>Staff Performance</span></button>
@@ -986,7 +987,7 @@ document.addEventListener('click', e => {
 function nav(v) {
   document.querySelectorAll('.nav-it').forEach(e => e.classList.toggle('active', e.dataset.v === v))
   vc('<div class="loading">Loading...</div>')
-  const views = { dashboard: vDash, contacts: vCust, listings: vList, deals: vDeals, accounting: vAcct, staff: vStaff }
+  const views = { dashboard: vDash, contacts: vCust, listings: vList, deals: vDeals, accounting: vAcct, staff: vStaff, tenants: vTenants }
   if (window.innerWidth < 768) closeSidebar()
   return views[v] ? views[v]() : Promise.resolve()
 }
@@ -2088,8 +2089,8 @@ window.addEventListener('popstate', e => {
     nav(v).then(() => restoreScroll(v))
   } else if (v === 'contact-detail' && e.state?.id) {
     vContactDetail(e.state.id)
-  } else if (v === 'listing-detail' && e.state?.id) {
-    vListingDetail(e.state.id)
+  } else if (v === 'tenant-detail' && e.state?.id) {
+    vTenantDetail(e.state.id)
   }
 })
 
@@ -2668,6 +2669,288 @@ async function deleteListing(id, name) {
     await api('DELETE', `/api/listings/${id}`)
     toast(`${name} deleted`)
     vList()
+  } catch(e) { alert('Error: ' + e.message) }
+}
+
+// ═══════════ TENANTS ═══════════
+const REQ_TYPE = {
+  REPAIR:      { l:'Repair',            bg:'#FDEAEA', c:'#DC4A4A' },
+  CLEANING:    { l:'Cleaning',          bg:'#E6F1FB', c:'#185FA5' },
+  RENEWAL:     { l:'Contract Renewal',  bg:'#E0F3ED', c:'#0F6E56' },
+  TERMINATION: { l:'Contract Termination', bg:'#FDF0DC', c:'#854F0B' },
+  WORKER:      { l:'Worker Request',    bg:'#EEEDFE', c:'#534AB7' },
+  OTHER:       { l:'Other',             bg:'#F1EFE8', c:'#5F5E5A' }
+}
+const REQ_STATUS = {
+  PENDING:     { l:'Pending',     bg:'#FDF0DC', c:'#854F0B' },
+  IN_PROGRESS: { l:'In Progress', bg:'#E6F1FB', c:'#185FA5' },
+  COMPLETED:   { l:'Completed',   bg:'#E0F3ED', c:'#0F6E56' },
+  CANCELLED:   { l:'Cancelled',   bg:'#F1EFE8', c:'#5F5E5A' }
+}
+
+async function vTenants() {
+  try {
+    const data = await api('GET', '/api/tenants')
+    const today = new Date()
+    vc(`
+<div class="ph">
+  <div><div class="ph-title">Tenants</div>
+  <div class="ph-sub">${data.length} active contracts</div></div>
+</div>
+<div class="pb">
+  <div class="card"><div class="scroll-x"><table class="tbl">
+    <tr>
+      <th>No.</th><th>Property</th><th>Tenant</th><th>Lessor</th>
+      <th>Contract Period</th><th>D-Day</th><th>Rent</th><th>Deposit</th>
+      <th>Util.Day</th><th>AC Next</th><th>Member</th><th></th>
+    </tr>
+    ${data.map((d, i) => {
+      const info   = d.tenant_info || {}
+      const endRaw = d.move_in_date && d.contract_months
+        ? (() => { const e=new Date(d.move_in_date); e.setMonth(e.getMonth()+d.contract_months); return e })()
+        : null
+      const dday   = endRaw ? Math.ceil((endRaw - today) / 86400000) : null
+      const ddayBg = dday===null?'#eee':dday<=30?'#FDEAEA':dday<=90?'#FDF0DC':'#E0F3ED'
+      const ddayC  = dday===null?'#666':dday<=30?'#DC4A4A':dday<=90?'#854F0B':'#0F6E56'
+      return `<tr>
+        <td style="color:var(--m);font-size:11px;text-align:center">${i+1}</td>
+        <td>
+          <div style="font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;color:var(--N)" onclick="vTenantDetail('${d.id}')">
+            ${d.listing?.name||'-'}${d.listing?.unit_no?` <span style="font-size:10px;color:var(--m)">#${d.listing.unit_no}</span>`:''}
+          </div>
+          <div style="font-size:10px;color:var(--m)">${d.listing?.address||''}</div>
+        </td>
+        <td>
+          <div style="font-size:12px;font-weight:600">${d.tenant_contact?.name||'-'}</div>
+          <div style="font-size:10px;color:var(--m)">${d.tenant_contact?.mobile||''}</div>
+        </td>
+        <td>
+          <div style="font-size:12px">${d.lessor_contact?.name||'-'}</div>
+          <div style="font-size:10px;color:var(--m)">${d.lessor_contact?.mobile||''}</div>
+        </td>
+        <td style="font-size:11px;color:var(--m)">
+          ${d.move_in_date||'-'}<br>
+          <span style="font-size:10px">${d.contract_months?d.contract_months+'mo':''} ${endRaw?'→ '+endRaw.toISOString().slice(0,10):''}</span>
+        </td>
+        <td><span style="background:${ddayBg};color:${ddayC};padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">
+          ${dday===null?'-':dday<=0?'EXPIRED':'D-'+dday}
+        </span></td>
+        <td style="font-weight:600">${fmt(d.monthly_rent)}</td>
+        <td style="font-size:12px">${info.deposit?fmt(info.deposit):'-'}</td>
+        <td style="font-size:12px;text-align:center">${info.utility_payment_day?info.utility_payment_day+'th':'-'}</td>
+        <td style="font-size:11px">${info.ac_next_cleaning||'-'}</td>
+        <td>${agBdg(d.tenant_agent||d.owner_agent)}</td>
+        <td><button onclick="vTenantDetail('${d.id}')" style="background:var(--A);color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px">Detail</button></td>
+      </tr>`
+    }).join('')}
+  </table></div></div>
+</div>`)
+  } catch(e) { err(e) }
+}
+
+async function vTenantDetail(dealId) {
+  try {
+    saveScroll('tenants')
+    history.pushState({ view:'tenant-detail', id:dealId }, '', '#tenant/'+dealId)
+    const [deal, requests] = await Promise.all([
+      api('GET', `/api/tenants`).then(data => data.find(d => d.id === dealId)),
+      api('GET', `/api/tenants/${dealId}/requests`)
+    ])
+    if (!deal) { err({ message: 'Not found' }); return }
+    const info    = deal.tenant_info || {}
+    const today   = new Date()
+    const endDate = deal.move_in_date && deal.contract_months
+      ? (() => { const e=new Date(deal.move_in_date); e.setMonth(e.getMonth()+deal.contract_months); return e })()
+      : null
+    const dday = endDate ? Math.ceil((endDate - today) / 86400000) : null
+
+    vc(`
+<div class="ph">
+  <button class="btn btn-o" onclick="nav('tenants').then(()=>restoreScroll('tenants'))">← Back</button>
+  <div>
+    <div class="ph-title">${deal.listing?.name||'Tenant Detail'}</div>
+    <div class="ph-sub">${deal.listing?.address||''}</div>
+  </div>
+</div>
+<div class="pb">
+<div class="g2">
+  <!-- 좌측: 계약 정보 + 추가 정보 -->
+  <div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-h"><i class="ti ti-file-text"></i> Contract Info</div>
+      <div class="card-b">
+        <div class="g2" style="gap:8px">
+          ${[
+            ['Tenant',   deal.tenant_contact?.name + (deal.tenant_contact?.mobile?' · '+deal.tenant_contact.mobile:'')],
+            ['Lessor',   deal.lessor_contact?.name + (deal.lessor_contact?.mobile?' · '+deal.lessor_contact.mobile:'')],
+            ['Start',    deal.move_in_date||'-'],
+            ['End',      endDate?endDate.toISOString().slice(0,10):'-'],
+            ['D-Day',    dday===null?'-':dday<=0?'⚠️ EXPIRED':'D-'+dday],
+            ['Monthly Rent', fmt(deal.monthly_rent)],
+            ['Deposit',  info.deposit?fmt(info.deposit):'-'],
+            ['Util. Pay Day', info.utility_payment_day?'Every '+info.utility_payment_day+'th':'-'],
+            ['AC Interval', (info.ac_cleaning_interval||6)+' months'],
+            ['AC Last Clean', info.ac_last_cleaned||'-'],
+            ['AC Next Clean', info.ac_next_cleaning||'-']
+          ].map(([l,v])=>`
+            <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
+              <div style="font-size:10px;color:var(--m);margin-bottom:3px">${l}</div>
+              <div style="font-size:13px;font-weight:600">${v||'-'}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- 추가 정보 수정 폼 -->
+    <div class="card">
+      <div class="card-h"><i class="ti ti-edit"></i> Update Info</div>
+      <div class="card-b">
+        <div class="fg2">
+          <div class="ff"><label class="fl">Deposit (PHP)</label>
+            <input class="fi" id="ti-deposit" type="number" value="${info.deposit||''}"></div>
+          <div class="ff"><label class="fl">Utility Payment Day</label>
+            <input class="fi" id="ti-util-day" type="number" min="1" max="31" value="${info.utility_payment_day||''}" placeholder="e.g. 5"></div>
+        </div>
+        <div class="fg2">
+          <div class="ff"><label class="fl">AC Cleaning Interval (months)</label>
+            <input class="fi" id="ti-ac-interval" type="number" value="${info.ac_cleaning_interval||6}"></div>
+          <div class="ff"><label class="fl">AC Last Cleaned</label>
+            <input class="fi" id="ti-ac-last" type="date" value="${info.ac_last_cleaned||''}"></div>
+        </div>
+        <div class="ff"><label class="fl">Notes</label>
+          <textarea class="fi" id="ti-notes" rows="3" style="resize:vertical">${info.notes||''}</textarea></div>
+        <button class="btn btn-g" style="margin-top:8px;width:100%;justify-content:center"
+          onclick="saveTenantInfo('${dealId}')">
+          <i class="ti ti-device-floppy"></i> Save Info
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 우측: 요청사항 -->
+  <div>
+    <div class="card">
+      <div class="card-h" style="justify-content:space-between">
+        <span><i class="ti ti-message-circle"></i> Requests (${requests.length})</span>
+        <button class="btn btn-n" style="font-size:11px;padding:4px 10px"
+          onclick="openNewRequest('${dealId}')">+ New Request</button>
+      </div>
+      <div class="card-b" id="req-list">
+        ${requests.length ? requests.map(r => `
+          <div style="border:1px solid var(--b);border-radius:10px;padding:12px;margin-bottom:8px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+              <div>
+                ${bdg(REQ_TYPE[r.type]?.l||r.type, REQ_TYPE[r.type]?.bg||'#eee', REQ_TYPE[r.type]?.c||'#666')}
+                <span style="font-size:10px;color:var(--m);margin-left:6px">${r.requester}</span>
+              </div>
+              ${bdg(REQ_STATUS[r.status]?.l||r.status, REQ_STATUS[r.status]?.bg||'#eee', REQ_STATUS[r.status]?.c||'#666')}
+            </div>
+            <div style="font-weight:600;font-size:13px;margin-bottom:4px">${r.title}</div>
+            ${r.description?`<div style="font-size:11px;color:var(--m);margin-bottom:6px">${r.description}</div>`:''}
+            ${r.result?`<div style="font-size:11px;background:#E0F3ED;border-radius:6px;padding:6px 8px;color:#085041"><strong>Result:</strong> ${r.result}</div>`:''}
+            <div style="display:flex;gap:6px;margin-top:8px;align-items:center">
+              <span style="font-size:10px;color:var(--m)">${(r.created_at||'').slice(0,10)}</span>
+              <select class="fs" style="font-size:11px;padding:3px 6px" onchange="updateRequest('${r.id}','${dealId}',this.value)">
+                ${Object.entries(REQ_STATUS).map(([k,v])=>`<option value="${k}" ${r.status===k?'selected':''}>${v.l}</option>`).join('')}
+              </select>
+              <button onclick="addRequestResult('${r.id}','${dealId}')"
+                style="font-size:10px;background:none;border:1px solid var(--b);border-radius:6px;padding:3px 8px;cursor:pointer">
+                + Result
+              </button>
+              <button onclick="deleteRequest('${r.id}','${dealId}')"
+                style="background:none;border:none;cursor:pointer;color:#DC4A4A;font-size:13px;padding:2px">
+                <i class="ti ti-trash"></i>
+              </button>
+            </div>
+          </div>`).join('')
+        : '<div style="text-align:center;padding:24px;color:var(--m)">No requests yet</div>'}
+      </div>
+    </div>
+  </div>
+</div>
+</div>`)
+  } catch(e) { err(e) }
+}
+
+async function saveTenantInfo(dealId) {
+  try {
+    await api('POST', `/api/tenants/${dealId}/info`, {
+      deposit:               parseFloat(document.getElementById('ti-deposit').value)    || null,
+      utility_payment_day:   parseInt(document.getElementById('ti-util-day').value)     || null,
+      ac_cleaning_interval:  parseInt(document.getElementById('ti-ac-interval').value)  || 6,
+      ac_last_cleaned:       document.getElementById('ti-ac-last').value                || null,
+      notes:                 document.getElementById('ti-notes').value                  || null
+    })
+    toast('✓ Info saved')
+    vTenantDetail(dealId)
+  } catch(e) { alert('Error: ' + e.message) }
+}
+
+function openNewRequest(dealId) {
+  const types = Object.entries(REQ_TYPE).map(([k,v])=>`<option value="${k}">${v.l}</option>`).join('')
+  const html = `
+    <div style="background:rgba(0,0,0,.4);position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;padding:20px" id="req-modal" onclick="if(event.target===this)this.remove()">
+      <div style="background:#fff;border-radius:14px;width:100%;max-width:420px;padding:24px">
+        <h3 style="margin-bottom:16px;font-size:16px">New Request</h3>
+        <div class="mf"><label>Type</label><select class="fi" id="rq-type">${types}</select></div>
+        <div class="mf"><label>From</label>
+          <select class="fi" id="rq-from">
+            <option value="TENANT">Tenant</option>
+            <option value="LESSOR">Lessor</option>
+          </select>
+        </div>
+        <div class="mf"><label>Title *</label><input class="fi" id="rq-title" placeholder="Brief title"></div>
+        <div class="mf"><label>Description</label>
+          <textarea class="fi" id="rq-desc" rows="3" style="resize:vertical" placeholder="Details..."></textarea>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button class="btn btn-o" style="flex:1" onclick="document.getElementById('req-modal').remove()">Cancel</button>
+          <button class="btn btn-g" style="flex:1" onclick="submitNewRequest('${dealId}')">Submit</button>
+        </div>
+      </div>
+    </div>`
+  document.body.insertAdjacentHTML('beforeend', html)
+  setTimeout(() => document.getElementById('rq-title')?.focus(), 100)
+}
+
+async function submitNewRequest(dealId) {
+  const title = document.getElementById('rq-title')?.value.trim()
+  if (!title) { alert('Title is required'); return }
+  try {
+    await api('POST', `/api/tenants/${dealId}/requests`, {
+      type:        document.getElementById('rq-type').value,
+      requester:   document.getElementById('rq-from').value,
+      title,
+      description: document.getElementById('rq-desc').value || null
+    })
+    document.getElementById('req-modal')?.remove()
+    toast('✓ Request submitted')
+    vTenantDetail(dealId)
+  } catch(e) { alert('Error: ' + e.message) }
+}
+
+async function updateRequest(reqId, dealId, status) {
+  try {
+    await api('PATCH', `/api/tenants/requests/${reqId}`, { status })
+    toast('Status updated')
+    vTenantDetail(dealId)
+  } catch(e) { alert('Error: ' + e.message) }
+}
+
+function addRequestResult(reqId, dealId) {
+  const result = prompt('Enter result / resolution:')
+  if (!result) return
+  api('PATCH', `/api/tenants/requests/${reqId}`, { result, status: 'COMPLETED' })
+    .then(() => { toast('✓ Result saved'); vTenantDetail(dealId) })
+    .catch(e => alert('Error: ' + e.message))
+}
+
+async function deleteRequest(reqId, dealId) {
+  if (!confirm('Delete this request?')) return
+  try {
+    await api('DELETE', `/api/tenants/requests/${reqId}`)
+    toast('Deleted')
+    vTenantDetail(dealId)
   } catch(e) { alert('Error: ' + e.message) }
 }
 
