@@ -2776,13 +2776,39 @@ async function vTenantDetail(dealId) {
 <div class="g2">
   <!-- 좌측: 계약 정보 + 추가 정보 -->
   <div>
+    <!-- 계약 정보 수정 (Deal 직접 수정) -->
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-h"><i class="ti ti-pencil"></i> Edit Contract</div>
+      <div class="card-b">
+        <div class="fg2">
+          <div class="ff"><label class="fl">Move-in Date</label>
+            <input class="fi" id="tc-movein" type="date" value="${deal.move_in_date||''}"></div>
+          <div class="ff"><label class="fl">Contract Duration (months)</label>
+            <input class="fi" id="tc-months" type="number" min="1" max="120" value="${deal.contract_months||''}" placeholder="e.g. 12"></div>
+        </div>
+        <div class="fg2">
+          <div class="ff"><label class="fl">Monthly Rent (PHP)</label>
+            <input class="fi" id="tc-rent" type="number" value="${deal.monthly_rent||''}"></div>
+          <div class="ff"><label class="fl">Remarks</label>
+            <input class="fi" id="tc-remarks" value="${deal.remarks||''}"></div>
+        </div>
+        <button class="btn btn-g" style="margin-top:8px;width:100%;justify-content:center"
+          onclick="saveContractEdit('${dealId}')">
+          <i class="ti ti-device-floppy"></i> Save Contract Info
+        </button>
+        <div style="font-size:10px;color:var(--m);margin-top:6px;text-align:center">
+          Tenant · Lessor contact changes → Deals & Commission tab
+        </div>
+      </div>
+    </div>
+
     <div class="card" style="margin-bottom:12px">
       <div class="card-h"><i class="ti ti-file-text"></i> Contract Info</div>
       <div class="card-b">
         <div class="g2" style="gap:8px">
           ${[
             ['Tenant',   deal.tenant_contact?.name + (deal.tenant_contact?.mobile?' · '+deal.tenant_contact.mobile:'')],
-            ['Lessor',   deal.lessor_contact?.name + (deal.lessor_contact?.mobile?' · '+deal.lessor_contact.mobile:'')],
+            ['Lessor',   deal.lessor_contact ? (deal.lessor_contact.name + (deal.lessor_contact.mobile ? ' · '+deal.lessor_contact.mobile : '')) : '-'],
             ['Start',    deal.move_in_date||'-'],
             ['End',      endDate?endDate.toISOString().slice(0,10):'-'],
             ['D-Day',    dday===null?'-':dday<=0?'⚠️ EXPIRED':'D-'+dday],
@@ -2870,6 +2896,18 @@ async function vTenantDetail(dealId) {
 </div>
 </div>`)
   } catch(e) { err(e) }
+}
+
+async function saveContractEdit(dealId) {
+  const move_in_date    = document.getElementById('tc-movein').value   || null
+  const contract_months = parseInt(document.getElementById('tc-months').value) || null
+  const monthly_rent    = parseFloat(document.getElementById('tc-rent').value) || null
+  const remarks         = document.getElementById('tc-remarks').value   || null
+  try {
+    await api('PATCH', `/api/deals/${dealId}`, { move_in_date, contract_months, monthly_rent, remarks })
+    toast('✓ Contract info saved')
+    vTenantDetail(dealId)
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 async function saveTenantInfo(dealId) {
