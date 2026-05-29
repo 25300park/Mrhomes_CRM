@@ -468,7 +468,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       </div>
       <div class="mf-row">
         <div class="mf"><label>FURNISHED</label>
-          <select class="fs" id="ql-furnished"><option value="true">Fully Furnished</option><option value="false">Bare/Unfurnished</option></select>
+          <select class="fs" id="ql-furnished"><option value="none">Bare/Unfurnished</option><option value="semi">Semi Furnished</option><option value="full">Fully Furnished</option></select>
         </div>
         <div class="mf"><label>PET FRIENDLY</label>
           <select class="fs" id="ql-pet"><option value="false">Not Allowed</option><option value="true">Allowed</option></select>
@@ -719,8 +719,9 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
         <div class="mf">
           <label>Furnished</label>
           <select id="ml-furnished">
-            <option value="false">Bare / Unfurnished</option>
-            <option value="true">Fully Furnished</option>
+            <option value="none">Bare / Unfurnished</option>
+            <option value="semi">Semi Furnished</option>
+            <option value="full">Fully Furnished</option>
           </select>
         </div>
         <div class="mf">
@@ -1642,7 +1643,7 @@ async function parseListingAI() {
     const ptEl = document.getElementById('ql-ptype')
     if (ptEl && d.property_type) ptEl.value = d.property_type
     const fuEl = document.getElementById('ql-furnished')
-    if (fuEl) fuEl.value = d.is_furnished ? 'true' : 'false'
+    if (fuEl) fuEl.value = d.is_furnished ? 'full' : 'none'
     const petEl = document.getElementById('ql-pet')
     if (petEl) petEl.value = d.pet_friendly ? 'true' : 'false'
     const ownerSec = document.getElementById('ql-owner-section')
@@ -1651,6 +1652,19 @@ async function parseListingAI() {
       set('ql-owner-name',   d.owner.name||'')
       set('ql-owner-mobile', d.owner.mobile||'')
     } else if(ownerSec) ownerSec.style.display = 'none'
+
+    // ── 콘도 DB에서 주소 자동입력 (AI가 주소를 못 찾은 경우) ──
+    if (d.name && !d.address) {
+      try {
+        const condos = await api('GET', `/api/condos?q=${encodeURIComponent(d.name.split(' ').slice(0,3).join(' '))}`)
+        if (condos.length > 0) {
+          const match = condos[0]
+          if (match.address) set('ql-addr', match.address)
+          if (match.property_type && ptEl) ptEl.value = match.property_type
+        }
+      } catch(e) { /* 콘도 검색 실패 시 무시 */ }
+    }
+
     document.getElementById('ql-loading').style.display = 'none'
     document.getElementById('ql-step2').style.display = ''
   } catch(e) {
@@ -1699,7 +1713,8 @@ async function saveListingFromAI() {
       bedrooms:         parseInt(document.getElementById('ql-beds').value)    || 0,
       bathrooms:        parseInt(document.getElementById('ql-baths').value)   || 0,
       parking:          parseInt(document.getElementById('ql-park').value)    || 0,
-      is_furnished:     document.getElementById('ql-furnished').value === 'true',
+      is_furnished:     document.getElementById('ql-furnished').value === 'full',
+      furnished_type:   document.getElementById('ql-furnished').value,
       pet_friendly:     document.getElementById('ql-pet').value === 'true',
       address:          document.getElementById('ql-addr').value              || null,
       listing_source_id,
@@ -2009,7 +2024,8 @@ async function saveNewListing() {
       area_sqm:          parseFloat(document.getElementById('ml-area').value) || null,
       bedrooms:          parseInt(document.getElementById('ml-beds').value)   || 0,
       parking:           parseInt(document.getElementById('ml-park').value)   || 0,
-      is_furnished:      document.getElementById('ml-furnished').value === 'true',
+      is_furnished:      document.getElementById('ml-furnished').value === 'full',
+      furnished_type:    document.getElementById('ml-furnished').value,
       pet_friendly:      document.getElementById('ml-pet').value === 'true',
       address:           document.getElementById('ml-addr').value    || null,
       listing_source_id: _mlSourceId || document.getElementById('ml-source').value || null,
