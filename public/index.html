@@ -523,6 +523,99 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
   </div>
 </div>
 
+<!-- ── New Contract 모달 (Tenants 탭) ── -->
+<div class="modal-overlay" id="modal-new-contract" style="display:none" onclick="if(event.target===this)closeModal('modal-new-contract')">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-hd">
+      <div><h2>Register New Contract</h2><p>Create a rental contract record</p></div>
+      <button class="modal-close" onclick="closeModal('modal-new-contract')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <!-- Listing 검색 -->
+      <div class="mf">
+        <label>Property *</label>
+        <div style="position:relative">
+          <input type="text" id="nc-listing-search" class="fi" placeholder="Search listing name..."
+            oninput="searchNcListing(this.value)" autocomplete="off">
+          <div id="nc-listing-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--b);border-radius:8px;max-height:180px;overflow-y:auto;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.12)"></div>
+        </div>
+        <input type="hidden" id="nc-listing-id">
+        <div id="nc-listing-selected" style="display:none;font-size:11px;color:#0F6E56;margin-top:4px"></div>
+      </div>
+      <!-- Tenant / Lessor 검색 -->
+      <div class="mf-row">
+        <div class="mf">
+          <label>Tenant (Lessee) *</label>
+          <div style="position:relative">
+            <input type="text" id="nc-tenant-search" class="fi" placeholder="Search contact..."
+              oninput="searchNcContact(this.value,'tenant')" autocomplete="off">
+            <div id="nc-tenant-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--b);border-radius:8px;max-height:160px;overflow-y:auto;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.12)"></div>
+          </div>
+          <input type="hidden" id="nc-tenant-id">
+          <div id="nc-tenant-selected" style="display:none;font-size:11px;color:#0F6E56;margin-top:4px"></div>
+        </div>
+        <div class="mf">
+          <label>Lessor (Owner)</label>
+          <div style="position:relative">
+            <input type="text" id="nc-lessor-search" class="fi" placeholder="Search contact..."
+              oninput="searchNcContact(this.value,'lessor')" autocomplete="off">
+            <div id="nc-lessor-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--b);border-radius:8px;max-height:160px;overflow-y:auto;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.12)"></div>
+          </div>
+          <input type="hidden" id="nc-lessor-id">
+          <div id="nc-lessor-selected" style="display:none;font-size:11px;color:#0F6E56;margin-top:4px"></div>
+        </div>
+      </div>
+      <!-- Members -->
+      <div class="mf-row">
+        <div class="mf">
+          <label>Tenant Side Member</label>
+          <select id="nc-tenant-agent" class="fi">
+            <option value="">Unassigned</option>
+          </select>
+        </div>
+        <div class="mf">
+          <label>Lessor Side Member</label>
+          <select id="nc-owner-agent" class="fi">
+            <option value="">Unassigned</option>
+          </select>
+        </div>
+      </div>
+      <!-- 날짜 / 기간 -->
+      <div class="mf-row">
+        <div class="mf">
+          <label>Move-in Date *</label>
+          <input type="date" id="nc-movein" class="fi">
+        </div>
+        <div class="mf">
+          <label>Duration (months) *</label>
+          <input type="number" id="nc-months" class="fi" placeholder="e.g. 12" min="1">
+        </div>
+      </div>
+      <!-- 금액 -->
+      <div class="mf-row">
+        <div class="mf">
+          <label>Monthly Rent (PHP) *</label>
+          <input type="number" id="nc-rent" class="fi" placeholder="0">
+        </div>
+        <div class="mf">
+          <label>Security Deposit (PHP)</label>
+          <input type="number" id="nc-deposit" class="fi" placeholder="0">
+        </div>
+      </div>
+      <div class="mf">
+        <label>Notes</label>
+        <textarea id="nc-notes" class="fi" rows="2" style="resize:vertical"></textarea>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-o" onclick="closeModal('modal-new-contract')">Cancel</button>
+      <button class="btn btn-g" onclick="saveNewContract()">
+        <i class="ti ti-file-plus"></i> Register Contract
+      </button>
+    </div>
+  </div>
+</div>
+
 <input type="file" id="photo-input" accept="image/*" multiple style="display:none" onchange="onPhotoSelected(this)">
 
 <!-- ── Contact Add 모달 ── -->
@@ -2672,6 +2765,142 @@ async function deleteListing(id, name) {
   } catch(e) { alert('Error: ' + e.message) }
 }
 
+// ═══════════ NEW CONTRACT (Tenants) ═══════════
+let _ncListingId = null, _ncTenantId = null, _ncLessorId = null
+
+async function openNewContract() {
+  _ncListingId = null; _ncTenantId = null; _ncLessorId = null
+  // 직원 목록 로드
+  const staffOpts = (_staff.length ? _staff : await api('GET','/api/staff'))
+    .map(s=>`<option value="${s.id}">${s.name}</option>`).join('')
+  document.getElementById('nc-tenant-agent').innerHTML = '<option value="">Unassigned</option>' + staffOpts
+  document.getElementById('nc-owner-agent').innerHTML  = '<option value="">Unassigned</option>' + staffOpts
+  // 본인 기본값
+  if (me?.id) {
+    document.getElementById('nc-tenant-agent').value = me.id
+  }
+  // 폼 초기화
+  ;['nc-listing-search','nc-tenant-search','nc-lessor-search','nc-movein','nc-months','nc-rent','nc-deposit','nc-notes']
+    .forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
+  ;['nc-listing-selected','nc-tenant-selected','nc-lessor-selected'].forEach(id => {
+    document.getElementById(id).style.display='none'
+  })
+  document.getElementById('modal-new-contract').style.display = 'flex'
+}
+
+// Listing 검색
+let _ncLTimer = null
+function searchNcListing(q) {
+  const res = document.getElementById('nc-listing-results')
+  if (!q || q.length < 2) { res.style.display='none'; return }
+  clearTimeout(_ncLTimer)
+  _ncLTimer = setTimeout(async () => {
+    try {
+      const data = await api('GET', `/api/listings?q=${encodeURIComponent(q)}`)
+      if (!data.length) { res.style.display='none'; return }
+      res.innerHTML = data.slice(0,6).map(l=>`
+        <div onclick="selectNcListing('${l.id}','${l.name.replace(/'/g,"\\'")}','${l.address||''}')"
+          style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--b);font-size:12px"
+          onmouseover="this.style.background='#F8F5F0'" onmouseout="this.style.background=''">
+          <div style="font-weight:600">${l.name}</div>
+          <div style="font-size:10px;color:var(--m)">${l.address||''} · ${SLS[l.status]?.l||l.status}</div>
+        </div>`).join('')
+      res.style.display='block'
+    } catch(e) {}
+  }, 300)
+}
+function selectNcListing(id, name, addr) {
+  _ncListingId = id
+  document.getElementById('nc-listing-search').value = name
+  document.getElementById('nc-listing-results').style.display = 'none'
+  const sel = document.getElementById('nc-listing-selected')
+  sel.textContent = `✓ ${addr}`; sel.style.display = ''
+}
+
+// Contact 검색 (tenant / lessor)
+let _ncCTimer = null
+function searchNcContact(q, role) {
+  const res = document.getElementById(`nc-${role}-results`)
+  if (!q || q.length < 2) { res.style.display='none'; return }
+  clearTimeout(_ncCTimer)
+  _ncCTimer = setTimeout(() => {
+    const all = _contacts.length ? _contacts : []
+    const filtered = all.filter(c =>
+      c.name.toLowerCase().includes(q.toLowerCase()) ||
+      (c.nickname && c.nickname.toLowerCase().includes(q.toLowerCase()))
+    ).slice(0, 6)
+    if (!filtered.length) { res.style.display='none'; return }
+    res.innerHTML = filtered.map(c=>`
+      <div onclick="selectNcContact('${c.id}','${c.name.replace(/'/g,"\\'")}','${role}','${CT[c.type]?.l||c.type}')"
+        style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--b);font-size:12px"
+        onmouseover="this.style.background='#F8F5F0'" onmouseout="this.style.background=''">
+        <div style="font-weight:600">${c.name}${c.nickname?` <span style="color:var(--m)">(${c.nickname})</span>`:''}</div>
+        <div style="font-size:10px;color:var(--m)">${CT[c.type]?.l||c.type}</div>
+      </div>`).join('')
+    res.style.display='block'
+  }, 200)
+}
+function selectNcContact(id, name, role, type) {
+  if (role==='tenant') _ncTenantId = id
+  else _ncLessorId = id
+  document.getElementById(`nc-${role}-search`).value = name
+  document.getElementById(`nc-${role}-results`).style.display='none'
+  const sel = document.getElementById(`nc-${role}-selected`)
+  sel.textContent = `✓ ${type} · ${name}`; sel.style.display=''
+}
+
+async function saveNewContract() {
+  const movein  = document.getElementById('nc-movein').value
+  const months  = parseInt(document.getElementById('nc-months').value)
+  const rent    = parseFloat(document.getElementById('nc-rent').value)
+  const deposit = parseFloat(document.getElementById('nc-deposit').value) || null
+
+  if (!_ncListingId) { alert('Please select a listing'); return }
+  if (!_ncTenantId)  { alert('Please select a tenant contact'); return }
+  if (!movein)       { alert('Move-in date is required'); return }
+  if (!months)       { alert('Contract duration is required'); return }
+  if (!rent)         { alert('Monthly rent is required'); return }
+
+  try {
+    // 1. Deal 생성 (커미션은 0으로 초기화, 나중에 Admin이 설정)
+    const deal = await api('POST', '/api/deals', {
+      listing_id:           _ncListingId,
+      contract_type:        'RENT',
+      contract_date:        movein,
+      move_in_date:         movein,
+      contract_months:      months,
+      monthly_rent:         rent,
+      gross_commission:     0,
+      tenant_contact_id:    _ncTenantId,
+      owner_contact_id:     _ncLessorId || null,
+      tenant_agent_user_id: document.getElementById('nc-tenant-agent').value || null,
+      owner_agent_user_id:  document.getElementById('nc-owner-agent').value  || null,
+      remarks:              document.getElementById('nc-notes').value || null
+    })
+
+    // 2. Tenant info 생성 (보증금)
+    if (deposit) {
+      await api('POST', `/api/tenants/${deal.id}/info`, { deposit })
+    }
+
+    toast(`✓ Contract registered`)
+    closeModal('modal-new-contract')
+    vTenants()
+  } catch(e) { alert('Error: ' + e.message) }
+}
+
+// 외부 클릭 시 드롭다운 닫기
+document.addEventListener('click', e => {
+  if (!e.target.closest('#nc-listing-search') && !e.target.closest('#nc-listing-results'))
+    document.getElementById('nc-listing-results')?.style && (document.getElementById('nc-listing-results').style.display='none')
+  ;['tenant','lessor'].forEach(role => {
+    if (!e.target.closest(`#nc-${role}-search`) && !e.target.closest(`#nc-${role}-results`)) {
+      const el = document.getElementById(`nc-${role}-results`)
+      if (el) el.style.display = 'none'
+    }
+  })
+})
+
 // ═══════════ TENANTS ═══════════
 const REQ_TYPE = {
   REPAIR:      { l:'Repair',            bg:'#FDEAEA', c:'#DC4A4A' },
@@ -2696,6 +2925,9 @@ async function vTenants() {
 <div class="ph">
   <div><div class="ph-title">Tenants</div>
   <div class="ph-sub">${data.length} active contracts</div></div>
+  <button class="btn btn-g" onclick="openNewContract()">
+    <i class="ti ti-plus"></i> New Contract
+  </button>
 </div>
 <div class="pb">
   <div class="card"><div class="scroll-x"><table class="tbl">
@@ -2722,11 +2954,9 @@ async function vTenants() {
         </td>
         <td>
           <div style="font-size:12px;font-weight:600">${d.tenant_contact?.name||'-'}</div>
-          <div style="font-size:10px;color:var(--m)">${d.tenant_contact?.mobile||''}</div>
         </td>
         <td>
           <div style="font-size:12px">${d.lessor_contact?.name||'-'}</div>
-          <div style="font-size:10px;color:var(--m)">${d.lessor_contact?.mobile||''}</div>
         </td>
         <td style="font-size:11px;color:var(--m)">
           ${d.move_in_date||'-'}<br>
@@ -2739,7 +2969,7 @@ async function vTenants() {
         <td style="font-size:12px">${info.deposit?fmt(info.deposit):'-'}</td>
         <td style="font-size:12px;text-align:center">${info.utility_payment_day?info.utility_payment_day+'th':'-'}</td>
         <td style="font-size:11px">${info.ac_next_cleaning||'-'}</td>
-        <td>${agBdg(d.tenant_agent||d.owner_agent)}</td>
+        <td>${[d.owner_agent,d.tenant_agent].filter(a=>a?.id).map(a=>agBdg(a)).join('<br>')}</td>
         <td><button onclick="vTenantDetail('${d.id}')" style="background:var(--A);color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px">Detail</button></td>
       </tr>`
     }).join('')}
@@ -2808,7 +3038,7 @@ async function vTenantDetail(dealId) {
         <div class="g2" style="gap:8px">
           ${[
             ['Tenant',   deal.tenant_contact?.name + (deal.tenant_contact?.mobile?' · '+deal.tenant_contact.mobile:'')],
-            ['Lessor',   deal.lessor_contact ? (deal.lessor_contact.name + (deal.lessor_contact.mobile ? ' · '+deal.lessor_contact.mobile : '')) : '-'],
+            ['Lessor',   deal.lessor_contact?.name || '-'],
             ['Start',    deal.move_in_date||'-'],
             ['End',      endDate?endDate.toISOString().slice(0,10):'-'],
             ['D-Day',    dday===null?'-':dday<=0?'⚠️ EXPIRED':'D-'+dday],
@@ -3010,11 +3240,21 @@ async function vDeals() {
 <div class="g2">
   <div>
     <div class="card">
-      <div class="card-h"><i class="ti ti-file-plus"></i> New Deal</div>
+      <div class="card-h"><i class="ti ti-file-plus"></i> Commission Entry</div>
       <div class="card-b">
+        <!-- 기존 계약에서 불러오기 -->
+        <div style="background:#E6F1FB;border-radius:9px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:600;color:#185FA5;margin-bottom:6px">
+            <i class="ti ti-download"></i> Load from existing contract
+          </div>
+          <select class="fs" style="width:100%" onchange="loadDealFromContract(this.value)">
+            <option value="">-- Select contract to load --</option>
+            ${deals.map(d=>`<option value="${d.id}">${d.listing?.name||'?'} · ${d.tenant_contact?.name||'?'} · ${d.move_in_date||d.contract_date||''}</option>`).join('')}
+          </select>
+        </div>
         <div style="display:flex;gap:8px;margin-bottom:12px">
-          <button type="button" id="dbt-r" class="btn btn-n" style="flex:1" onclick="setDT('RENT')">Rent RENT</button>
-          <button type="button" id="dbt-s" class="btn btn-o" style="flex:1" onclick="setDT('SALE')">Sale SALE</button>
+          <button type="button" id="dbt-r" class="btn btn-n" style="flex:1" onclick="setDT('RENT')">Rent</button>
+          <button type="button" id="dbt-s" class="btn btn-o" style="flex:1" onclick="setDT('SALE')">Sale</button>
         </div>
         <div class="ff"><label class="fl">Select Listing</label>
           <select class="fs" id="d-ls" onchange="onDLs()"><option value="">-- Select --</option>
@@ -3113,6 +3353,39 @@ async function vDeals() {
 </div></div>`)
     _dType='RENT'; _dPrice=0; calcD()
   } catch(e) { err(e) }
+}
+async function loadDealFromContract(dealId) {
+  if (!dealId) return
+  try {
+    const d = await api('GET', `/api/deals/${dealId}`)
+    // 계약 유형 설정
+    if (d.contract_type) setDT(d.contract_type)
+    // Listing 선택
+    const lsSel = document.getElementById('d-ls')
+    if (lsSel && d.listing_id) {
+      const opt = Array.from(lsSel.options).find(o => o.value.startsWith(d.listing_id))
+      if (opt) { lsSel.value = opt.value; onDLs() }
+    }
+    // 계약일 설정
+    const dateEl = document.getElementById('d-date')
+    if (dateEl && d.contract_date) dateEl.value = d.contract_date
+    // Gross commission (monthly_rent 기반 자동 계산)
+    if (d.monthly_rent) {
+      const grossEl = document.getElementById('d-gross')
+      if (grossEl) { grossEl.value = d.monthly_rent; calcD() }
+    }
+    // 임대인/임차인 Contact 설정
+    const ownC = document.getElementById('d-own-c')
+    const tenC = document.getElementById('d-ten-c')
+    if (ownC && d.owner_contact_id) ownC.value = d.owner_contact_id
+    if (tenC && d.tenant_contact_id) tenC.value = d.tenant_contact_id
+    // Agent 설정
+    const ownA = document.getElementById('d-own-a')
+    const tenA = document.getElementById('d-ten-a')
+    if (ownA && d.owner_agent_user_id) ownA.value = d.owner_agent_user_id
+    if (tenA && d.tenant_agent_user_id) tenA.value = d.tenant_agent_user_id
+    toast(`✓ Loaded: ${d.listing?.name||'contract'}`)
+  } catch(e) { alert('Error loading contract: ' + e.message) }
 }
 async function deleteDeal(id, name) {
   if (!confirm(`Delete deal for "${name}"?\n\n⚠️ The linked listing will revert to Active status.`)) return
