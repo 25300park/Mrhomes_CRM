@@ -789,6 +789,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 let token = null, me = null, _dType = 'RENT', _dPrice = 0
 let _contacts = [], _leads = [], _listings = [], _staff = []
 let _cQ = '', _cTypeF = 'ALL', _cf = { agent: '', status: '', type: '' }
+let _cPage = 0, _cLimit = 30, _lPage = 0, _lLimit = 30
 
 
 // ═══════════ API ═══════════
@@ -986,9 +987,8 @@ function nav(v) {
   document.querySelectorAll('.nav-it').forEach(e => e.classList.toggle('active', e.dataset.v === v))
   vc('<div class="loading">Loading...</div>')
   const views = { dashboard: vDash, contacts: vCust, listings: vList, deals: vDeals, accounting: vAcct, staff: vStaff }
-  if (views[v]) views[v]()
-  // 모바일: 메뉴 클릭 시 사이드바 닫기
   if (window.innerWidth < 768) closeSidebar()
+  return views[v] ? views[v]() : Promise.resolve()
 }
 
 // ═══════════ DASHBOARD ═══════════
@@ -1140,6 +1140,7 @@ async function vDashAgent() {
 
 // ═══════════ CONTACT DETAIL ═══════════
 async function vContactDetail(id) {
+  saveScroll('contacts')
   history.pushState({ view:'contact-detail', id }, '', '#contact/' + id)
   vc(`<div class="loading">Loading contact...</div>`)
   try {
@@ -1483,48 +1484,66 @@ function renderCustView() {
   <div id="cc">${renderContacts()}</div>
 </div>`)
 }
+function pgBar(total, page, limit, onPage, onLimit) {
+  const totalPages = Math.ceil(total / limit)
+  if (total === 0) return ''
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:11px;color:var(--m)">${total} total · Page ${page+1} / ${totalPages}</div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <select class="fs" style="font-size:11px;padding:4px 8px" onchange="${onLimit}(Number(this.value))">
+        ${[10,30,50].map(n=>`<option value="${n}" ${n===limit?'selected':''}>${n} / page</option>`).join('')}
+      </select>
+      <button class="btn btn-o" style="padding:4px 10px;font-size:11px" ${page===0?'disabled':''} onclick="${onPage}(${page-1})">‹ Prev</button>
+      <button class="btn btn-o" style="padding:4px 10px;font-size:11px" ${page>=totalPages-1?'disabled':''} onclick="${onPage}(${page+1})">Next ›</button>
+    </div>
+  </div>`
+}
+
 function renderContacts() {
-  const rows = _contacts.filter(c => c.name.toLowerCase().includes(_cQ))
+  const filtered = _contacts.filter(c => c.name.toLowerCase().includes(_cQ))
+  const total = filtered.length
+  const rows  = filtered.slice(_cPage * _cLimit, (_cPage + 1) * _cLimit)
   return `
 <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
-  <input class="fi" style="max-width:180px;flex-shrink:0" placeholder="Search name..." oninput="filterC(this.value)">
-  <!-- Agent 필터 -->
-  <select class="fs" style="max-width:130px" onchange="_cf.agent=this.value;vCust()">
-    <option value="">All Agents</option>
+  <input class="fi" style="max-width:180px;flex-shrink:0" placeholder="Search name..."
+    value="${_cQ}" oninput="_cQ=this.value;_cPage=0;document.getElementById('cc').innerHTML=renderContacts()">
+  <select class="fs" style="max-width:130px" onchange="_cf.agent=this.value;_cPage=0;vCust()">
+    <option value="">All Members</option>
     ${_staff.map(s=>`<option value="${s.id}" ${_cf.agent===s.id?'selected':''}>${s.name}</option>`).join('')}
   </select>
-  <!-- Status 필터 -->
-  <select class="fs" style="max-width:120px" onchange="_cf.status=this.value;vCust()">
+  <select class="fs" style="max-width:120px" onchange="_cf.status=this.value;_cPage=0;vCust()">
     <option value="">All Status</option>
     <option value="ACTIVE"   ${_cf.status==='ACTIVE'?'selected':''}>Active</option>
     <option value="INACTIVE" ${_cf.status==='INACTIVE'?'selected':''}>Inactive</option>
   </select>
-  <!-- Type 필터 -->
-  <select class="fs" style="max-width:140px" onchange="_cf.type=this.value;vCust()">
+  <select class="fs" style="max-width:140px" onchange="_cf.type=this.value;_cPage=0;vCust()">
     <option value="">All Types</option>
-    ${Object.entries(CT).map(([k,v])=>`<option value="${k}" ${_cf.type===k?'selected':''}>${v.l}</option>`).join('')}
+    ${Object.entries(CT).filter(([k])=>k!=='CO-BROKER').map(([k,v])=>`<option value="${k}" ${_cf.type===k?'selected':''}>${v.l}</option>`).join('')}
   </select>
-  ${(_cf.agent||_cf.status||_cf.type)?`<button class="btn btn-o" style="font-size:11px;padding:6px 10px" onclick="_cf={agent:'',status:'',type:''};vCust()"><i class="ti ti-x"></i> Clear</button>`:''}
+  ${(_cf.agent||_cf.status||_cf.type)?`<button class="btn btn-o" style="font-size:11px;padding:6px 10px" onclick="_cf={agent:'',status:'',type:''};_cPage=0;vCust()"><i class="ti ti-x"></i> Clear</button>`:''}
 </div>
 <div class="card"><div class="scroll-x"><table class="tbl">
   <tr><th>No.</th><th>Name</th><th>Type</th><th>Mobile</th><th>Member</th><th>Status</th><th>Date</th><th>Notes</th><th></th></tr>
   ${rows.map((c,idx)=>{
     const ct=CT[c.type]||{l:c.type,bg:'#eee',c:'#666'}
     const ct2=c.type2?CT[c.type2]:null
+    const rowNum = _cPage * _cLimit + idx + 1
     return`<tr>
-    <td style="color:var(--m);font-size:11px;text-align:center">${idx+1}</td>
+    <td style="color:var(--m);font-size:11px;text-align:center">${rowNum}</td>
     <td style="font-weight:600;cursor:pointer;color:var(--N);text-decoration:underline;text-underline-offset:3px" onclick="vContactDetail('${c.id}')">
       ${c.name}${c.nickname?`<span style="font-size:10px;color:var(--m);font-weight:400;margin-left:5px">(${c.nickname})</span>`:''}
     </td>
     <td>${bdg(ct.l,ct.bg,ct.c)}${ct2?` <span style="margin-left:3px">${bdg(ct2.l,ct2.bg,ct2.c)}</span>`:''}</td>
-    <td style="font-family:monospace;font-size:11px">${c._private ? '<span style="color:var(--m);font-size:11px">🔒 Private</span>' : (c.mobile||'-')}</td>
+    <td style="font-family:monospace;font-size:11px">${c._private?'<span style="color:var(--m);font-size:11px">🔒 Private</span>':(c.mobile||'-')}</td>
     <td>${agBdg(c.assigned_user)}</td>
     <td>${bdg(c.status==='ACTIVE'?'Active':'Inactive',c.status==='ACTIVE'?'#E0F3ED':'#F1EFE8',c.status==='ACTIVE'?'#19846B':'#5F5E5A')}</td>
     <td style="color:var(--m);font-size:11px">${(c.created_at||'').slice(0,10)}</td>
     <td style="color:var(--m);font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.remarks||''}</td>
     <td><button onclick="deleteContact('${c.id}','${c.name.replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:4px;border-radius:6px" title="Delete"><i class="ti ti-trash" style="font-size:14px"></i></button></td>
   </tr>`}).join('')}
-</table></div></div>`
+</table></div></div>
+${pgBar(total, _cPage, _cLimit, '_cPage=arguments[0];document.getElementById(\'cc\').innerHTML=renderContacts()', '_cLimit=arguments[0];_cPage=0;document.getElementById(\'cc\').innerHTML=renderContacts()')}`
 }
 function renderPipeline() {
   const stages = ['NEW','SEARCHING','OFFER_SENT','NEGOTIATING','CLOSED_WON','CLOSED_LOST']
@@ -1637,7 +1656,8 @@ async function parseListingAI() {
     set('ql-baths', d.bathrooms!=null?d.bathrooms:'')
     set('ql-park',  d.parking!=null?d.parking:'')
     set('ql-addr',  d.address||'')
-    set('ql-remarks', d.remarks||'')
+    const qlSourceNote = `[Quick Input]\n${text}`
+    set('ql-remarks', d.remarks ? `${d.remarks}\n\n${qlSourceNote}` : qlSourceNote)
     const trEl = document.getElementById('ql-trade')
     if (trEl && d.transaction_type) trEl.value = d.transaction_type
     const ptEl = document.getElementById('ql-ptype')
@@ -1857,8 +1877,11 @@ async function parseContactAI() {
     set('qc-mobile',      d.mobile||'')
     set('qc-email',       d.email||'')
     set('qc-platform',    d.platform||'')
-    set('qc-nationality', d.nationality||'Korean')
-    set('qc-remarks',     d.remarks||'')
+    set('qc-nationality', d.nationality||'Filipino')
+    // AI 파싱 결과 + 원본 텍스트를 Notes에 저장
+    const existingRemark = d.remarks || ''
+    const sourceNote = `[Quick Input]\n${text}`
+    set('qc-remarks', existingRemark ? `${existingRemark}\n\n${sourceNote}` : sourceNote)
     const typeEl = document.getElementById('qc-type')
     if (typeEl && d.contact_type) typeEl.value = d.contact_type
     const leadSec = document.getElementById('qc-lead-section')
@@ -2043,23 +2066,26 @@ async function saveNewListing() {
   } catch(e) { alert('Save Error: ' + e.message) }
 }
 
-// ESC 키로 모달 닫기
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    closeModal('modal-contact')
-    closeModal('modal-listing')
-    closeModal('modal-profile')
-    closeModal('modal-quick-contact')
-    closeModal('modal-quick-listing')
-  }
-})
+// ESC 키 → 모달 닫지 않음 (모달 내 작업 유지)
+// (사용자 요청: ESC로 모달 밖으로 나가지 않도록)
+
+// ── 스크롤 위치 저장 ────────────────────────────────────────
+let _scrollPos = {}
+function saveScroll(view) {
+  _scrollPos[view] = window.scrollY || document.documentElement.scrollTop
+}
+function restoreScroll(view) {
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: _scrollPos[view] || 0, behavior: 'instant' })
+  })
+}
 
 // 브라우저 뒤로가기 처리
 window.addEventListener('popstate', e => {
   const v = e.state?.view
   if (!v || !token) return
   if (['dashboard','contacts','listings','deals','accounting','staff'].includes(v)) {
-    nav(v)
+    nav(v).then(() => restoreScroll(v))
   } else if (v === 'contact-detail' && e.state?.id) {
     vContactDetail(e.state.id)
   } else if (v === 'listing-detail' && e.state?.id) {
@@ -2073,6 +2099,7 @@ let _photoMode = 'main' // 'main' | 'gallery'
 let _galleryListingId = null
 
 async function vListingDetail(id) {
+  saveScroll('listings')
   history.pushState({ view:'listing-detail', id }, '', '#listing/' + id)
   vc(`<div class="loading">Loading listing...</div>`)
   try {
@@ -2294,8 +2321,24 @@ async function vListingDetail(id) {
 async function quickStatusChange(id, status) {
   try {
     await api('PATCH', `/api/listings/${id}`, { status })
-    toast('Status updated: ' + SLS[status]?.l)
+    toast('Status updated: ' + (SLS[status]?.l || status))
     vListingDetail(id)
+    // CONTRACTED 선택 시 → Deal 등록 유도
+    if (status === 'CONTRACTED') {
+      setTimeout(() => {
+        if (confirm('✅ Listing marked as Contracted.\n\nWould you like to register a deal now?')) {
+          nav('deals')
+          setTimeout(() => {
+            // 해당 리스팅 pre-select
+            const listSel = document.getElementById('d-listing')
+            if (listSel) {
+              listSel.value = id
+              listSel.dispatchEvent(new Event('change'))
+            }
+          }, 800)
+        }
+      }, 300)
+    }
   } catch(e) { alert(e.message) }
 }
 async function updateListingTrade(id, trade) {
@@ -2453,10 +2496,17 @@ function addActivityForListing(listingId, listingName) {
 // ═══════════ LISTINGS (기존 함수 이어서)
 async function vList() {
   try {
-    const data = await api('GET','/api/listings')
-    vc(`
+    const allData = await api('GET','/api/listings')
+    _listings = allData
+    renderListView(allData)
+  } catch(e) { err(e) }
+}
+function renderListView(allData) {
+  const total   = allData.length
+  const pageData = allData.slice(_lPage * _lLimit, (_lPage + 1) * _lLimit)
+  vc(`
 <div class="ph">
-  <div><div class="ph-title">Listings</div><div class="ph-sub">총 ${data.length}deals · Active ${data.filter(l=>l.status==='ACTIVE').length}deals</div></div>
+  <div><div class="ph-title">Listings</div><div class="ph-sub">${total} total · Active ${allData.filter(l=>l.status==='ACTIVE').length}</div></div>
   <div style="display:flex;gap:8px">
     <button class="btn btn-n" onclick="addListing()"><i class="ti ti-plus"></i>Add Listing</button>
     <button class="btn" style="background:#534AB7;color:#fff;gap:6px" onclick="openListingQuickInput()"><i class="ti ti-sparkles"></i>Quick Input</button>
@@ -2469,9 +2519,9 @@ async function vList() {
   </div>
   <div class="card"><div class="scroll-x"><table class="tbl" id="ltbl">
     <tr><th>No.</th><th>Photo</th><th>Property Name</th><th>Trade</th><th>Type</th><th>Bed</th><th>Area</th><th>Price</th><th>Contact</th><th>Member</th><th>Status</th><th></th></tr>
-    ${data.map((l,idx)=>{const st=SLS[l.status]||{l:l.status,bg:'#eee',c:'#666'};const src=l.listing_source;const canDel=me?.role==='admin'||l.assigned_user_id===me?.id;return`
+    ${pageData.map((l,idx)=>{const st=SLS[l.status]||{l:l.status,bg:'#eee',c:'#666'};const src=l.listing_source;const canDel=me?.role==='admin'||l.assigned_user_id===me?.id;return`
     <tr data-ltype="${l.transaction_type}" data-lstatus="${l.status}">
-      <td style="color:var(--m);font-size:11px;text-align:center">${idx+1}</td>
+      <td style="color:var(--m);font-size:11px;text-align:center">${_lPage*_lLimit+idx+1}</td>
       <td style="width:48px">
         ${l.photo_url
           ? `<img src="${l.photo_url}" style="width:40px;height:40px;border-radius:7px;object-fit:cover;cursor:pointer;border:0.5px solid var(--b)" onclick="viewPhoto('${l.photo_url}','${l.name}')" title="Click to view">`
@@ -2497,8 +2547,9 @@ async function vList() {
       <td>${canDel?`<button onclick="deleteListing('${l.id}','${l.name.replace(/'/g,"\\'")}') " style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:4px;border-radius:6px" title="Delete"><i class="ti ti-trash" style="font-size:14px"></i></button>`:''}</td>
     </tr>`}).join('')}
   </table></div></div>
+  ${pgBar(total,_lPage,_lLimit,'(function(p){_lPage=p;renderListView(_listings)})',
+                               '(function(n){_lLimit=n;_lPage=0;renderListView(_listings)})')}
 </div>`)
-  } catch(e) { err(e) }
 }
 function fLS(val,field,btn) {
   document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.remove('on')); btn.classList.add('on')
@@ -2726,19 +2777,29 @@ async function vDeals() {
 <div class="card">
   <div class="card-h"><i class="ti ti-receipt"></i> Deal History</div>
   <div class="scroll-x"><table class="tbl">
-    <tr><th>날짜</th><th>Listing</th><th>Type</th><th>Commission</th><th>Lessor Side</th><th>Lessee Side</th><th>Net Income</th></tr>
+    <tr><th>Date</th><th>Listing</th><th>Listing Status</th><th>Type</th><th>Commission</th><th>Lessor Side</th><th>Lessee Side</th><th>Net Income</th><th></th></tr>
     ${deals.map(d=>`<tr>
       <td style="color:var(--m);font-size:11px">${d.contract_date}</td>
       <td style="font-weight:600">${d.listing?.name||'-'}</td>
+      <td>${d.listing?.status?bdg(SLS[d.listing.status]?.l||d.listing.status,SLS[d.listing.status]?.bg||'#eee',SLS[d.listing.status]?.c||'#666'):'-'}</td>
       <td>${bdg(d.contract_type==='RENT'?'Rent':'Sale',d.contract_type==='RENT'?'#E6F1FB':'#FDF0DC',d.contract_type==='RENT'?'#185FA5':'#854F0B')}</td>
       <td style="font-weight:600">${fmt(d.gross_commission)}</td>
       <td>${agBdg(d.owner_agent)}</td><td>${agBdg(d.tenant_agent)}</td>
       <td style="font-weight:700;color:var(--G)">${fmt(d.net_company_income)}</td>
+      <td><button onclick="deleteDeal('${d.id}','${(d.listing?.name||'this deal').replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:4px;border-radius:6px" title="Delete deal"><i class="ti ti-trash" style="font-size:13px"></i></button></td>
     </tr>`).join('')}
   </table></div>
 </div></div>`)
     _dType='RENT'; _dPrice=0; calcD()
   } catch(e) { err(e) }
+}
+async function deleteDeal(id, name) {
+  if (!confirm(`Delete deal for "${name}"?\n\n⚠️ The linked listing will revert to Active status.`)) return
+  try {
+    await api('DELETE', `/api/deals/${id}`)
+    toast(`Deal deleted · Listing reverted to Active`)
+    vDeals()
+  } catch(e) { alert('Error: ' + e.message) }
 }
 function setDT(t) {
   _dType=t; _dPrice=0

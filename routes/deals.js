@@ -34,7 +34,7 @@ router.get('/', auth, async (req, res) => {
     .from('deals')
     .select(`
       *,
-      listing:listings(id, code, name, transaction_type, property_type),
+      listing:listings(id, code, name, transaction_type, property_type, status),
       owner_contact:contacts!deals_owner_contact_id_fkey(id, name),
       tenant_contact:contacts!deals_tenant_contact_id_fkey(id, name),
       owner_agent:users!deals_owner_agent_user_id_fkey(id, name),
@@ -104,13 +104,48 @@ router.post('/', auth, async (req, res) => {
   res.status(201).json(deal)
 })
 
-// PATCH /api/deals/:id (상태·비고 수정)
+// PATCH /api/deals/:id (상태·비고 수정 + 연동된 Listing 상태 자동 변경)
 router.patch('/:id', auth, async (req, res) => {
   const { remarks, status } = req.body
   const { data, error } = await req.supabase
-    .from('deals').update({ remarks, status, updated_at: new Date().toISOString() }).eq('id', req.params.id).select().single()
+    .from('deals').update({ remarks, status, updated_at: new Date().toISOString() })
+    .eq('id', req.params.id).select().single()
   if (error) return res.status(500).json({ error: error.message })
+
+  // Deal 상태에 따른 Listing 상태 자동 동기화
+  if (data.listing_id && status) {
+    let listingStatus = null
+    if (status === 'CANCELLED' || status === 'CLOSED_LOST') {
+      listingStatus = 'ACTIVE'   // 계약 취소 → 매물 다시 활성화
+    } else if (status === 'COMPLETED') {
+      listingStatus = 'CLOSED'   // 계약 완료 → 매물 종료
+    }
+    if (listingStatus) {
+      await req.supabase
+        .from('listings')
+        .update({ status: listingStatus, updated_at: new Date().toISOString() })
+        .eq('id', data.listing_id)
+    }
+  }
   res.json(data)
+})
+
+// DELETE /api/deals/:id (계약 삭제 → 연동된 Listing ACTIVE 복귀)
+router.delete('/:id', auth, async (req, res) => {
+  const { data: deal } = await req.supabase
+    .from('deals').select('listing_id').eq('id', req.params.id).single()
+
+  const { error } = await req.supabase.from('deals').delete().eq('id', req.params.id)
+  if (error) return res.status(500).json({ error: error.message })
+
+  // 연동된 Listing → ACTIVE 복귀
+  if (deal?.listing_id) {
+    await req.supabase
+      .from('listings')
+      .update({ status: 'ACTIVE', updated_at: new Date().toISOString() })
+      .eq('id', deal.listing_id)
+  }
+  res.json({ message: 'Deal deleted, listing reverted to Active' })
 })
 
 // GET /api/deals/summary/monthly  (월별 요약)
