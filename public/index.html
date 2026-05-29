@@ -201,7 +201,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <div class="nav-sec">CRM</div>
       <button class="nav-it" onclick="nav('contacts')" data-v="contacts"><i class="ti ti-users"></i><span>Contacts</span></button>
       <button class="nav-it" onclick="nav('listings')" data-v="listings"><i class="ti ti-building"></i><span>Listings</span></button>
-      ${me?.role==='admin'?`<button class="nav-it" onclick="nav('deals')" data-v="deals"><i class="ti ti-file-text"></i><span>Deals & Commission</span></button>`:''}
+      <button class="nav-it" id="nav-deals" onclick="nav('deals')" data-v="deals" style="display:none"><i class="ti ti-file-text"></i><span>Deals & Commission</span></button>
       <div class="nav-sec admin-only">Management</div>
       <button class="nav-it admin-only" onclick="nav('accounting')" data-v="accounting"><i class="ti ti-coin"></i><span>Accounting</span></button>
       <button class="nav-it admin-only" onclick="nav('staff')" data-v="staff"><i class="ti ti-chart-bar"></i><span>Staff Performance</span></button>
@@ -861,8 +861,11 @@ document.getElementById('lf').addEventListener('submit', async e => {
     document.getElementById('login-screen').style.display = 'none'
     document.getElementById('app').style.display = 'block'
     document.getElementById('sb-user').textContent = me.name + (me.role==='admin'?' · Admin':' · Staff')
-    // 역할 기반 메뉴: admin만 회계 표시
+    // 역할 기반 메뉴
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = me.role==='admin' ? '' : 'none')
+    // Deals & Commission: Admin만 표시
+    const dealsNav = document.getElementById('nav-deals')
+    if (dealsNav) dealsNav.style.display = me.role==='admin' ? '' : 'none'
     nav('dashboard')
     setTimeout(loadNotifications, 1200)
     setInterval(loadNotifications, 5*60*1000)
