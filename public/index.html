@@ -634,10 +634,17 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <button class="modal-close" onclick="closeModal('modal-listing')"><i class="ti ti-x"></i></button>
     </div>
     <div class="modal-body">
-      <!-- Property Name -->
+      <!-- Property Name with condo autocomplete -->
       <div class="mf">
         <label>Property Name *</label>
-        <input type="text" id="ml-name" placeholder="e.g. Bonifacio Ridge 1207B">
+        <div style="position:relative">
+          <input type="text" id="ml-name" class="fi"
+            placeholder="e.g. Bonifacio Ridge 1207B"
+            oninput="searchCondoName(this.value)"
+            autocomplete="off">
+          <div id="ml-name-results"
+            style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--b);border-radius:8px;max-height:220px;overflow-y:auto;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.12)"></div>
+        </div>
       </div>
       <!-- Trade / Type -->
       <div class="mf-row">
@@ -2484,7 +2491,65 @@ function fLS(val,field,btn) {
   })
 }
 // addListing → 모달로 처리 (아래 MODAL 섹션 참고)
-// ── Listing Contact Search ──────────────────────────────────
+// ── Condo Name Autocomplete ─────────────────────────────────
+let _condoTimer = null
+function searchCondoName(q) {
+  const res = document.getElementById('ml-name-results')
+  if (!q || q.length < 2) { res.style.display = 'none'; return }
+
+  // 디바운스 300ms
+  clearTimeout(_condoTimer)
+  _condoTimer = setTimeout(async () => {
+    try {
+      const data = await api('GET', `/api/condos?q=${encodeURIComponent(q)}`)
+      if (!data.length) { res.style.display = 'none'; return }
+
+      res.innerHTML = data.map(c => `
+        <div onclick="selectCondo(${JSON.stringify(c).replace(/"/g,'&quot;')})"
+          style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--b);font-size:12px"
+          onmouseover="this.style.background='#F8F5F0'"
+          onmouseout="this.style.background=''">
+          <div style="font-weight:600">${c.name}</div>
+          <div style="font-size:10px;color:var(--m)">${c.address||''} ${c.area?'· '+c.area:''} ${c.city?'· '+c.city:''}</div>
+        </div>`).join('')
+      res.style.display = 'block'
+    } catch(e) { res.style.display = 'none' }
+  }, 300)
+}
+
+function selectCondo(condo) {
+  // 이름 입력 (기존 입력값 뒤에 유닛번호가 있으면 유지)
+  const nameEl = document.getElementById('ml-name')
+  const currentVal = nameEl.value.trim()
+  // 콘도 이름이 이미 포함되어 있으면 유지, 아니면 교체
+  if (!currentVal.toLowerCase().includes(condo.name.toLowerCase())) {
+    nameEl.value = condo.name
+  }
+
+  // 주소 자동입력
+  const addrEl = document.getElementById('ml-addr')
+  if (addrEl && !addrEl.value.trim() && condo.address) {
+    addrEl.value = condo.address
+  }
+
+  // Property Type 자동설정
+  const ptypeEl = document.getElementById('ml-ptype')
+  if (ptypeEl && condo.property_type) ptypeEl.value = condo.property_type
+
+  // 드롭다운 닫기
+  document.getElementById('ml-name-results').style.display = 'none'
+
+  // Unit No. 필드로 포커스 이동 (편의)
+  setTimeout(() => document.getElementById('ml-unit')?.focus(), 50)
+}
+
+// 외부 클릭 시 드롭다운 닫기
+document.addEventListener('click', e => {
+  if (!e.target.closest('#ml-name') && !e.target.closest('#ml-name-results')) {
+    const r = document.getElementById('ml-name-results')
+    if (r) r.style.display = 'none'
+  }
+})
 let _mlSourceId = null
 function searchListingContact(q) {
   const res = document.getElementById('ml-source-results')
