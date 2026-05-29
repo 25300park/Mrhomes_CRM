@@ -201,7 +201,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <div class="nav-sec">CRM</div>
       <button class="nav-it" onclick="nav('contacts')" data-v="contacts"><i class="ti ti-users"></i><span>Contacts</span></button>
       <button class="nav-it" onclick="nav('listings')" data-v="listings"><i class="ti ti-building"></i><span>Listings</span></button>
-      <button class="nav-it" onclick="nav('deals')" data-v="deals"><i class="ti ti-file-text"></i><span>Deals & Commission</span></button>
+      ${me?.role==='admin'?`<button class="nav-it" onclick="nav('deals')" data-v="deals"><i class="ti ti-file-text"></i><span>Deals & Commission</span></button>`:''}
       <div class="nav-sec admin-only">Management</div>
       <button class="nav-it admin-only" onclick="nav('accounting')" data-v="accounting"><i class="ti ti-coin"></i><span>Accounting</span></button>
       <button class="nav-it admin-only" onclick="nav('staff')" data-v="staff"><i class="ti ti-chart-bar"></i><span>Staff Performance</span></button>
@@ -1956,18 +1956,19 @@ async function saveNewContact() {
 
 
 async function addListing() {
-  // Agent Back
+  // Member 목록 + 기본값을 로그인 계정으로
   const sel = document.getElementById('ml-agent')
   sel.innerHTML = '<option value="">Unassigned</option>'
-  // 소유주 Back (Rent인·매도인·Co-Broker)
-  const srcSel = document.getElementById('ml-source')
-  srcSel.innerHTML = '<option value="">Select (Select사항)</option>'
   try {
     const st = _staff.length ? _staff : await api('GET', '/api/staff')
+    if (!_staff.length) _staff = st
     st.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.name}</option>`)
-    const cl = _contacts.length ? _contacts : ((await api('GET','/api/contacts?limit=200')).data||[])
-    const owners = cl.filter(c => ['OWNER','SELLER','CO-BROKER'].includes(c.type))
-    owners.forEach(c => srcSel.innerHTML += `<option value="${c.id}">${c.name} · ${CT[c.type]?.l||c.type}</option>`)
+    sel.value = me?.id || ''
+    // Contacts 로드 (검색용)
+    if (!_contacts.length) {
+      const cl = await api('GET', '/api/contacts?limit=300')
+      _contacts = cl.data || cl.contacts || (Array.isArray(cl)?cl:[])
+    }
   } catch(e) {}
   ;['ml-name','ml-price','ml-area','ml-addr','ml-link','ml-remarks','ml-floor','ml-unit','ml-source-search'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = ''
@@ -1978,7 +1979,7 @@ async function addListing() {
   document.getElementById('ml-beds').value      = '1'
   document.getElementById('ml-baths').value     = '1'
   document.getElementById('ml-park').value      = '1'
-  document.getElementById('ml-furnished').value = 'true'
+  document.getElementById('ml-furnished').value = 'full'
   document.getElementById('ml-pet').value       = 'false'
   document.getElementById('modal-listing').style.display = 'flex'
   setTimeout(() => document.getElementById('ml-name')?.focus(), 100)
@@ -2070,7 +2071,13 @@ async function vListingDetail(id) {
   </div>
   <div style="display:flex;gap:8px;align-items:center">
     ${bdg(st.l,st.bg,st.c)}
-    ${bdg(listing.transaction_type==='RENT'?'Rent':'Sale',listing.transaction_type==='RENT'?'#E6F1FB':'#FDF0DC',listing.transaction_type==='RENT'?'#185FA5':'#854F0B')}
+    <!-- Rent/Sale 토글 스위치 -->
+    <div style="display:flex;align-items:center;gap:0;background:#F1EFE8;border-radius:20px;padding:2px">
+      <button onclick="updateListingTrade('${id}','RENT')"
+        style="padding:4px 14px;border-radius:18px;border:none;cursor:pointer;font-size:11px;font-weight:600;transition:all .15s;${listing.transaction_type==='RENT'?'background:#185FA5;color:#fff':'background:transparent;color:var(--m)'}">Rent</button>
+      <button onclick="updateListingTrade('${id}','SALE')"
+        style="padding:4px 14px;border-radius:18px;border:none;cursor:pointer;font-size:11px;font-weight:600;transition:all .15s;${listing.transaction_type==='SALE'?'background:#854F0B;color:#fff':'background:transparent;color:var(--m)'}">Sale</button>
+    </div>
     <select class="fs" style="font-size:12px;padding:6px 10px;width:auto" onchange="quickStatusChange('${id}',this.value)">
       ${Object.entries(SLS).map(([k,v])=>`<option value="${k}" ${listing.status===k?'selected':''}>${v.l}</option>`).join('')}
     </select>
@@ -2086,8 +2093,8 @@ async function vListingDetail(id) {
     <!-- 사진 갤러리 -->
     <div class="card" style="margin-bottom:12px">
       <div class="card-h">
-        <span><i class="ti ti-photo" aria-hidden="true"></i> Listing 사진</span>
-        <button onclick="triggerGalleryPhoto('${id}')" class="btn btn-o" style="font-size:11px;padding:4px 10px"><i class="ti ti-plus" aria-hidden="true"></i> 사진 Add</button>
+        <span><i class="ti ti-photo" aria-hidden="true"></i> Pictures</span>
+        <button onclick="triggerGalleryPhoto('${id}')" class="btn btn-o" style="font-size:11px;padding:4px 10px"><i class="ti ti-plus" aria-hidden="true"></i> Add Photo</button>
       </div>
       <div class="card-b" style="padding:12px">
         ${allPhotos.length ? `
@@ -2095,7 +2102,7 @@ async function vListingDetail(id) {
         <div style="margin-bottom:10px;border-radius:10px;overflow:hidden;background:#111;max-height:300px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative" onclick="viewPhoto('${allPhotos[0]}','${listing.name}')">
           <img src="${allPhotos[0]}" style="width:100%;max-height:300px;object-fit:cover">
           <div style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;padding:3px 8px;border-radius:20px">
-            ${allPhotos.length}장 · Click to view
+            ${allPhotos.length} photos · Click to view
           </div>
         </div>
         <!-- 썸네일 그리드 (항상 표시) -->
@@ -2112,7 +2119,7 @@ async function vListingDetail(id) {
           <!-- + 사진 Add 버튼 -->
           <div onclick="triggerGalleryPhoto('${id}')"
             style="border-radius:7px;border:1.5px dashed #C8C3BA;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--m);font-size:10px;gap:3px;background:#F8F5F0"
-            title="사진 Add (여러 장 동시 Select Allowed)">
+            title="Add Photos (multiple)">
             <i class="ti ti-plus" style="font-size:18px"></i>
             <span>Add</span>
           </div>
@@ -2130,20 +2137,20 @@ async function vListingDetail(id) {
 
     <!-- Contact Info (보기 모드) -->
     <div class="card" id="listing-view-${id}">
-      <div class="card-h"><i class="ti ti-info-circle" aria-hidden="true"></i> Listing 정보</div>
+      <div class="card-h"><i class="ti ti-info-circle" aria-hidden="true"></i> Listing Info</div>
       <div class="card-b">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           ${[
-            ['가격', `${fmt(listing.price)}${listing.transaction_type==='RENT'?'/Month':''}`],
+            ['Price', `${fmt(listing.price)}${listing.transaction_type==='RENT'?'/Month':''}`],
             ['Type', listing.property_type||'-'],
             ['Area (sqm)', listing.area_sqm ? listing.area_sqm+'㎡' : '-'],
             ['Floor', listing.floor||'-'],
-            ['Bedrooms', listing.bedrooms!=null ? listing.bedrooms+'개' : '-'],
-            ['Bathrooms', listing.bathrooms!=null ? listing.bathrooms+'개' : '-'],
-            ['Parking', listing.parking!=null ? listing.parking+'대' : '-'],
-            ['Furnished', listing.is_furnished ? '✅ Fully Furnished' : '❌ 비Furnished'],
+            ['Bedrooms', listing.bedrooms!=null ? listing.bedrooms : '-'],
+            ['Bathrooms', listing.bathrooms!=null ? listing.bathrooms : '-'],
+            ['Parking', listing.parking!=null ? listing.parking : '-'],
+            ['Furnished', listing.furnished_type==='semi'?'🟡 Semi Furnished':listing.furnished_type==='full'||listing.is_furnished?'✅ Fully Furnished':'❌ Unfurnished'],
             ['Pet Friendly', listing.pet_friendly ? '✅ Allowed' : '❌ Not Allowed'],
-            ['담당', listing.assigned_user?.name||'-'],
+            ['Member', listing.assigned_user?.name||'-'],
           ].map(([k,v])=>`
           <div style="padding:10px;background:#F8F5F0;border-radius:8px">
             <div style="font-size:10px;color:var(--m);margin-bottom:3px">${k}</div>
@@ -2152,7 +2159,7 @@ async function vListingDetail(id) {
         </div>
         ${listing.listing_source ? `
         <div style="margin-top:12px;padding:10px 12px;background:#E6F1FB;border-radius:8px;display:flex;align-items:center;justify-content:space-between">
-          <div><div style="font-size:10px;color:#185FA5;margin-bottom:2px">Rent인 · 소유주</div>
+          <div><div style="font-size:10px;color:#185FA5;margin-bottom:2px">Owner / Lessor</div>
           <div style="font-weight:600;color:#185FA5">${listing.listing_source.name}</div></div>
           <span class="bdg" style="background:#fff;color:#185FA5">${CT[listing.listing_source.type]?.l||listing.listing_source.type||''}</span>
         </div>` : ''}
@@ -2166,10 +2173,10 @@ async function vListingDetail(id) {
 
     <!-- Edit 폼 (숨김) -->
     <div class="card" id="listing-edit-${id}" style="display:none">
-      <div class="card-h"><i class="ti ti-edit" aria-hidden="true"></i> Listing 정보 Edit</div>
+      <div class="card-h"><i class="ti ti-edit" aria-hidden="true"></i> Edit Listing</div>
       <div class="card-b">
         <div class="fg2">
-          <div class="ff"><label class="fl">가격 (PHP)</label><input class="fi" id="e-price" type="number" value="${listing.price||''}"></div>
+          <div class="ff"><label class="fl">Price (PHP)</label><input class="fi" id="e-price" type="number" value="${listing.price||''}"></div>
           <div class="ff"><label class="fl">Floor</label><input class="fi" id="e-floor" value="${listing.floor||''}"></div>
         </div>
         <div class="fg2">
@@ -2185,10 +2192,11 @@ async function vListingDetail(id) {
           <div class="ff"><label class="fl">Parking</label><input class="fi" id="e-park" type="number" value="${listing.parking||0}"></div>
         </div>
         <div class="fg2">
-          <div class="ff"><label class="fl">Furnished 여부</label>
+          <div class="ff"><label class="fl">Furnished</label>
             <select class="fs" id="e-furnished">
-              <option value="false" ${!listing.is_furnished?'selected':''}>비Furnished</option>
-              <option value="true"  ${listing.is_furnished?'selected':''}>Fully Furnished</option>
+              <option value="none" ${(listing.furnished_type||(!listing.is_furnished?'none':'full'))==='none'?'selected':''}>Unfurnished</option>
+              <option value="semi" ${listing.furnished_type==='semi'?'selected':''}>Semi Furnished</option>
+              <option value="full" ${(listing.furnished_type==='full'||(!listing.furnished_type&&listing.is_furnished))?'selected':''}>Fully Furnished</option>
             </select></div>
           <div class="ff"><label class="fl">Pet Friendly</label>
             <select class="fs" id="e-pet">
@@ -2247,7 +2255,7 @@ async function vListingDetail(id) {
           ${a.notes?`<div style="font-size:12px;color:var(--N);line-height:1.6;white-space:pre-wrap">${a.notes}</div>`:''}
           ${a.next_followup_at?`<div style="font-size:11px;color:var(--A);font-weight:600;margin-top:4px"><i class="ti ti-calendar-event" aria-hidden="true"></i> Follow-up: ${a.next_followup_at}</div>`:''}
         </div>`
-      }).join('') : `<div style="padding:24px;text-align:center;color:var(--m);font-size:12px">이 Listing 관련 활동 없음</div>`}
+      }).join('') : `<div style="padding:24px;text-align:center;color:var(--m);font-size:12px">No activity for this listing</div>`}
     </div>
 
   </div>
@@ -2261,7 +2269,15 @@ async function quickStatusChange(id, status) {
   try {
     await api('PATCH', `/api/listings/${id}`, { status })
     toast('Status updated: ' + SLS[status]?.l)
+    vListingDetail(id)
   } catch(e) { alert(e.message) }
+}
+async function updateListingTrade(id, trade) {
+  try {
+    await api('PATCH', `/api/listings/${id}`, { transaction_type: trade })
+    toast(`Changed to ${trade === 'RENT' ? 'Rent' : 'Sale'}`)
+    vListingDetail(id)
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 // 편집 토글
@@ -2285,7 +2301,8 @@ async function saveListingEdit(id) {
       bedrooms:     parseInt(document.getElementById('e-bed').value)  || 0,
       bathrooms:    parseInt(document.getElementById('e-bath').value) || 0,
       parking:      parseInt(document.getElementById('e-park').value) || 0,
-      is_furnished: document.getElementById('e-furnished').value === 'true',
+      is_furnished:     document.getElementById('e-furnished').value === 'full',
+      furnished_type:   document.getElementById('e-furnished').value,
       pet_friendly: document.getElementById('e-pet').value === 'true',
       address:      document.getElementById('e-addr').value || null,
       hyperlink:    document.getElementById('e-link').value || null,

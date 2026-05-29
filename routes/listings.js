@@ -84,7 +84,7 @@ router.patch('/:id', auth, async (req, res) => {
   const allowed = [
     'transaction_type','property_type','name','unit_no','address','floor',
     'area_sqm','bedrooms','bathrooms','parking','price',
-    'is_furnished','pet_friendly','listing_source_id','assigned_user_id',
+    'is_furnished','furnished_type','pet_friendly','listing_source_id','assigned_user_id',
     'photo_url','photos','hyperlink','remarks','status'
   ]
   const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)))
