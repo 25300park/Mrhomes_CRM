@@ -2969,8 +2969,12 @@ async function buildReportPanel() {
       <div class="card-b">
         <div class="mf">
           <label>Client Name</label>
-          <input class="fi" id="rp-client" placeholder="e.g. Ms. Kim" value="${_docClient}"
-            oninput="_docClient=this.value">
+          <div style="position:relative">
+            <input class="fi" id="rp-client" placeholder="Search contact name..."
+              value="${_docClient}" oninput="searchRpClient(this.value)" autocomplete="off">
+            <div id="rp-client-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--b);border-radius:8px;max-height:180px;overflow-y:auto;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.12)"></div>
+          </div>
+          <div id="rp-client-info" style="font-size:10px;color:var(--m);margin-top:3px"></div>
         </div>
         <div class="mf">
           <label>Date</label>
@@ -3039,6 +3043,42 @@ function toggleDocListing(id) {
   const btn = document.querySelector('button[onclick="generateReport()"]')
   if (btn) btn.innerHTML = `<i class="ti ti-printer"></i> Preview & Print (${_docSelected.size} listings)`
 }
+
+let _rpClientTimer = null
+function searchRpClient(q) {
+  _docClient = q
+  const res = document.getElementById('rp-client-results')
+  if (!q || q.length < 1) { res.style.display='none'; return }
+  clearTimeout(_rpClientTimer)
+  _rpClientTimer = setTimeout(() => {
+    const filtered = _contacts.filter(c =>
+      c.name.toLowerCase().includes(q.toLowerCase()) ||
+      (c.nickname && c.nickname.toLowerCase().includes(q.toLowerCase()))
+    ).slice(0, 6)
+    if (!filtered.length) { res.style.display='none'; return }
+    res.innerHTML = filtered.map(c => `
+      <div onclick="selectRpClient('${c.id}','${c.name.replace(/'/g,"\\'")}','${(c.nationality||'').replace(/'/g,"\\'")}','${(c.mobile||'').replace(/'/g,"\\'")}','${CT[c.type]?.l||c.type}')"
+        style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--b);font-size:12px"
+        onmouseover="this.style.background='#F8F5F0'" onmouseout="this.style.background=''">
+        <div style="font-weight:600">${c.name}${c.nickname?` <span style="color:var(--m);font-weight:400">(${c.nickname})</span>`:''}</div>
+        <div style="font-size:10px;color:var(--m)">${CT[c.type]?.l||c.type}${c.nationality?' · '+c.nationality:''}</div>
+      </div>`).join('')
+    res.style.display = 'block'
+  }, 200)
+}
+function selectRpClient(id, name, nat, mobile, type) {
+  _docClient = name
+  document.getElementById('rp-client').value = name
+  document.getElementById('rp-client-results').style.display = 'none'
+  const info = document.getElementById('rp-client-info')
+  if (info) info.textContent = `${type}${nat?' · '+nat:''}${mobile?' · '+mobile:''}`
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#rp-client') && !e.target.closest('#rp-client-results')) {
+    const el = document.getElementById('rp-client-results')
+    if (el) el.style.display = 'none'
+  }
+})
 
 function generateReport() {
   const selected = _docListings.filter(l => _docSelected.has(l.id))
