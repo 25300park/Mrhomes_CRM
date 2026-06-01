@@ -2248,6 +2248,22 @@ async function vListingDetail(id) {
       <button onclick="updateListingTrade('${id}','SALE')"
         style="padding:4px 14px;border-radius:18px;border:none;cursor:pointer;font-size:11px;font-weight:600;transition:all .15s;${listing.transaction_type==='SALE'?'background:#854F0B;color:#fff':'background:transparent;color:var(--m)'}">Sale</button>
     </div>
+    <!-- Publish to Web -->
+    ${listing.is_published
+      ? `<div style="display:flex;gap:6px;align-items:center">
+          <span style="background:#E0F3ED;color:#0F6E56;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500">
+            <i class="ti ti-world-check"></i> Published
+          </span>
+          <a href="https://rbs-homes.com/detail/${listing.rbs_unit_id}" target="_blank"
+            style="font-size:10px;color:var(--m);text-decoration:underline">View</a>
+          <button onclick="unpublishListing('${id}')"
+            style="font-size:10px;color:#DC4A4A;background:none;border:none;cursor:pointer;padding:2px">Unpublish</button>
+        </div>`
+      : `<button onclick="publishListing('${id}')"
+          style="background:#1D7AFC;color:#fff;border:none;border-radius:20px;padding:5px 14px;cursor:pointer;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px">
+          <i class="ti ti-world-upload"></i> Publish to Web
+        </button>`
+    }
     <select class="fs" style="font-size:12px;padding:6px 10px;width:auto" onchange="quickStatusChange('${id}',this.value)">
       ${Object.entries(SLS).map(([k,v])=>`<option value="${k}" ${listing.status===k?'selected':''}>${v.l}</option>`).join('')}
     </select>
@@ -2457,6 +2473,23 @@ async function quickStatusChange(id, status) {
       }, 300)
     }
   } catch(e) { alert(e.message) }
+}
+async function publishListing(id) {
+  if (!confirm('Publish this listing to rbs-homes.com?')) return
+  try {
+    toast('Publishing...')
+    const result = await api('POST', `/api/listings/${id}/publish`)
+    toast(`✓ Published! Unit #${result.rbs_unit_id}`)
+    vListingDetail(id)
+  } catch(e) { alert('Publish failed: ' + e.message) }
+}
+async function unpublishListing(id) {
+  if (!confirm('Remove this listing from rbs-homes.com?')) return
+  try {
+    await api('DELETE', `/api/listings/${id}/publish`)
+    toast('Unpublished from rbs-homes.com')
+    vListingDetail(id)
+  } catch(e) { alert('Error: ' + e.message) }
 }
 async function updateListingTrade(id, trade) {
   try {

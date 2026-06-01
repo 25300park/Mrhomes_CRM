@@ -110,4 +110,107 @@ router.delete('/:id', auth, async (req, res) => {
   res.json({ message: 'Deleted' })
 })
 
+// POST /api/listings/:id/publish  (rbs-homes.com 에 퍼블리시)
+router.post('/:id/publish', auth, async (req, res) => {
+  const RBS_API_URL    = process.env.RBS_HOMES_URL    // e.g. https://rbs-homes.com
+  const RBS_API_SECRET = process.env.RBS_SYNC_SECRET  // 공유 시크릿
+
+  if (!RBS_API_URL || !RBS_API_SECRET) {
+    return res.status(500).json({ error: 'RBS_HOMES_URL or RBS_SYNC_SECRET not configured' })
+  }
+
+  // 매물 정보 조회
+  const { data: listing, error } = await req.supabase
+    .from('listings')
+    .select('*')
+    .eq('id', req.params.id)
+    .single()
+
+  if (error || !listing) return res.status(404).json({ error: 'Listing not found' })
+
+  try {
+    const payload = {
+      crm_listing_id:   listing.id,
+      rbs_unit_id:      listing.rbs_unit_id || null,
+      title:            listing.name,
+      transaction_type: listing.transaction_type,
+      property_type:    listing.property_type,
+      address:          listing.address,
+      unit_no:          listing.unit_no,
+      area_sqm:         listing.area_sqm,
+      floor:            listing.floor,
+      bedrooms:         listing.bedrooms,
+      bathrooms:        listing.bathrooms,
+      parking:          listing.parking,
+      furnished_type:   listing.furnished_type,
+      pet_friendly:     listing.pet_friendly,
+      price:            listing.price,
+      remarks:          listing.remarks,
+      photo_url:        listing.photo_url,
+      photos:           listing.photos || [],
+    }
+
+    const response = await fetch(`${RBS_API_URL}/api/sync-unit`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${RBS_API_SECRET}`
+      },
+      body: JSON.stringify(payload)
+    })
+
+    const result = await response.json()
+    if (!response.ok) throw new Error(result.error || 'Publish failed')
+
+    // CRM listing 업데이트 (퍼블리시 상태 저장)
+    await req.supabase
+      .from('listings')
+      .update({
+        is_published: true,
+        rbs_unit_id:  result.rbs_unit_id,
+        published_at: new Date().toISOString()
+      })
+      .eq('id', req.params.id)
+
+    res.json({
+      success:     true,
+      rbs_unit_id: result.rbs_unit_id,
+      message:     result.message,
+      url:         `${RBS_API_URL}/detail/${result.rbs_unit_id}`
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// DELETE /api/listings/:id/publish  (rbs-homes.com 에서 내리기)
+router.delete('/:id/publish', auth, async (req, res) => {
+  const RBS_API_URL    = process.env.RBS_HOMES_URL
+  const RBS_API_SECRET = process.env.RBS_SYNC_SECRET
+
+  const { data: listing } = await req.supabase
+    .from('listings').select('rbs_unit_id').eq('id', req.params.id).single()
+
+  if (!listing?.rbs_unit_id) return res.status(400).json({ error: 'Not published yet' })
+
+  try {
+    const response = await fetch(`${RBS_API_URL}/api/sync-unit`, {
+      method:  'DELETE',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${RBS_API_SECRET}` },
+      body:    JSON.stringify({ rbs_unit_id: listing.rbs_unit_id })
+    })
+
+    if (!response.ok) throw new Error('Unpublish failed')
+
+    await req.supabase
+      .from('listings')
+      .update({ is_published: false, published_at: null })
+      .eq('id', req.params.id)
+
+    res.json({ success: true, message: 'Unpublished from rbs-homes.com' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 module.exports = router
