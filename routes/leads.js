@@ -6,7 +6,7 @@ router.get('/', auth, async (req, res) => {
   const { status, agent, type, followup_today, contact_id } = req.query
   let query = req.supabase
     .from('leads')
-    .select(`*, contact:contacts(id, name, mobile, type), assigned_user:users(id, name)`)
+    .select(`*, contact:contacts(id, name, nickname, mobile, type), assigned_user:users(id, name)`)
     .order('next_followup_at', { ascending: true })
 
   if (status)         query = query.eq('status', status)
@@ -69,9 +69,11 @@ router.post('/', auth, async (req, res) => {
 // PATCH /api/leads/:id  (상태 변경·팔로업 업데이트)
 router.patch('/:id', auth, async (req, res) => {
   const allowed = [
-    'status','budget','location_pref','assigned_user_id',
-    'next_followup_at','remarks','closed_reason',
-    'bedrooms_min','bedrooms_max','area_min','area_max'
+    'status','budget','location_pref','assigned_user_id','request_type',
+    'next_followup_at','remarks','closed_reason','move_in_date','property_type',
+    'bedrooms_min','bedrooms_max','area_min','area_max',
+    'parking_required','pet_allowed','pdc_available',
+    'view_preference','preferred_buildings'
   ]
   const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)))
   updates.updated_at = new Date().toISOString()
