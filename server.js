@@ -41,6 +41,8 @@ app.use('/api/notifications', require('./routes/notifications'))
 app.use('/api/ai',            require('./routes/ai'))
 app.use('/api/condos',        require('./routes/condos'))
 app.use('/api/tenants',       require('./routes/tenants'))
+app.use('/api/loi',            require('./routes/loi'))
+app.use('/api/listing-reports',require('./routes/listing-reports'))
 
 // ── 헬스체크 (Railway 상태 확인용) ───────────
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }))
