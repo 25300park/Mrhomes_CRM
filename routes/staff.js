@@ -94,4 +94,43 @@ router.get('/:id/deals', auth, async (req, res) => {
   res.json(data)
 })
 
+// POST /api/staff/create (Admin only — 신규 직원 계정 생성)
+router.post('/create', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' })
+
+  const { name, email, password, mobile, role, base_salary } = req.body
+  if (!name || !email || !password) return res.status(400).json({ error: 'name, email, password required' })
+  if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' })
+
+  try {
+    const bcrypt = require('bcryptjs')
+    const hash   = await bcrypt.hash(password, 10)
+
+    // 이메일 중복 확인
+    const { data: existing } = await req.supabase
+      .from('users').select('id').eq('email', email).single()
+    if (existing) return res.status(400).json({ error: 'Email already exists' })
+
+    const { data, error } = await req.supabase
+      .from('users')
+      .insert({
+        name,
+        email,
+        password_hash: hash,
+        mobile:        mobile || null,
+        role:          role || 'agent',
+        base_salary:   base_salary || 0,
+        is_active:     true,
+        work_mode:     'full_time'
+      })
+      .select('id, name, email, role')
+      .single()
+
+    if (error) return res.status(500).json({ error: error.message })
+    res.status(201).json({ message: 'User created', user: data })
+  } catch(err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 module.exports = router
