@@ -860,6 +860,23 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
           <input type="text" id="ml-addr" placeholder="1st Ave, BGC, Taguig">
         </div>
       </div>
+      <!-- Coordinates (for map on rbs-homes.com) -->
+      <div class="mf-row">
+        <div class="mf">
+          <label>Latitude <span style="font-weight:normal;color:var(--m);font-size:10px">(위도 — 지도용)</span></label>
+          <input type="number" id="ml-lat" step="0.0000001" placeholder="e.g. 14.5547">
+        </div>
+        <div class="mf">
+          <label>Longitude <span style="font-weight:normal;color:var(--m);font-size:10px">(경도 — 지도용)</span></label>
+          <input type="number" id="ml-lng" step="0.0000001" placeholder="e.g. 121.0244">
+        </div>
+      </div>
+      <div style="margin-top:-6px;margin-bottom:4px">
+        <a href="https://www.latlong.net/" target="_blank" rel="noopener"
+          style="font-size:11px;color:var(--G);text-decoration:none">
+          <i class="ti ti-map-pin" style="font-size:11px"></i> 좌표 찾기 → latlong.net
+        </a>
+      </div>
       <!-- Contact Search -->
       <div class="mf">
         <label>Contact (Owner / Seller)</label>
@@ -2175,6 +2192,8 @@ async function saveNewListing() {
       assigned_user_id:  document.getElementById('ml-agent').value   || null,
       hyperlink:         document.getElementById('ml-link').value    || null,
       remarks:           document.getElementById('ml-remarks').value || null,
+      lat:               parseFloat(document.getElementById('ml-lat').value) || null,
+      lng:               parseFloat(document.getElementById('ml-lng').value) || null,
       status: 'ACTIVE'
     })
     toast(`✓ ${name} Listing이 Added`)
@@ -2391,6 +2410,11 @@ async function vListingDetail(id) {
             </select></div>
         </div>
         <div class="ff"><label class="fl">Address</label><input class="fi" id="e-addr" value="${listing.address||''}"></div>
+        <div class="fg2">
+          <div class="ff"><label class="fl">Latitude <span style="font-weight:normal;color:var(--m);font-size:10px">(위도)</span></label><input class="fi" id="e-lat" type="number" step="0.0000001" value="${listing.lat||''}" placeholder="e.g. 14.5547"></div>
+          <div class="ff"><label class="fl">Longitude <span style="font-weight:normal;color:var(--m);font-size:10px">(경도)</span></label><input class="fi" id="e-lng" type="number" step="0.0000001" value="${listing.lng||''}" placeholder="e.g. 121.0244"></div>
+        </div>
+        <div style="margin-top:-6px;margin-bottom:6px"><a href="https://www.latlong.net/" target="_blank" rel="noopener" style="font-size:11px;color:var(--G);text-decoration:none"><i class="ti ti-map-pin" style="font-size:11px"></i> 좌표 찾기 → latlong.net</a></div>
         <div class="ff"><label class="fl">External Link (Lamudi etc.)</label><input class="fi" id="e-link" value="${listing.hyperlink||''}"></div>
         <div class="ff"><label class="fl">Notes</label><textarea class="fi" id="e-rem" rows="3" style="resize:vertical">${listing.remarks||''}</textarea></div>
         <div style="display:flex;gap:8px">
@@ -2524,6 +2548,8 @@ async function saveListingEdit(id) {
       furnished_type:   document.getElementById('e-furnished').value,
       pet_friendly: document.getElementById('e-pet').value === 'true',
       address:      document.getElementById('e-addr').value || null,
+      lat:          parseFloat(document.getElementById('e-lat').value) || null,
+      lng:          parseFloat(document.getElementById('e-lng').value) || null,
       hyperlink:    document.getElementById('e-link').value || null,
       remarks:      document.getElementById('e-rem').value  || null,
     })

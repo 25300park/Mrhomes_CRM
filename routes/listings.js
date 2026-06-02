@@ -59,7 +59,8 @@ router.post('/', auth, async (req, res) => {
     transaction_type, property_type, name, unit_no, address, floor,
     area_sqm, bedrooms, bathrooms, parking, price,
     is_furnished, pet_friendly, listing_source_id, assigned_user_id,
-    photo_url, photos, hyperlink, remarks
+    photo_url, photos, hyperlink, remarks,
+    lat, lng   // 좌표 추가
   } = req.body
 
   if (!transaction_type || !name) return res.status(400).json({ error: '거래유형과 매물명은 필수입니다' })
@@ -72,7 +73,10 @@ router.post('/', auth, async (req, res) => {
       is_furnished, pet_friendly,
       listing_source_id: listing_source_id || null,
       assigned_user_id: assigned_user_id || req.user.id,
-      photo_url, photos: photos || [], hyperlink, remarks, status: 'ACTIVE'
+      photo_url, photos: photos || [], hyperlink, remarks,
+      lat: lat || null,   // 좌표
+      lng: lng || null,   // 좌표
+      status: 'ACTIVE'
     })
     .select().single()
   if (error) return res.status(500).json({ error: error.message })
@@ -85,7 +89,8 @@ router.patch('/:id', auth, async (req, res) => {
     'transaction_type','property_type','name','unit_no','address','floor',
     'area_sqm','bedrooms','bathrooms','parking','price',
     'is_furnished','furnished_type','pet_friendly','listing_source_id','assigned_user_id',
-    'photo_url','photos','hyperlink','remarks','status'
+    'photo_url','photos','hyperlink','remarks','status',
+    'lat','lng'   // 좌표 수정 허용
   ]
   const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)))
   updates.updated_at = new Date().toISOString()
@@ -112,14 +117,14 @@ router.delete('/:id', auth, async (req, res) => {
 
 // POST /api/listings/:id/publish  (rbs-homes.com 에 퍼블리시)
 router.post('/:id/publish', auth, async (req, res) => {
-  const RBS_API_URL    = process.env.RBS_HOMES_URL    // e.g. https://rbs-homes.com
-  const RBS_API_SECRET = process.env.RBS_SYNC_SECRET  // 공유 시크릿
+  const RBS_API_URL    = process.env.RBS_HOMES_URL
+  const RBS_API_SECRET = process.env.RBS_SYNC_SECRET
 
   if (!RBS_API_URL || !RBS_API_SECRET) {
     return res.status(500).json({ error: 'RBS_HOMES_URL or RBS_SYNC_SECRET not configured' })
   }
 
-  // 매물 정보 조회
+  // 매물 정보 조회 (lat, lng 포함)
   const { data: listing, error } = await req.supabase
     .from('listings')
     .select('*')
@@ -148,6 +153,8 @@ router.post('/:id/publish', auth, async (req, res) => {
       remarks:          listing.remarks,
       photo_url:        listing.photo_url,
       photos:           listing.photos || [],
+      lat:              listing.lat  || null,   // 위도 전송
+      lng:              listing.lng  || null,   // 경도 전송
     }
 
     const response = await fetch(`${RBS_API_URL}/api/sync-unit`, {
@@ -176,7 +183,7 @@ router.post('/:id/publish', auth, async (req, res) => {
       success:     true,
       rbs_unit_id: result.rbs_unit_id,
       message:     result.message,
-      url:         `${RBS_API_URL}/detail/${result.rbs_unit_id}`
+      url:         `${RBS_API_URL}/unit/detail/${result.rbs_unit_id}`
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
