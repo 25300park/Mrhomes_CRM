@@ -3009,14 +3009,14 @@ function switchDocTab(tab, btn) {
   document.querySelectorAll('.tabs .tab').forEach(b => b.classList.remove('on'))
   btn.classList.add('on')
   ;['report','loi'].forEach(t => {
-    const el = document.getElementById(`doc-panel-${t}`)
+    const el = document.getElementById('doc-panel-' + t)
     if (el) el.style.display = t === tab ? '' : 'none'
   })
 }
 
-let _reportDocs = []  // 저장된 리포트 목록
-let _reportEditId = null  // 현재 편집 중인 리포트 id
-let _rpListingSearch = ''  // 리스팅 검색어
+let _reportDocs = []
+let _reportEditId = null
+let _rpListingSearch = ''
 
 async function buildReportPanel() {
   if (!_docListings.length) {
@@ -3198,69 +3198,92 @@ function updateRpCount() {
 }
 
 // 화면용 미리보기 HTML (반응형, mm 단위 없음)
+function _buildReportCard(l, forPrint) {
+  const RBS_BASE = 'https://rbs-homes.com'
+  const detailUrl = l.rbs_unit_id ? RBS_BASE + '/properties/detail-id' + l.rbs_unit_id : ''
+  const imgH = forPrint ? '100px' : '110px'
+  const noImgH = forPrint ? '40px' : '50px'
+  const fs1 = forPrint ? '11px' : '12px'
+  const fs2 = forPrint ? '8px' : '9px'
+  const fs3 = forPrint ? '13px' : '14px'
+  const pad = forPrint ? '7px' : '8px'
+  const br = forPrint ? '6px' : '8px'
+
+  const imgHtml = l.photo_url
+    ? '<img src="' + l.photo_url + '" style="width:100%;height:' + imgH + ';object-fit:cover;display:block">'
+    : '<div style="width:100%;height:' + noImgH + ';background:#F5F0EA;display:flex;align-items:center;justify-content:center;color:#B0A090;font-size:9px">No Photo</div>'
+
+  const unitHtml   = l.unit_no ? '<div style="font-size:' + fs2 + ';color:#888">Unit ' + l.unit_no + '</div>' : ''
+  const bedroomTxt = l.bedrooms == null ? '' : (l.bedrooms === 0 ? 'Studio' : l.bedrooms + ' BR')
+  const bedsHtml   = bedroomTxt ? '<span>&#127. ' + bedroomTxt + '</span>' : ''
+  const bathHtml   = l.bathrooms ? '<span>&#x1F6BF; ' + l.bathrooms + '</span>' : ''
+  const areaHtml   = l.area_sqm ? '<span>&#128207; ' + l.area_sqm + '&#13217;</span>' : ''
+  const parkHtml   = l.parking ? '<span>&#128663; ' + l.parking + '</span>' : ''
+  const furnitureTxt = l.furnished_type === 'full' ? '&#9989; Fully' : l.furnished_type === 'semi' ? '&#128993; Semi' : '&#10060; Unfurnished'
+  const petTxt = l.pet_friendly ? ' &#128062; Pet OK' : ' &#128683; No Pets'
+  const linkHtml = detailUrl && !forPrint ? '<div style="font-size:8px;color:#7B6B5A;margin-top:3px">&#128279; rbs-homes.com</div>' : ''
+  const linkUrlHtml = detailUrl && forPrint ? '<div style="font-size:7px;color:#7B6B5A;margin-top:2px">&#128279; ' + detailUrl + '</div>' : ''
+  const priceHtml = '<div style="font-size:' + fs3 + ';font-weight:700;color:#7B6B5A;margin-bottom:' + (forPrint?'3':'5') + 'px">&#8369;' + Number(l.price||0).toLocaleString() + (l.transaction_type === 'RENT' ? '<span style="font-size:' + fs2 + ';font-weight:400"> /mo</span>' : '') + '</div>'
+
+  const inner = '<div style="padding:' + pad + '">'
+    + '<div style="font-size:' + fs1 + ';font-weight:700;color:#1A1A2E;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (l.name||'') + '</div>'
+    + unitHtml
+    + '<div style="font-size:' + fs2 + ';color:#888;margin-bottom:' + (forPrint?'4':'6') + 'px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (l.address||'') + '</div>'
+    + priceHtml
+    + '<div style="display:flex;gap:' + (forPrint?'5':'6') + 'px;font-size:' + fs2 + ';color:#555;flex-wrap:wrap">' + bedsHtml + bathHtml + areaHtml + parkHtml + '</div>'
+    + '<div style="font-size:' + fs2 + ';color:#666;margin-top:3px">' + furnitureTxt + petTxt + '</div>'
+    + linkHtml + linkUrlHtml
+    + '</div>'
+
+  const wrapStyle = 'border:1px solid #E0D8CF;border-radius:' + br + ';overflow:hidden;' + (forPrint ? 'page-break-inside:avoid' : 'background:#fff')
+  const linkWrap = detailUrl ? '<a href="' + detailUrl + '" target="_blank" style="text-decoration:none;color:inherit;display:block">' : '<div>'
+  const linkWrapEnd = detailUrl ? '</a>' : '</div>'
+
+  return '<div style="' + wrapStyle + '">' + linkWrap + imgHtml + inner + linkWrapEnd + '</div>'
+}
+
+function _buildReportHeader(client, agent, agentMobile, dateStr, forPrint) {
+  const imgH = forPrint ? '52px' : '48px'
+  const titleFs = forPrint ? '17px' : '16px'
+  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #7B6B5A;padding-bottom:' + (forPrint?'10':'12') + 'px;margin-bottom:' + (forPrint?'14':'16') + 'px">'
+    + '<img src="' + LOGO_URL + '" style="height:' + imgH + ';object-fit:contain">'
+    + '<div style="text-align:right">'
+    + '<div style="font-size:' + titleFs + ';font-weight:700;color:#7B6B5A;letter-spacing:1px">PROPERTY LISTINGS</div>'
+    + '<div style="font-size:11px;color:#666;margin-top:2px">Prepared for: <strong>' + (client||'Client') + '</strong></div>'
+    + '<div style="font-size:10px;color:#888">' + dateStr + '</div>'
+    + '<div style="font-size:10px;color:#888">Contact: ' + agent + (agentMobile ? ' &middot; ' + agentMobile : '') + '</div>'
+    + '</div></div>'
+}
+
+function _buildReportFooter(forPrint) {
+  const fs1 = forPrint ? '10px' : '11px'
+  const fs2 = forPrint ? '8px' : '9px'
+  return '<div style="border-top:1px solid #E0D8CF;padding-top:' + (forPrint?'8':'10') + 'px;text-align:center;margin-top:' + (forPrint?'10':'0') + 'px">'
+    + '<div style="font-size:' + fs1 + ';font-weight:600;color:#7B6B5A">' + COMPANY.name + '</div>'
+    + '<div style="font-size:' + fs2 + ';color:#888;margin-top:2px">' + COMPANY.web + ' &middot; ' + COMPANY.email + '</div>'
+    + '<div style="font-size:7px;color:#aaa;margin-top:3px">For informational purposes only. Prices and availability subject to change.</div>'
+    + '</div>'
+}
+
 function getReportPreviewHtml() {
-  const selected = _docListings.filter(l => _docSelected.has(l.id))
+  const selected    = _docListings.filter(l => _docSelected.has(l.id))
   const client      = document.getElementById('rp-client')?.value || ''
   const date        = document.getElementById('rp-date')?.value || tod()
   const agent       = me?.name || ''
   const agentMobile = me?.mobile || ''
   const dateStr     = new Date(date).toLocaleDateString('en-PH', { year:'numeric', month:'long', day:'numeric' })
-  const RBS_BASE    = 'https://rbs-homes.com'
 
-  const cardHtml = (l) => {
-    const detailUrl = l.rbs_unit_id ? `${RBS_BASE}/properties/detail-id${l.rbs_unit_id}` : ''
-    return `
-    <div style="border:1px solid #E0D8CF;border-radius:8px;overflow:hidden;background:#fff">
-      ${detailUrl ? `<a href="${detailUrl}" target="_blank" style="text-decoration:none;color:inherit;display:block">` : '<div>'}
-      ${l.photo_url
-        ? `<img src="${l.photo_url}" style="width:100%;height:110px;object-fit:cover;display:block">`
-        : `<div style="width:100%;height:50px;background:#F5F0EA;display:flex;align-items:center;justify-content:center;color:#B0A090;font-size:10px">No Photo</div>`}
-      <div style="padding:8px">
-        <div style="font-size:12px;font-weight:700;color:#1A1A2E;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.name}</div>
-        ${l.unit_no?`<div style="font-size:9px;color:#888">Unit ${l.unit_no}</div>`:''}
-        <div style="font-size:9px;color:#888;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.address||''}</div>
-        <div style="font-size:14px;font-weight:700;color:#7B6B5A;margin-bottom:3px">
-          ₱${Number(l.price||0).toLocaleString()}${l.transaction_type==='RENT'?'<span style="font-size:9px;font-weight:400"> /mo</span>':''}
-        </div>
-        <div style="display:flex;gap:6px;font-size:9px;color:#555;flex-wrap:wrap">
-          ${l.bedrooms!=null?`<span>🛏 ${l.bedrooms===0?'Studio':l.bedrooms+' BR'}</span>`:''}
-          ${l.bathrooms?`<span>🚿 ${l.bathrooms}</span>`:''}
-          ${l.area_sqm?`<span>📐 ${l.area_sqm}㎡</span>`:''}
-          ${l.parking?`<span>🚗 ${l.parking}</span>`:''}
-        </div>
-        <div style="font-size:9px;color:#666;margin-top:3px">
-          ${l.furnished_type==='full'?'✅ Fully':l.furnished_type==='semi'?'🟡 Semi':'❌ Unfurnished'}
-          ${l.pet_friendly?' 🐾 Pet OK':' 🚫 No Pets'}
-        </div>
-        ${detailUrl?`<div style="font-size:8px;color:#7B6B5A;margin-top:3px">🔗 rbs-homes.com</div>`:''}
-      </div>
-      ${detailUrl ? '</a>' : '</div>'}
-    </div>`
-  }
+  const cardsHtml = selected.map(l => _buildReportCard(l, false)).join('')
+  const headerHtml = _buildReportHeader(client, agent, agentMobile, dateStr, false)
+  const footerHtml = _buildReportFooter(false)
 
-  return `
-  <div style="font-family:Arial,sans-serif;color:#2C2C2C;background:#fff;padding:16px">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #7B6B5A;padding-bottom:12px;margin-bottom:16px">
-      <img src="${LOGO_URL}" style="height:48px;object-fit:contain">
-      <div style="text-align:right">
-        <div style="font-size:16px;font-weight:700;color:#7B6B5A">PROPERTY LISTINGS</div>
-        <div style="font-size:11px;color:#666;margin-top:2px">Prepared for: <strong>${client||'Client'}</strong></div>
-        <div style="font-size:10px;color:#888">${dateStr}</div>
-        <div style="font-size:10px;color:#888">Contact: ${agent}${agentMobile?' · '+agentMobile:''}</div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
-      ${selected.map(l => cardHtml(l)).join('')}
-    </div>
-    <div style="border-top:1px solid #E0D8CF;padding-top:10px;text-align:center">
-      <div style="font-size:11px;font-weight:600;color:#7B6B5A">${COMPANY.name}</div>
-      <div style="font-size:9px;color:#888;margin-top:2px">${COMPANY.web} · ${COMPANY.email}</div>
-      <div style="font-size:8px;color:#aaa;margin-top:3px">For informational purposes only. Prices and availability subject to change.</div>
-    </div>
-  </div>`
+  return '<div style="font-family:Arial,sans-serif;color:#2C2C2C;background:#fff;padding:16px">'
+    + headerHtml
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">' + cardsHtml + '</div>'
+    + footerHtml
+    + '</div>'
 }
 
-// 인쇄용 A4 HTML (6개/페이지, 페이지 나누기 포함)
 function getReportPrintHtml() {
   const selected    = _docListings.filter(l => _docSelected.has(l.id))
   const client      = document.getElementById('rp-client')?.value || ''
@@ -3268,84 +3291,29 @@ function getReportPrintHtml() {
   const agent       = me?.name || ''
   const agentMobile = me?.mobile || ''
   const dateStr     = new Date(date).toLocaleDateString('en-PH', { year:'numeric', month:'long', day:'numeric' })
-  const RBS_BASE    = 'https://rbs-homes.com'
 
-  // 페이지당 6개 (3열 x 2행)
+  const headerHtml = _buildReportHeader(client, agent, agentMobile, dateStr, true)
+  const footerHtml = _buildReportFooter(true)
+
+  // 페이지당 6개
   const pages = []
   for (let i = 0; i < selected.length; i += 6) pages.push(selected.slice(i, i+6))
 
-  const headerHtml = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #7B6B5A;padding-bottom:10px;margin-bottom:14px">
-      <img src="${LOGO_URL}" style="height:52px;object-fit:contain">
-      <div style="text-align:right">
-        <div style="font-size:17px;font-weight:700;color:#7B6B5A;letter-spacing:1px">PROPERTY LISTINGS</div>
-        <div style="font-size:11px;color:#666;margin-top:2px">Prepared for: <strong>${client||'Client'}</strong></div>
-        <div style="font-size:10px;color:#888">${dateStr}</div>
-        <div style="font-size:10px;color:#888">Contact: ${agent}${agentMobile?' · '+agentMobile:''}</div>
-      </div>
-    </div>`
+  const pagesHtml = pages.map(function(pageListings, pi) {
+    const pageStyle = 'width:210mm;height:297mm;padding:12mm 12mm 10mm;box-sizing:border-box;font-family:Arial,sans-serif;color:#2C2C2C;display:flex;flex-direction:column;' + (pi > 0 ? 'page-break-before:always;break-before:page;' : '')
+    const cardsHtml = pageListings.map(l => _buildReportCard(l, true)).join('')
+    return '<div style="' + pageStyle + '">'
+      + headerHtml
+      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:1;align-content:start">' + cardsHtml + '</div>'
+      + footerHtml
+      + '</div>'
+  }).join('')
 
-  const footerHtml = `
-    <div style="border-top:1px solid #E0D8CF;padding-top:8px;text-align:center;margin-top:10px">
-      <div style="font-size:10px;font-weight:600;color:#7B6B5A">${COMPANY.name}</div>
-      <div style="font-size:8px;color:#888;margin-top:1px">${COMPANY.web} · ${COMPANY.email}</div>
-      <div style="font-size:7px;color:#aaa;margin-top:2px">For informational purposes only. Prices and availability subject to change.</div>
-    </div>`
-
-  const cardHtml = (l) => {
-    const detailUrl = l.rbs_unit_id ? `${RBS_BASE}/properties/detail-id${l.rbs_unit_id}` : ''
-    return `
-    <div style="border:1px solid #E0D8CF;border-radius:6px;overflow:hidden;page-break-inside:avoid">
-      ${l.photo_url
-        ? `<img src="${l.photo_url}" style="width:100%;height:100px;object-fit:cover;display:block">`
-        : `<div style="width:100%;height:40px;background:#F5F0EA;display:flex;align-items:center;justify-content:center;color:#B0A090;font-size:9px">No Photo</div>`}
-      <div style="padding:7px">
-        <div style="font-size:11px;font-weight:700;color:#1A1A2E;margin-bottom:1px">${l.name}</div>
-        ${l.unit_no?`<div style="font-size:8px;color:#888">Unit ${l.unit_no}</div>`:''}
-        <div style="font-size:8px;color:#888;margin-bottom:4px">${l.address||''}</div>
-        <div style="font-size:13px;font-weight:700;color:#7B6B5A;margin-bottom:3px">
-          ₱${Number(l.price||0).toLocaleString()}${l.transaction_type==='RENT'?'<span style="font-size:8px;font-weight:400"> /mo</span>':''}
-        </div>
-        <div style="display:flex;gap:5px;font-size:8px;color:#555;flex-wrap:wrap">
-          ${l.bedrooms!=null?`<span>🛏 ${l.bedrooms===0?'Studio':l.bedrooms+' BR'}</span>`:''}
-          ${l.bathrooms?`<span>🚿 ${l.bathrooms}</span>`:''}
-          ${l.area_sqm?`<span>📐 ${l.area_sqm}㎡</span>`:''}
-          ${l.parking?`<span>🚗 ${l.parking}</span>`:''}
-        </div>
-        <div style="font-size:8px;color:#666;margin-top:3px">
-          ${l.furnished_type==='full'?'✅ Fully':l.furnished_type==='semi'?'🟡 Semi':'❌ Unfurnished'}
-          ${l.pet_friendly?' 🐾 Pet OK':' 🚫 No Pets'}
-        </div>
-        ${detailUrl?`<div style="font-size:7px;color:#7B6B5A;margin-top:2px">🔗 ${detailUrl}</div>`:''}
-      </div>
-    </div>`
-  }
-
-  const pagesHtml = pages.map((pageListings, pi) => `
-    <div style="width:210mm;height:297mm;padding:12mm 12mm 10mm;box-sizing:border-box;
-      font-family:Arial,sans-serif;color:#2C2C2C;
-      display:flex;flex-direction:column;
-      ${pi > 0 ? 'page-break-before:always;break-before:page;' : ''}">
-      ${headerHtml}
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:1;align-content:start">
-        ${pageListings.map(l => cardHtml(l)).join('')}
-      </div>
-      ${footerHtml}
-    </div>`).join('
-')
-
-  return `<!DOCTYPE html><html><head><meta charset="utf-8">
-    <style>
-      * { margin:0; padding:0; box-sizing:border-box; }
-      body { background:#fff; }
-      @page { size: A4 portrait; margin: 0; }
-      @media print {
-        html, body { width:210mm; height:297mm; }
-        .page { page-break-after: always; }
-        .page:last-child { page-break-after: avoid; }
-      }
-    </style>
-  </head><body>${pagesHtml}</body></html>`
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>'
+    + '* { margin:0; padding:0; box-sizing:border-box; } body { background:#fff; }'
+    + '@page { size: A4 portrait; margin: 0; }'
+    + '@media print { html, body { width:210mm; } }'
+    + '</style></head><body>' + pagesHtml + '</body></html>'
 }
 
 function previewReport() {
@@ -3513,8 +3481,8 @@ document.addEventListener('click', e => {
 // generateReport: replaced by previewReport()
 
 // ── LOI Panel ─────────────────────────────────────────────
-let _loiDocs = []  // 저장된 LOI 목록
-let _loiEditId = null  // 현재 편집 중인 LOI id
+let _loiDocs = []
+let _loiEditId = null
 
 async function buildLOIPanel() {
   const contacts = _contacts.length ? _contacts : await api('GET', '/api/contacts?limit=300').then(d => d.data||d).catch(()=>[])
