@@ -271,6 +271,12 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 </div>
 
 <!-- ── 프로필 Edit 모달 ── -->
+<div class="modal-overlay" id="modal-dynamic" style="display:none" onclick="if(event.target===this)closeDynModal()">
+  <div class="modal" style="max-width:520px;max-height:85vh;overflow-y:auto">
+    <div id="modal-dynamic-content"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-profile" style="display:none" onclick="if(event.target===this)closeModal('modal-profile')">
   <div class="modal" style="max-width:420px">
     <div class="modal-hd">
@@ -2075,6 +2081,16 @@ async function saveFromAI() {
 
 function closeModal(id) {
   document.getElementById(id).style.display = 'none'
+}
+
+// PMS 동적 모달 헬퍼
+function showModal(html) {
+  document.getElementById('modal-dynamic-content').innerHTML = html
+  document.getElementById('modal-dynamic').style.display = 'flex'
+}
+function closeDynModal() {
+  document.getElementById('modal-dynamic').style.display = 'none'
+  document.getElementById('modal-dynamic-content').innerHTML = ''
 }
 
 async function addContact() {
@@ -4388,9 +4404,9 @@ async function careDetail(id) {
       </div>`:''}
 
       <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
-        ${r.status==='PENDING'?`<button onclick="closeModal();careSchedule('${r.id}')" class="btn btn-g">📅 일정 확정</button>`:''}
-        ${r.status==='SCHEDULED'?`<button onclick="closeModal();careComplete('${r.id}')" class="btn btn-g">✅ 완료 처리</button>`:''}
-        <button onclick="closeModal()" class="btn btn-o">닫기</button>
+        ${r.status==='PENDING'?`<button onclick="closeDynModal();careSchedule('${r.id}')" class="btn btn-g">📅 일정 확정</button>`:''}
+        ${r.status==='SCHEDULED'?`<button onclick="closeDynModal();careComplete('${r.id}')" class="btn btn-g">✅ 완료 처리</button>`:''}
+        <button onclick="closeDynModal()" class="btn btn-o">닫기</button>
       </div>
     `)
   } catch(e) { alert('오류: ' + e.message) }
@@ -4478,7 +4494,7 @@ function careSchedule(id) {
         workers,
         gatepass_notes,
       })
-      closeModal()
+      closeDynModal()
       alert('일정이 확정되었습니다. 임차인에게 알림이 전송됩니다.')
       nav('pms-care')
     } catch(e) { alert('오류: ' + e.message) }
@@ -4504,7 +4520,7 @@ function careSchedule(id) {
     </div>
 
     <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
-      <button onclick="closeModal()" class="btn btn-o">취소</button>
+      <button onclick="closeDynModal()" class="btn btn-o">취소</button>
       <button onclick="submitCareSchedule()" class="btn btn-g">일정 확정 저장</button>
     </div>
   `)
