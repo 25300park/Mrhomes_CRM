@@ -3219,7 +3219,7 @@ function updateRpCount() {
 function _buildReportCard(l, forPrint) {
   const RBS_BASE = 'https://rbs-homes.com'
   const detailUrl = l.rbs_unit_id ? RBS_BASE + '/properties/detail-id' + l.rbs_unit_id : ''
-  const imgH = forPrint ? '90px' : '160px'
+  const imgH = forPrint ? '120px' : '160px'
   const noImgH = forPrint ? '30px' : '50px'
   const fs1 = forPrint ? '11px' : '14px'
   const fs2 = forPrint ? '8px' : '11px'
@@ -3315,14 +3315,14 @@ function getReportPrintHtml() {
 
   // 페이지당 6개 (2열 x 3행)
   const pages = []
-  for (let i = 0; i < selected.length; i += 6) pages.push(selected.slice(i, i+6))
+  for (let i = 0; i < selected.length; i += 9) pages.push(selected.slice(i, i+9))
 
   const pagesHtml = pages.map(function(pageListings, pi) {
     const pageStyle = 'width:210mm;height:297mm;padding:12mm 12mm 10mm;box-sizing:border-box;font-family:Arial,sans-serif;color:#2C2C2C;display:flex;flex-direction:column;' + (pi > 0 ? 'page-break-before:always;break-before:page;' : '')
     const cardsHtml = pageListings.map(l => _buildReportCard(l, true)).join('')
     return '<div style="' + pageStyle + '">'
       + headerHtml
-      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:8px;flex:1">' + cardsHtml + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:6px;flex:1">' + cardsHtml + '</div>'
       + footerHtml
       + '</div>'
   }).join('')
