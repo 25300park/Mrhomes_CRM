@@ -5136,13 +5136,13 @@ async function vStaff() {
 }
 </script>
 <!-- Create User Modal (Admin Only) -->
-<div id="modal-create-user" class="modal" style="display:none">
-  <div class="modal-box" style="max-width:420px">
-    <div class="modal-h">
-      <span><i class="ti ti-user-plus"></i> Create New User</span>
-      <button onclick="closeModal('modal-create-user')" class="modal-close">&times;</button>
+<div class="modal-overlay" id="modal-create-user" style="display:none" onclick="if(event.target===this)closeModal('modal-create-user')">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-hd">
+      <div><h2><i class="ti ti-user-plus"></i> Create New User</h2></div>
+      <button class="modal-close" onclick="closeModal('modal-create-user')"><i class="ti ti-x"></i></button>
     </div>
-    <div class="modal-b">
+    <div class="modal-body">
       <div class="mf"><label>Full Name *</label>
         <input class="fi" id="cu-name" placeholder="e.g. Juan dela Cruz"></div>
       <div class="mf"><label>Email *</label>
@@ -5159,7 +5159,7 @@ async function vStaff() {
       <div class="mf"><label>Base Salary (PHP)</label>
         <input class="fi" id="cu-salary" type="number" placeholder="e.g. 18000"></div>
     </div>
-    <div class="modal-f">
+    <div class="modal-ft">
       <button class="btn btn-o" onclick="closeModal('modal-create-user')">Cancel</button>
       <button class="btn btn-g" onclick="createUser()"><i class="ti ti-user-check"></i> Create User</button>
     </div>
