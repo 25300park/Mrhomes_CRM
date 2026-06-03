@@ -113,3 +113,21 @@ router.post('/:id/activity', auth, async (req, res) => {
 })
 
 module.exports = router
+
+// DELETE /api/leads/:id (admin 또는 담당 에이전트만)
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const { data: lead } = await req.supabase
+      .from('leads').select('assigned_user_id').eq('id', req.params.id).single()
+
+    if (!lead) return res.status(404).json({ error: '리드를 찾을 수 없습니다.' })
+    if (req.user.role !== 'admin' && lead.assigned_user_id !== req.user.id) {
+      return res.status(403).json({ error: '삭제 권한이 없습니다.' })
+    }
+
+    const { error } = await req.supabase
+      .from('leads').delete().eq('id', req.params.id)
+    if (error) return res.status(500).json({ error: error.message })
+    res.json({ message: '리드가 삭제되었습니다.' })
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})

@@ -1452,9 +1452,14 @@ async function vContactDetail(id) {
               <span class="bdg" style="background:#F1EFE8;color:#5F5E5A">${l.request_type==='RENT'?'Rent':'Sale'}</span>
               ${l.property_type?`<span class="bdg" style="background:#EEEDFE;color:#534AB7">${l.property_type}</span>`:''}
             </div>
-            ${isActive?`<select class="fs" style="font-size:11px;padding:4px 8px;width:auto" onchange="quickLeadStatusChange('${l.id}','${id}',this.value)">
-              ${Object.entries(LEAD_STATUS_LABELS).map(([k,v])=>`<option value="${k}" ${l.status===k?'selected':''}>${v}</option>`).join('')}
-            </select>`:''}
+            <div style="display:flex;gap:6px;align-items:center">
+              ${l.status==='CLOSED_WON'
+                ? '<button onclick="goToTenantsFromLead(''+l.id+'',''+id+'')" style="background:#19846B;color:#fff;border:none;padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap"><i class="ti ti-building-community" style="margin-right:4px"></i>Go to Tenants →</button>'
+                : '<select class="fs" style="font-size:11px;padding:4px 8px;width:auto" onchange="quickLeadStatusChange(''+l.id+'',''+id+'',this.value)">'
+                  + Object.entries(LEAD_STATUS_LABELS).map(([k,v])=>'<option value="'+k+'" '+(l.status===k?'selected':'')+'>'+v+'</option>').join('')
+                  + '</select>'
+              }
+            </div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
             <div><span style="color:var(--m)">Budget </span><strong>${fmt(l.budget)}${l.request_type==='RENT'?'/Month':''}</strong></div>
@@ -1573,6 +1578,54 @@ async function saveContactActivity(contactId) {
     vContactDetail(contactId)
   } catch(e) { alert('Save Error: '+e.message) }
 }
+// Lead → Tenants 이동 (계약 생성 모달 자동 오픈)
+async function goToTenantsFromLead(leadId, contactId) {
+  const confirmMsg = '이 Lead를 Tenants로 이동하시겠습니까?
+
+계약 등록 창이 열리며 Lead 정보가 자동으로 채워집니다.
+등록 완료 후 이 Lead는 삭제됩니다.'
+  if (!confirm(confirmMsg)) return
+
+  try {
+    // lead 전체 정보 조회
+    const lead = await api('GET', '/api/leads/' + leadId)
+
+    // contacts 사전 로드 (openNewContractFromLead에서 필요)
+    if (!_contacts.length) {
+      _contacts = await api('GET', '/api/contacts').catch(() => [])
+    }
+
+    // New Contract 모달 자동 채움으로 오픈
+    await openNewContractFromLead(lead)
+
+    // 저장 완료 후 lead 삭제를 위해 leadId를 전역 저장
+    window._pendingDeleteLeadId = leadId
+
+    // saveNewContract 함수를 일시적으로 래핑해서 저장 후 lead 삭제 + Tenants 이동
+    const _origSave = window.saveNewContract
+    window.saveNewContract = async function() {
+      await _origSave()
+      // 저장 성공 시 lead 삭제
+      if (window._pendingDeleteLeadId) {
+        try {
+          await api('DELETE', '/api/leads/' + window._pendingDeleteLeadId)
+          window._pendingDeleteLeadId = null
+          toast('✓ Lead가 삭제되고 Tenants로 이동되었습니다')
+        } catch(e) {
+          console.warn('Lead 삭제 실패:', e.message)
+        }
+      }
+      // saveNewContract 원본 복원
+      window.saveNewContract = _origSave
+      // Tenants 탭으로 이동
+      setTimeout(() => nav('tenants'), 500)
+    }
+
+  } catch(e) {
+    alert('오류: ' + e.message)
+  }
+}
+
 async function quickLeadStatusChange(leadId, contactId, status) {
   try {
     await api('PATCH',`/api/leads/${leadId}`,{status})
