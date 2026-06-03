@@ -1518,7 +1518,7 @@ async function vContactDetail(id) {
       </button>
     </div>
     <div id="lead-docs-${id}" style="min-height:48px;padding:8px 12px">
-      ${renderLeadDocsSync(_leadDocs||[],'${id}')}
+      ${renderLeadDocsSync(_leadDocs, id)}
     </div>
   </div>
 </div></div>`)
@@ -1528,10 +1528,10 @@ async function vContactDetail(id) {
 }
 
 // ═══════════ LEAD 문서 보관함 ═══════════
-let _leadDocs = {}  // {contactId: [loi_document]}
+let _leadDocs = []  // contact에 연결된 LOI 목록
 
 function renderLeadDocsSync(docs, contactId) {
-  const filtered = (docs||[]).filter(d => d.linked_contact_id === contactId || d.id)
+  const filtered = (docs||[])
   if (!filtered.length) return '<div style="padding:12px;font-size:11px;color:var(--m);text-align:center">연결된 문서가 없습니다. LOI 연결 버튼으로 추가하세요.</div>'
   return filtered.map(d => `
     <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--b)">
@@ -4267,7 +4267,7 @@ async function openNewContractFromLead(lead) {
     // Tenant 자동채움
     if (lead.contact_id && lead.contact?.name) {
       document.getElementById('nc-tenant-search').value = lead.contact.name
-      window._ncTenantId = lead.contact_id
+      _ncTenantId = lead.contact_id
       const sel = document.getElementById('nc-tenant-selected')
       if (sel) { sel.textContent = '✓ ' + lead.contact.name; sel.style.display = '' }
     }
