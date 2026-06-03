@@ -4721,7 +4721,7 @@ async function vTenantDetail(dealId) {
         <div style="display:flex;gap:6px">
           <button class="btn btn-n" style="font-size:11px;padding:4px 10px"
             onclick="generatePayments('${dealId}')">⚡ 자동 생성</button>
-          ${me.role==='admin'?`<button onclick="deletePayments('${dealId}')" style="background:none;border:1px solid var(--R);color:var(--R);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">🗑 삭제</button>`:''}
+          <button onclick="deletePayments('${dealId}')" style="display:${me.role==='admin'?'block':'none'};background:none;border:1px solid var(--R);color:var(--R);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">🗑 삭제</button>
         </div>
       </div>
       <div id="payment-schedule-area" style="padding:8px">
@@ -4875,8 +4875,7 @@ async function loadPaymentSchedule(dealId) {
 }
 
 async function generatePayments(dealId) {
-  if (!confirm('계약 기간 전체의 납부 스케줄을 자동 생성하시겠습니까?
-(납부일은 Utility Payment Day 기준)')) return
+  if (!confirm('계약 기간 전체의 납부 스케줄을 자동 생성하시겠습니까?\n(납부일은 Utility Payment Day 기준)')) return
   try {
     const res = await api('POST', `/api/pms-payments/generate/${dealId}`)
     toast(`✓ ${res.created}건의 납부 스케줄이 생성되었습니다`)
