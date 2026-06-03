@@ -1299,6 +1299,9 @@ async function vContactDetail(id) {
       api('GET', '/api/loi').catch(()=>[])
     ])
     _leadDocs = lois.filter(d => d.linked_contact_id === id)
+    const relDeals = deals.filter(d =>
+      d.tenant_contact_id === id || d.owner_contact_id === id
+    )
     const activeLeads = leads.filter(l => !l.status.startsWith('CLOSED'))
     const ct = CT[contact.type] || { l:contact.type, bg:'#eee', c:'#666' }
 
