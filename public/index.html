@@ -3025,7 +3025,7 @@ async function buildReportPanel() {
     const data = await api('GET', '/api/listings?limit=200').catch(() => [])
     _docListings = data
   }
-  _reportDocs = await api('GET', '/api/listing-reports').catch(()=>[])
+  _reportDocs = await api('GET', '/api/listing-reports?include_shared=1').catch(()=>[])
   return `
 <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:flex-start">
   <!-- 왼쪽: 설정 패널 -->
@@ -3123,21 +3123,37 @@ async function buildReportPanel() {
 
 function renderReportSavedList() {
   if (!_reportDocs.length) return '<div style="padding:12px;text-align:center;font-size:11px;color:var(--m)">No saved reports</div>'
-  return _reportDocs.map(d => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--b);cursor:pointer"
+  // 내 report + 공유된 report 모두 표시
+  return _reportDocs.map(d => {
+    const isOwner  = d.created_by === me?.id || me?.role === 'admin'
+    const isMine   = d.created_by === me?.id
+    const shared   = d.is_shared
+    const sharedBadge = shared
+      ? '<span style="font-size:9px;background:#E0F3ED;color:#19846B;padding:1px 5px;border-radius:4px;margin-left:4px">공유됨</span>'
+      : ''
+    return `
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--b);cursor:pointer"
       onclick="loadReport('${d.id}')"
       onmouseover="this.style.background='#F8F5F0'" onmouseout="this.style.background=''">
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-          ${d.client_name||'Unknown Client'}
+          ${d.client_name||'Unknown Client'}${sharedBadge}
         </div>
         <div style="font-size:10px;color:var(--m)">${d.report_date||''} · ${d.agent_name||''} · ${(d.listing_ids||[]).length} listings</div>
       </div>
+      ${isMine ? `
+      <button onclick="event.stopPropagation();toggleShareReport('${d.id}',${shared})"
+        title="${shared?'Unshare':'Share with team'}"
+        style="background:none;border:none;cursor:pointer;color:${shared?'#19846B':'var(--m)'};padding:3px">
+        <i class="ti ti-share" style="font-size:13px"></i>
+      </button>` : ''}
+      ${isOwner ? `
       <button onclick="event.stopPropagation();deleteReport('${d.id}')"
-        style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:4px">
+        style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:3px">
         <i class="ti ti-trash" style="font-size:13px"></i>
-      </button>
-    </div>`).join('')
+      </button>` : ''}
+    </div>`
+  }).join('')
 }
 
 function renderSelectedListings() {
@@ -3203,12 +3219,12 @@ function updateRpCount() {
 function _buildReportCard(l, forPrint) {
   const RBS_BASE = 'https://rbs-homes.com'
   const detailUrl = l.rbs_unit_id ? RBS_BASE + '/properties/detail-id' + l.rbs_unit_id : ''
-  const imgH = forPrint ? '140px' : '150px'
+  const imgH = forPrint ? '140px' : '200px'
   const noImgH = forPrint ? '40px' : '50px'
-  const fs1 = forPrint ? '11px' : '13px'
-  const fs2 = forPrint ? '8px' : '10px'
-  const fs3 = forPrint ? '13px' : '16px'
-  const pad = forPrint ? '7px' : '8px'
+  const fs1 = forPrint ? '11px' : '14px'
+  const fs2 = forPrint ? '8px' : '11px'
+  const fs3 = forPrint ? '13px' : '18px'
+  const pad = forPrint ? '7px' : '12px'
   const br = forPrint ? '6px' : '8px'
 
   const imgHtml = l.photo_url
@@ -3281,7 +3297,7 @@ function getReportPreviewHtml() {
 
   return '<div style="font-family:Arial,sans-serif;color:#2C2C2C;background:#fff;padding:16px">'
     + headerHtml
-    + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:16px">' + cardsHtml + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px">' + cardsHtml + '</div>'
     + footerHtml
     + '</div>'
 }
@@ -3367,7 +3383,7 @@ async function saveReport() {
       await api('POST', '/api/listing-reports', payload)
       toast('✓ Report Saved')
     }
-    _reportDocs = await api('GET', '/api/listing-reports').catch(()=>[])
+    _reportDocs = await api('GET', '/api/listing-reports?include_shared=1').catch(()=>[])
     const listEl = document.getElementById('rp-saved-list')
     if (listEl) listEl.innerHTML = renderReportSavedList()
   } catch(e) { alert('Save failed: ' + e.message) }
@@ -3377,19 +3393,39 @@ async function loadReport(id) {
   const d = _reportDocs.find(x => x.id === id)
   if (!d) return
   _reportEditId = id
-  document.getElementById('rp-client').value = d.client_name || ''
-  document.getElementById('rp-date').value   = d.report_date?.slice(0,10) || tod()
+  const isOwner = d.created_by === me?.id || me?.role === 'admin'
+
+  // 공유된 Report는 client/date readonly (작성자만 수정 가능)
+  const clientEl = document.getElementById('rp-client')
+  const dateEl   = document.getElementById('rp-date')
+  clientEl.value    = d.client_name || ''
+  dateEl.value      = d.report_date?.slice(0,10) || tod()
+  clientEl.readOnly = !isOwner
+  dateEl.readOnly   = !isOwner
+  clientEl.style.background = isOwner ? '' : 'var(--b2)'
+  dateEl.style.background   = isOwner ? '' : 'var(--b2)'
+
   // 선택된 리스팅 복원
   _docSelected = new Set(d.listing_ids || [])
   renderSelectedListings()
   updateRpCount()
   searchRpListing('')
-  toast('Report loaded')
+  toast(isOwner ? 'Report loaded' : 'Shared report loaded — add your listings and save')
+}
+
+async function toggleShareReport(id, currentShared) {
+  try {
+    await api('PATCH', '/api/listing-reports/' + id, { is_shared: !currentShared, shared_at: !currentShared ? new Date().toISOString() : null })
+    _reportDocs = await api('GET', '/api/listing-reports?include_shared=1').catch(()=>[])
+    const listEl = document.getElementById('rp-saved-list')
+    if (listEl) listEl.innerHTML = renderReportSavedList()
+    toast(!currentShared ? '✓ Report shared with team' : 'Report unshared')
+  } catch(e) { alert('Failed: ' + e.message) }
 }
 
 async function deleteReport(id) {
   if (!confirm('Delete this report?')) return
-  await api('DELETE', `/api/listing-reports/${id}`)
+  await api('DELETE', '/api/listing-reports/' + id)
   _reportDocs = _reportDocs.filter(d => d.id !== id)
   const listEl = document.getElementById('rp-saved-list')
   if (listEl) listEl.innerHTML = renderReportSavedList()
