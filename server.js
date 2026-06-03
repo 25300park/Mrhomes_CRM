@@ -5,6 +5,7 @@ const morgan     = require('morgan')
 const path       = require('path')
 const { createClient } = require('@supabase/supabase-js')
 const pmsPayments = require('./routes/pms-payments')
+const pmsCare = require('./routes/pms-care')
 
 
 // ── 환경변수 확인 ─────────────────────────────
@@ -46,6 +47,8 @@ app.use('/api/tenants',       require('./routes/tenants'))
 app.use('/api/loi',            require('./routes/loi'))
 app.use('/api/listing-reports',require('./routes/listing-reports'))
 app.use('/api/pms-payments', pmsPayments)
+app.use('/api/pms-care', pmsCare)
+
 
 // ── 헬스체크 (Railway 상태 확인용) ───────────
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }))

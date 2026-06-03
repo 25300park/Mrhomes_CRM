@@ -224,8 +224,10 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <button class="nav-it" onclick="nav('leads')" data-v="leads"><i class="ti ti-layout-kanban"></i><span>Leads</span></button>
       <button class="nav-it" id="nav-deals" onclick="nav('deals')" data-v="deals" style="display:none"><i class="ti ti-file-text"></i><span>Deals & Commission</span></button>
       <button class="nav-it" onclick="nav('tenants')" data-v="tenants"><i class="ti ti-building-community"></i><span>Tenants</span></button>
-      <button class="nav-it" onclick="nav('pms-payments')" data-v="pms-payments"><i class="ti ti-receipt-2"></i><span>PMS 납부검토</span></button>
       <button class="nav-it" onclick="nav('documents')" data-v="documents"><i class="ti ti-file-certificate"></i><span>Documents</span></button>
+      <div class="nav-sec">PMS</div>
+      <button class="nav-it" onclick="nav('pms-payments')" data-v="pms-payments"><i class="ti ti-receipt-2"></i><span>납부 검토</span></button>
+      <button class="nav-it" onclick="nav('pms-care')" data-v="pms-care"><i class="ti ti-tool"></i><span>홈케어 관리</span></button>
       <div class="nav-sec admin-only">Management</div>
       <button class="nav-it admin-only" onclick="nav('accounting')" data-v="accounting"><i class="ti ti-coin"></i><span>Accounting</span></button>
       <button class="nav-it admin-only" onclick="nav('staff')" data-v="staff"><i class="ti ti-chart-bar"></i><span>Staff Performance</span></button>
@@ -1123,7 +1125,7 @@ document.addEventListener('click', e => {
 function nav(v) {
   document.querySelectorAll('.nav-it').forEach(e => e.classList.toggle('active', e.dataset.v === v))
   vc('<div class="loading">Loading...</div>')
-  const views = { dashboard: vDash, contacts: vCust, listings: vList, leads: vLeads, deals: vDeals, accounting: vAcct, staff: vStaff, tenants: vTenants, documents: vDocuments, 'pms-payments': vPmsPayments }
+  const views = { dashboard: vDash, contacts: vCust, listings: vList, leads: vLeads, deals: vDeals, accounting: vAcct, staff: vStaff, tenants: vTenants, documents: vDocuments, 'pms-payments': vPmsPayments, 'pms-care': vPmsCare }
   if (window.innerWidth < 768) closeSidebar()
   return views[v] ? views[v]() : Promise.resolve()
 }
@@ -4129,7 +4131,7 @@ async function vPmsPayments() {
       OVERDUE:           { l:'연체',     bg:'#FDEAEA', c:'#A33030' },
     }
     const badge = (s) => {
-      const st = STATUS[s] || { l: s, bg: '#eee', c: '#333' }
+      const st = STATUS[s] || { l:s, bg:'#eee', c:'#333' }
       return `<span style="background:${st.bg};color:${st.c};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${st.l}</span>`
     }
     const fmtMon = (d) => d ? new Date(d).toLocaleDateString('ko-KR', { year:'numeric', month:'long' }) : '-'
@@ -4137,8 +4139,8 @@ async function vPmsPayments() {
       const labels = { ALL:'전체', AWAITING_APPROVAL:'검토 대기', PAID:'납부 완료', OVERDUE:'연체', PENDING:'납부 대기' }
       const active = window._pmsFilter === f
       return `<button onclick="window._pmsFilter='${f}';nav('pms-payments')"
-        style="padding:5px 12px;border-radius:20px;border:1px solid ${active ? 'var(--N)' : 'var(--b)'};
-        background:${active ? 'var(--N)' : 'var(--w)'};color:${active ? '#fff' : 'var(--N)'};
+        style="padding:5px 12px;border-radius:20px;border:1px solid ${active?'var(--N)':'var(--b)'};
+        background:${active?'var(--N)':'var(--w)'};color:${active?'#fff':'var(--N)'};
         font-size:11px;font-weight:600;cursor:pointer">${labels[f]}</button>`
     }).join('')
     const rows = payments.length === 0
@@ -4146,98 +4148,50 @@ async function vPmsPayments() {
       : payments.map((p, i) => {
           const tenant  = p.deal?.tenant_contact
           const listing = p.deal?.listing
-          const hasReceipt = !!p.receipt_image_url
           const isAwaiting = p.status === 'AWAITING_APPROVAL'
           const approveBtn = isAdmin && isAwaiting
-            ? `<button onclick="pmsApprove('${p.id}')"
-                style="background:#E0F3ED;color:#0F6E56;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px">
-                ✅ 승인</button>
-               <button onclick="pmsReject('${p.id}')"
-                style="background:#FDEAEA;color:#A33030;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">
-                ❌ 반려</button>`
-            : (!isAdmin && isAwaiting
-                ? `<span style="color:var(--m);font-size:11px">검토 권한 없음</span>`
-                : '')
+            ? `<button onclick="pmsApprove('${p.id}')" style="background:#E0F3ED;color:#0F6E56;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px">✅ 승인</button>
+               <button onclick="pmsReject('${p.id}')" style="background:#FDEAEA;color:#A33030;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">❌ 반려</button>`
+            : (!isAdmin && isAwaiting ? `<span style="color:var(--m);font-size:11px">검토 권한 없음</span>` : '')
           return `<tr>
-            <td style="color:var(--m)">${i + 1}</td>
-            <td>
-              <div style="font-weight:600">${listing?.name ?? '-'}</div>
-              <div style="font-size:10px;color:var(--m)">${listing?.unit_no ?? ''}</div>
-            </td>
-            <td>
-              <div style="font-weight:600">${tenant?.name ?? '-'}</div>
-              <div style="font-size:10px;color:var(--m)">${tenant?.mobile ?? ''}</div>
-            </td>
+            <td style="color:var(--m)">${i+1}</td>
+            <td><div style="font-weight:600">${listing?.name??'-'}</div><div style="font-size:10px;color:var(--m)">${listing?.unit_no??''}</div></td>
+            <td><div style="font-weight:600">${tenant?.name??'-'}</div><div style="font-size:10px;color:var(--m)">${tenant?.mobile??''}</div></td>
             <td style="font-weight:600">${fmtMon(p.due_date)}</td>
             <td style="font-weight:700;color:var(--N)">₱${Number(p.amount_due).toLocaleString('en-PH')}</td>
             <td>${badge(p.status)}</td>
-            <td style="text-align:center">
-              ${hasReceipt
-                ? `<a href="${p.receipt_image_url}" target="_blank"
-                    style="color:var(--N);font-size:11px;font-weight:600;text-decoration:none;
-                    background:var(--bg);padding:3px 8px;border-radius:6px;border:1px solid var(--b)">
-                    🖼 영수증 보기</a>`
-                : `<span style="color:var(--m);font-size:11px">미업로드</span>`}
-              ${p.receipt_notes
-                ? `<div style="font-size:10px;color:var(--m);margin-top:2px">${p.receipt_notes}</div>`
-                : ''}
+            <td style="text-align:center">${p.receipt_image_url
+              ? `<a href="${p.receipt_image_url}" target="_blank" style="color:var(--N);font-size:11px;font-weight:600;text-decoration:none;background:var(--bg);padding:3px 8px;border-radius:6px;border:1px solid var(--b)">🖼 영수증 보기</a>`
+              : `<span style="color:var(--m);font-size:11px">미업로드</span>`}
+              ${p.receipt_notes?`<div style="font-size:10px;color:var(--m);margin-top:2px">${p.receipt_notes}</div>`:''}
             </td>
             <td>${approveBtn}</td>
           </tr>`
         }).join('')
     vc(`
 <div class="ph">
-  <div>
-    <div class="ph-title"><i class="ti ti-receipt-2" style="margin-right:6px"></i>PMS 납부 검토</div>
-    <div class="ph-sub">임차인 영수증 확인 및 승인 (admin만 승인 가능)</div>
-  </div>
-  <button onclick="nav('pms-payments')" style="background:var(--bg);border:1px solid var(--b);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer">
-    <i class="ti ti-refresh"></i> 새로고침
-  </button>
+  <div><div class="ph-title"><i class="ti ti-receipt-2" style="margin-right:6px"></i>PMS 납부 검토</div>
+  <div class="ph-sub">임차인 영수증 확인 및 승인 (admin만 승인 가능)</div></div>
+  <button onclick="nav('pms-payments')" style="background:var(--bg);border:1px solid var(--b);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer"><i class="ti ti-refresh"></i> 새로고침</button>
 </div>
 <div class="pb">
   <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-    <div class="kpi">
-      <div class="kpi-l">검토 대기</div>
-      <div style="font-size:22px;font-weight:800;color:#7A4F00">${stats.awaiting}</div>
-      <div style="font-size:10px;color:var(--m)">건</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-l">납부 완료</div>
-      <div style="font-size:22px;font-weight:800;color:var(--G)">${stats.paid}</div>
-      <div style="font-size:10px;color:var(--m)">건</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-l">연체</div>
-      <div style="font-size:22px;font-weight:800;color:var(--R)">${stats.overdue}</div>
-      <div style="font-size:10px;color:var(--m)">건</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-l">총 납부 확인액</div>
-      <div style="font-size:18px;font-weight:800;color:var(--N)">₱${Math.round(stats.totalPaid).toLocaleString('en-PH')}</div>
-      <div style="font-size:10px;color:var(--m)">누적</div>
-    </div>
+    <div class="kpi"><div class="kpi-l">검토 대기</div><div style="font-size:22px;font-weight:800;color:#7A4F00">${stats.awaiting}</div><div style="font-size:10px;color:var(--m)">건</div></div>
+    <div class="kpi"><div class="kpi-l">납부 완료</div><div style="font-size:22px;font-weight:800;color:var(--G)">${stats.paid}</div><div style="font-size:10px;color:var(--m)">건</div></div>
+    <div class="kpi"><div class="kpi-l">연체</div><div style="font-size:22px;font-weight:800;color:var(--R)">${stats.overdue}</div><div style="font-size:10px;color:var(--m)">건</div></div>
+    <div class="kpi"><div class="kpi-l">총 납부 확인액</div><div style="font-size:18px;font-weight:800;color:var(--N)">₱${Math.round(stats.totalPaid).toLocaleString('en-PH')}</div><div style="font-size:10px;color:var(--m)">누적</div></div>
   </div>
   <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">${filterTabs}</div>
   <div class="card">
-    <div class="card-h">
-      <span><i class="ti ti-list"></i> 납부 내역 (${payments.length}건)</span>
-      ${stats.awaiting > 0 && isAdmin
-        ? `<span style="background:#FDF0DC;color:#7A4F00;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700">⚠️ ${stats.awaiting}건 승인 대기</span>`
-        : ''}
+    <div class="card-h"><span><i class="ti ti-list"></i> 납부 내역 (${payments.length}건)</span>
+      ${stats.awaiting>0&&isAdmin?`<span style="background:#FDF0DC;color:#7A4F00;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700">⚠️ ${stats.awaiting}건 승인 대기</span>`:''}
     </div>
-    <div class="scroll-x">
-      <table class="tbl">
-        <tr><th>No.</th><th>유닛</th><th>임차인</th><th>납부월</th><th>금액</th><th>상태</th><th>영수증</th><th>액션</th></tr>
-        ${rows}
-      </table>
-    </div>
+    <div class="scroll-x"><table class="tbl">
+      <tr><th>No.</th><th>유닛</th><th>임차인</th><th>납부월</th><th>금액</th><th>상태</th><th>영수증</th><th>액션</th></tr>
+      ${rows}
+    </table></div>
   </div>
-  ${!isAdmin ? `
-  <div style="background:#E6F1FB;border:1px solid #B3D1F0;border-radius:10px;padding:12px 16px;font-size:12px;color:#185FA5">
-    <i class="ti ti-info-circle"></i>
-    현재 <strong>읽기 전용</strong> 모드입니다. 승인/반려는 Admin 권한이 필요합니다.
-  </div>` : ''}
+  ${!isAdmin?`<div style="background:#E6F1FB;border:1px solid #B3D1F0;border-radius:10px;padding:12px 16px;font-size:12px;color:#185FA5"><i class="ti ti-info-circle"></i> 현재 <strong>읽기 전용</strong> 모드입니다. 승인/반려는 Admin 권한이 필요합니다.</div>`:''}
 </div>`)
   } catch(e) {
     vc(`<div class="pb"><div class="card" style="padding:20px;color:var(--R)">오류: ${e.message}</div></div>`)
@@ -4260,6 +4214,132 @@ async function pmsReject(id) {
     await api('PATCH', `/api/pms-payments/${id}/reject`, { reason })
     alert('반려 처리되었습니다. 임차인이 다시 업로드해야 합니다.')
     nav('pms-payments')
+  } catch(e) { alert('오류: ' + e.message) }
+}
+
+// ═══════════ PMS 홈케어 관리 ═══════════
+async function vPmsCare() {
+  if (!window._careFilter) window._careFilter = 'ALL'
+  try {
+    const data = await api('GET', `/api/pms-care?status=${window._careFilter}`)
+    const isAdmin = me.role === 'admin'
+
+    const CARE_STATUS = {
+      PENDING:   { l:'접수',   bg:'#E6F1FB', c:'#185FA5' },
+      SCHEDULED: { l:'일정확정', bg:'#FDF0DC', c:'#7A4F00' },
+      COMPLETED: { l:'완료',   bg:'#E0F3ED', c:'#0F6E56' },
+      CANCELLED: { l:'취소',   bg:'#F1EFE8', c:'#5F5E5A' },
+    }
+    const CARE_TYPE = {
+      AIRCON:   '❄️ 에어컨 청소',
+      CLEANING: '🧹 유닛 청소',
+      REPAIR:   '🔧 잔수리',
+      HANDYMAN: '🪛 핸디맨',
+    }
+    const badge = (s) => {
+      const st = CARE_STATUS[s] || { l:s, bg:'#eee', c:'#333' }
+      return `<span style="background:${st.bg};color:${st.c};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${st.l}</span>`
+    }
+    const fmtDt = (d) => d ? new Date(d).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-'
+
+    // 집계
+    const stats = { pending:0, scheduled:0, completed:0, cancelled:0 }
+    data.forEach(r => { if(stats[r.status.toLowerCase()]!==undefined) stats[r.status.toLowerCase()]++ })
+
+    const filterTabs = ['ALL','PENDING','SCHEDULED','COMPLETED','CANCELLED'].map(f => {
+      const labels = { ALL:'전체', PENDING:'접수', SCHEDULED:'일정확정', COMPLETED:'완료', CANCELLED:'취소' }
+      const active = window._careFilter === f
+      return `<button onclick="window._careFilter='${f}';nav('pms-care')"
+        style="padding:5px 12px;border-radius:20px;border:1px solid ${active?'var(--N)':'var(--b)'};
+        background:${active?'var(--N)':'var(--w)'};color:${active?'#fff':'var(--N)'};
+        font-size:11px;font-weight:600;cursor:pointer">${labels[f]}</button>`
+    }).join('')
+
+    const rows = data.length === 0
+      ? `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--m)">해당하는 케어 신청이 없습니다.</td></tr>`
+      : data.map((r, i) => {
+          const tenant  = r.deal?.tenant_contact
+          const listing = r.deal?.listing
+          const isPending   = r.status === 'PENDING'
+          const isScheduled = r.status === 'SCHEDULED'
+
+          const actionBtn = (isAdmin || me.role === 'agent') ? (
+            isPending
+              ? `<button onclick="careSchedule('${r.id}')" style="background:#FDF0DC;color:#7A4F00;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px">📅 일정확정</button>
+                 <button onclick="careCancel('${r.id}')" style="background:#F1EFE8;color:#5F5E5A;border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">취소</button>`
+              : isScheduled
+                ? `<button onclick="careComplete('${r.id}')" style="background:#E0F3ED;color:#0F6E56;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✅ 완료처리</button>`
+                : ''
+          ) : ''
+
+          return `<tr>
+            <td style="color:var(--m)">${i+1}</td>
+            <td><div style="font-weight:600">${listing?.name??'-'}</div><div style="font-size:10px;color:var(--m)">${listing?.unit_no??''}</div></td>
+            <td><div style="font-weight:600">${tenant?.name??'-'}</div><div style="font-size:10px;color:var(--m)">${tenant?.mobile??''}</div></td>
+            <td style="font-weight:600">${CARE_TYPE[r.service_type]??r.service_type}</td>
+            <td style="font-size:11px">${fmtDt(r.preferred_date)}</td>
+            <td style="font-size:11px">${r.scheduled_at?fmtDt(r.scheduled_at):'<span style="color:var(--m)">미정</span>'}</td>
+            <td>${badge(r.status)}${r.assigned_to?`<div style="font-size:10px;color:var(--m);margin-top:2px">👷 ${r.assigned_to}</div>`:''}</td>
+            <td>${actionBtn}</td>
+          </tr>`
+        }).join('')
+
+    vc(`
+<div class="ph">
+  <div><div class="ph-title"><i class="ti ti-tool" style="margin-right:6px"></i>PMS 홈케어 관리</div>
+  <div class="ph-sub">임차인 홈케어 신청 일정 관리</div></div>
+  <button onclick="nav('pms-care')" style="background:var(--bg);border:1px solid var(--b);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer"><i class="ti ti-refresh"></i> 새로고침</button>
+</div>
+<div class="pb">
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi"><div class="kpi-l">접수</div><div style="font-size:22px;font-weight:800;color:#185FA5">${stats.pending}</div><div style="font-size:10px;color:var(--m)">건</div></div>
+    <div class="kpi"><div class="kpi-l">일정 확정</div><div style="font-size:22px;font-weight:800;color:#7A4F00">${stats.scheduled}</div><div style="font-size:10px;color:var(--m)">건</div></div>
+    <div class="kpi"><div class="kpi-l">완료</div><div style="font-size:22px;font-weight:800;color:var(--G)">${stats.completed}</div><div style="font-size:10px;color:var(--m)">건</div></div>
+    <div class="kpi"><div class="kpi-l">취소</div><div style="font-size:22px;font-weight:800;color:var(--m)">${stats.cancelled}</div><div style="font-size:10px;color:var(--m)">건</div></div>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">${filterTabs}</div>
+  <div class="card">
+    <div class="card-h"><span><i class="ti ti-list"></i> 케어 신청 목록 (${data.length}건)</span>
+      ${stats.pending>0?`<span style="background:#E6F1FB;color:#185FA5;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700">📋 ${stats.pending}건 처리 대기</span>`:''}
+    </div>
+    <div class="scroll-x"><table class="tbl">
+      <tr><th>No.</th><th>유닛</th><th>임차인</th><th>서비스</th><th>희망일시</th><th>확정일시</th><th>상태</th><th>액션</th></tr>
+      ${rows}
+    </table></div>
+  </div>
+</div>`)
+  } catch(e) {
+    vc(`<div class="pb"><div class="card" style="padding:20px;color:var(--R)">오류: ${e.message}</div></div>`)
+  }
+}
+
+async function careSchedule(id) {
+  const dt = prompt('확정 방문 일시를 입력해주세요 (예: 2026-06-10 14:00):')
+  if (!dt) return
+  const assigned = prompt('담당 기사 이름을 입력해주세요 (선택):') || null
+  try {
+    await api('PATCH', `/api/pms-care/${id}/schedule`, { scheduled_at: new Date(dt).toISOString(), assigned_to: assigned })
+    alert('일정이 확정되었습니다. 임차인에게 알림이 전송됩니다.')
+    nav('pms-care')
+  } catch(e) { alert('오류: ' + e.message) }
+}
+
+async function careComplete(id) {
+  if (!confirm('완료 처리하시겠습니까?')) return
+  const price = prompt('서비스 금액을 입력해주세요 (PHP, 선택):')
+  try {
+    await api('PATCH', `/api/pms-care/${id}/complete`, { price: price ? Number(price) : null })
+    alert('완료 처리되었습니다.')
+    nav('pms-care')
+  } catch(e) { alert('오류: ' + e.message) }
+}
+
+async function careCancel(id) {
+  if (!confirm('이 신청을 취소하시겠습니까?')) return
+  try {
+    await api('PATCH', `/api/pms-care/${id}/cancel`)
+    alert('취소 처리되었습니다.')
+    nav('pms-care')
   } catch(e) { alert('오류: ' + e.message) }
 }
 
