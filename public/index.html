@@ -4712,8 +4712,23 @@ async function vTenantDetail(dealId) {
     </div>
   </div>
 
-  <!-- 우측: 요청사항 -->
+  <!-- 우측: 납부 일정 + 요청사항 -->
   <div>
+    <!-- 납부 일정 카드 -->
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-h" style="justify-content:space-between">
+        <span><i class="ti ti-calendar-dollar"></i> 납부 일정 (Payment Schedule)</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-n" style="font-size:11px;padding:4px 10px"
+            onclick="generatePayments('${dealId}')">⚡ 자동 생성</button>
+          ${me.role==='admin'?`<button onclick="deletePayments('${dealId}')" style="background:none;border:1px solid var(--R);color:var(--R);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">🗑 삭제</button>`:''}
+        </div>
+      </div>
+      <div id="payment-schedule-area" style="padding:8px">
+        <div style="text-align:center;color:var(--m);font-size:12px;padding:16px">불러오는 중...</div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-h" style="justify-content:space-between">
         <span><i class="ti ti-message-circle"></i> Requests (${requests.length})</span>
@@ -4754,6 +4769,8 @@ async function vTenantDetail(dealId) {
   </div>
 </div>
 </div>`)
+  // 납부 일정 비동기 로드
+  setTimeout(() => loadPaymentSchedule(dealId), 100)
   } catch(e) { err(e) }
 }
 
@@ -4781,6 +4798,99 @@ async function saveTenantInfo(dealId) {
     toast('✓ Info saved')
     vTenantDetail(dealId)
   } catch(e) { alert('Error: ' + e.message) }
+}
+
+// ── 납부 일정 로드 ──────────────────────────────────────
+async function loadPaymentSchedule(dealId) {
+  const area = document.getElementById('payment-schedule-area')
+  if (!area) return
+  try {
+    const data = await api('GET', `/api/pms-payments/deal/${dealId}`)
+    if (data.length === 0) {
+      area.innerHTML = `<div style="text-align:center;color:var(--m);font-size:12px;padding:20px">
+        납부 스케줄이 없습니다.<br>
+        <span style="font-size:11px">Move-in date와 Contract months 저장 후 ⚡ 자동 생성 버튼을 눌러주세요.</span>
+      </div>`
+      return
+    }
+    const STATUS = {
+      PENDING:           { l:'납부 대기',  bg:'#E6F1FB', c:'#185FA5' },
+      AWAITING_APPROVAL: { l:'검토 대기',  bg:'#FDF0DC', c:'#7A4F00' },
+      PAID:              { l:'납부 완료',  bg:'#E0F3ED', c:'#0F6E56' },
+      OVERDUE:           { l:'연체',       bg:'#FDEAEA', c:'#A33030' },
+    }
+    const paid    = data.filter(p => p.status === 'PAID').length
+    const overdue = data.filter(p => p.status === 'OVERDUE').length
+    const total   = data.reduce((s, p) => s + Number(p.amount_due), 0)
+    const paidAmt = data.filter(p => p.status === 'PAID').reduce((s, p) => s + Number(p.amount_due), 0)
+
+    area.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+        <div style="background:var(--bg);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--m)">전체</div>
+          <div style="font-size:16px;font-weight:800">${data.length}개월</div>
+        </div>
+        <div style="background:#E0F3ED;border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:#0F6E56">납부 완료</div>
+          <div style="font-size:16px;font-weight:800;color:#0F6E56">${paid}회</div>
+        </div>
+        <div style="background:${overdue>0?'#FDEAEA':'var(--bg)'};border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:${overdue>0?'#A33030':'var(--m)'}">연체</div>
+          <div style="font-size:16px;font-weight:800;color:${overdue>0?'#A33030':'var(--N)'}">${overdue}회</div>
+        </div>
+      </div>
+      <div style="max-height:280px;overflow-y:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <tr style="background:var(--bg)">
+            <th style="padding:6px 8px;text-align:left;font-weight:600;color:var(--m)">월</th>
+            <th style="padding:6px 8px;text-align:right;font-weight:600;color:var(--m)">납부일</th>
+            <th style="padding:6px 8px;text-align:right;font-weight:600;color:var(--m)">금액</th>
+            <th style="padding:6px 8px;text-align:center;font-weight:600;color:var(--m)">상태</th>
+          </tr>
+          ${data.map((p, i) => {
+            const st = STATUS[p.status] || { l:p.status, bg:'#eee', c:'#333' }
+            const isThisMonth = p.due_date && p.due_date.slice(0,7) === new Date().toISOString().slice(0,7)
+            return `<tr style="border-bottom:1px solid var(--b);${isThisMonth?'background:#FFFBF0':''}">
+              <td style="padding:6px 8px;font-weight:${isThisMonth?700:400}">${i+1}월차</td>
+              <td style="padding:6px 8px;text-align:right;color:var(--m)">${p.due_date}</td>
+              <td style="padding:6px 8px;text-align:right;font-weight:600">₱${Number(p.amount_due).toLocaleString('en-PH')}</td>
+              <td style="padding:6px 8px;text-align:center">
+                <span style="background:${st.bg};color:${st.c};padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700">${st.l}</span>
+              </td>
+            </tr>`
+          }).join('')}
+        </table>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px;border-top:1px solid var(--b);margin-top:4px;font-size:11px">
+        <span style="color:var(--m)">총 계약액</span>
+        <span style="font-weight:700">₱${Math.round(total).toLocaleString('en-PH')}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:4px 8px;font-size:11px">
+        <span style="color:#0F6E56">납부 완료액</span>
+        <span style="font-weight:700;color:#0F6E56">₱${Math.round(paidAmt).toLocaleString('en-PH')}</span>
+      </div>`
+  } catch(e) {
+    if (area) area.innerHTML = `<div style="color:var(--R);font-size:12px;padding:12px">오류: ${e.message}</div>`
+  }
+}
+
+async function generatePayments(dealId) {
+  if (!confirm('계약 기간 전체의 납부 스케줄을 자동 생성하시겠습니까?
+(납부일은 Utility Payment Day 기준)')) return
+  try {
+    const res = await api('POST', `/api/pms-payments/generate/${dealId}`)
+    toast(`✓ ${res.created}건의 납부 스케줄이 생성되었습니다`)
+    loadPaymentSchedule(dealId)
+  } catch(e) { alert('오류: ' + e.message) }
+}
+
+async function deletePayments(dealId) {
+  if (!confirm('PENDING/OVERDUE 상태의 납부 스케줄을 모두 삭제하시겠습니까?')) return
+  try {
+    await api('DELETE', `/api/pms-payments/deal/${dealId}`)
+    toast('✓ 삭제 완료')
+    loadPaymentSchedule(dealId)
+  } catch(e) { alert('오류: ' + e.message) }
 }
 
 function openNewRequest(dealId) {
