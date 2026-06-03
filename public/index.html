@@ -4263,14 +4263,16 @@ async function vPmsCare() {
           const isPending   = r.status === 'PENDING'
           const isScheduled = r.status === 'SCHEDULED'
 
-          const actionBtn = (isAdmin || me.role === 'agent') ? (
-            isPending
-              ? `<button onclick="careSchedule('${r.id}')" style="background:#FDF0DC;color:#7A4F00;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px">📅 일정확정</button>
-                 <button onclick="careCancel('${r.id}')" style="background:#F1EFE8;color:#5F5E5A;border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">취소</button>`
-              : isScheduled
-                ? `<button onclick="careComplete('${r.id}')" style="background:#E0F3ED;color:#0F6E56;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✅ 완료처리</button>`
-                : ''
-          ) : ''
+          const actionBtn = `
+            <button onclick="careDetail('${r.id}')" style="background:var(--bg);border:1px solid var(--b);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;margin-right:4px">🔍 상세</button>
+            ${(isAdmin || me.role === 'agent') ? (
+              isPending
+                ? `<button onclick="careSchedule('${r.id}')" style="background:#FDF0DC;color:#7A4F00;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px">📅 확정</button>
+                   <button onclick="careCancel('${r.id}')" style="background:#F1EFE8;color:#5F5E5A;border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">취소</button>`
+                : isScheduled
+                  ? `<button onclick="careComplete('${r.id}')" style="background:#E0F3ED;color:#0F6E56;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✅ 완료</button>`
+                  : ''
+            ) : ''}`
 
           return `<tr>
             <td style="color:var(--m)">${i+1}</td>
@@ -4313,15 +4315,200 @@ async function vPmsCare() {
   }
 }
 
-async function careSchedule(id) {
-  const dt = prompt('확정 방문 일시를 입력해주세요 (예: 2026-06-10 14:00):')
-  if (!dt) return
-  const assigned = prompt('담당 기사 이름을 입력해주세요 (선택):') || null
+// ── 케어 상세보기 모달 ─────────────────────────────────────
+async function careDetail(id) {
   try {
-    await api('PATCH', `/api/pms-care/${id}/schedule`, { scheduled_at: new Date(dt).toISOString(), assigned_to: assigned })
-    alert('일정이 확정되었습니다. 임차인에게 알림이 전송됩니다.')
-    nav('pms-care')
+    const r = await api('GET', `/api/pms-care/${id}`)
+    const CARE_TYPE = { AIRCON:'❄️ 에어컨 청소', CLEANING:'🧹 유닛 청소', REPAIR:'🔧 잔수리', HANDYMAN:'🪛 핸디맨' }
+    const CARE_STATUS = {
+      PENDING:   { l:'접수',    bg:'#E6F1FB', c:'#185FA5' },
+      SCHEDULED: { l:'일정확정', bg:'#FDF0DC', c:'#7A4F00' },
+      COMPLETED: { l:'완료',    bg:'#E0F3ED', c:'#0F6E56' },
+      CANCELLED: { l:'취소',    bg:'#F1EFE8', c:'#5F5E5A' },
+    }
+    const st = CARE_STATUS[r.status] || { l:r.status, bg:'#eee', c:'#333' }
+    const fmtDt = (d) => d ? new Date(d).toLocaleString('ko-KR') : '-'
+    const workers = r.workers || []
+
+    const workerRows = workers.length === 0
+      ? `<div style="color:var(--m);font-size:12px;padding:12px 0">등록된 작업자 정보가 없습니다.</div>`
+      : workers.map((w, i) => `
+        <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:700;color:var(--m);margin-bottom:6px">작업자 ${i+1}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+            <div><span style="color:var(--m)">이름</span><br><strong>${w.name||'-'}</strong></div>
+            <div><span style="color:var(--m)">연락처</span><br><strong>${w.mobile||'-'}</strong></div>
+            <div style="grid-column:1/-1"><span style="color:var(--m)">작업 도구</span><br>${w.tools||'-'}</div>
+            ${w.notes?`<div style="grid-column:1/-1"><span style="color:var(--m)">비고</span><br>${w.notes}</div>`:''}
+          </div>
+        </div>`).join('')
+
+    showModal(`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div>
+          <div style="font-size:16px;font-weight:700">${CARE_TYPE[r.service_type]||r.service_type}</div>
+          <div style="font-size:11px;color:var(--m);margin-top:2px">${r.deal?.listing?.name||''} ${r.deal?.listing?.unit_no||''}</div>
+        </div>
+        <span style="background:${st.bg};color:${st.c};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${st.l}</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div class="kpi" style="padding:10px">
+          <div class="kpi-l">임차인</div>
+          <div style="font-weight:700;font-size:13px">${r.deal?.tenant_contact?.name||'-'}</div>
+          <div style="font-size:11px;color:var(--m)">${r.deal?.tenant_contact?.mobile||''}</div>
+        </div>
+        <div class="kpi" style="padding:10px">
+          <div class="kpi-l">희망 방문일시</div>
+          <div style="font-weight:700;font-size:12px">${fmtDt(r.preferred_date)}</div>
+        </div>
+        <div class="kpi" style="padding:10px">
+          <div class="kpi-l">확정 방문일시</div>
+          <div style="font-weight:700;font-size:12px;color:${r.scheduled_at?'var(--N)':'var(--m)'}">${fmtDt(r.scheduled_at)}</div>
+        </div>
+        <div class="kpi" style="padding:10px">
+          <div class="kpi-l">서비스 금액</div>
+          <div style="font-weight:700;font-size:13px">${r.price?'₱'+Number(r.price).toLocaleString('en-PH'):'-'}</div>
+        </div>
+      </div>
+
+      ${r.description?`
+      <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;color:var(--m);margin-bottom:4px">임차인 요청사항</div>
+        <div style="font-size:13px">${r.description}</div>
+      </div>`:''}
+
+      <div style="font-size:11px;font-weight:700;color:var(--m);letter-spacing:.05em;margin-bottom:8px">GATEPASS 작업자 정보</div>
+      ${workerRows}
+
+      ${r.gatepass_notes?`
+      <div style="background:#FDF0DC;border-radius:10px;padding:12px;margin-top:8px">
+        <div style="font-size:10px;font-weight:700;color:#7A4F00;margin-bottom:4px">게이트패스 메모</div>
+        <div style="font-size:12px;color:#7A4F00">${r.gatepass_notes}</div>
+      </div>`:''}
+
+      <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
+        ${r.status==='PENDING'?`<button onclick="closeModal();careSchedule('${r.id}')" class="btn btn-g">📅 일정 확정</button>`:''}
+        ${r.status==='SCHEDULED'?`<button onclick="closeModal();careComplete('${r.id}')" class="btn btn-g">✅ 완료 처리</button>`:''}
+        <button onclick="closeModal()" class="btn btn-o">닫기</button>
+      </div>
+    `)
   } catch(e) { alert('오류: ' + e.message) }
+}
+
+// ── 일정 확정 모달 (작업자 정보 입력) ────────────────────
+function careSchedule(id) {
+  let workerCount = 1
+
+  const renderWorkers = () => {
+    const container = document.getElementById('care-workers-container')
+    if (!container) return
+    let html = ''
+    for (let i = 0; i < workerCount; i++) {
+      html += `
+      <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:11px;font-weight:700;color:var(--m)">작업자 ${i+1}</span>
+          ${i>0?`<button onclick="removeWorker(${i})" style="background:none;border:none;color:var(--R);cursor:pointer;font-size:11px">✕ 삭제</button>`:''}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <label style="font-size:10px;font-weight:600;color:var(--m);display:block;margin-bottom:3px">이름 *</label>
+            <input class="fi" id="w-name-${i}" placeholder="Juan dela Cruz" style="width:100%">
+          </div>
+          <div>
+            <label style="font-size:10px;font-weight:600;color:var(--m);display:block;margin-bottom:3px">연락처 *</label>
+            <input class="fi" id="w-mobile-${i}" placeholder="+63912345678" style="width:100%">
+          </div>
+          <div style="grid-column:1/-1">
+            <label style="font-size:10px;font-weight:600;color:var(--m);display:block;margin-bottom:3px">작업 도구 / 장비</label>
+            <input class="fi" id="w-tools-${i}" placeholder="vacuum cleaner, mop, cleaning kit" style="width:100%">
+          </div>
+          <div style="grid-column:1/-1">
+            <label style="font-size:10px;font-weight:600;color:var(--m);display:block;margin-bottom:3px">비고</label>
+            <input class="fi" id="w-notes-${i}" placeholder="특이사항" style="width:100%">
+          </div>
+        </div>
+      </div>`
+    }
+    container.innerHTML = html
+  }
+
+  window.addWorker = () => { workerCount++; renderWorkers() }
+  window.removeWorker = (i) => {
+    // 삭제 시 앞 데이터 보존
+    const saved = []
+    for (let j = 0; j < workerCount; j++) {
+      if (j !== i) saved.push({
+        name:   document.getElementById(`w-name-${j}`)?.value   || '',
+        mobile: document.getElementById(`w-mobile-${j}`)?.value || '',
+        tools:  document.getElementById(`w-tools-${j}`)?.value  || '',
+        notes:  document.getElementById(`w-notes-${j}`)?.value  || '',
+      })
+    }
+    workerCount--
+    renderWorkers()
+    saved.forEach((w, j) => {
+      if (document.getElementById(`w-name-${j}`))   document.getElementById(`w-name-${j}`).value   = w.name
+      if (document.getElementById(`w-mobile-${j}`)) document.getElementById(`w-mobile-${j}`).value = w.mobile
+      if (document.getElementById(`w-tools-${j}`))  document.getElementById(`w-tools-${j}`).value  = w.tools
+      if (document.getElementById(`w-notes-${j}`))  document.getElementById(`w-notes-${j}`).value  = w.notes
+    })
+  }
+
+  window.submitCareSchedule = async () => {
+    const scheduled_at = document.getElementById('care-scheduled-at')?.value
+    const gatepass_notes = document.getElementById('care-gatepass-notes')?.value || null
+
+    if (!scheduled_at) { alert('방문 일시를 입력해주세요.'); return }
+
+    const workers = []
+    for (let i = 0; i < workerCount; i++) {
+      const name   = document.getElementById(`w-name-${i}`)?.value?.trim()
+      const mobile = document.getElementById(`w-mobile-${i}`)?.value?.trim()
+      const tools  = document.getElementById(`w-tools-${i}`)?.value?.trim()
+      const notes  = document.getElementById(`w-notes-${i}`)?.value?.trim()
+      if (!name || !mobile) { alert(`작업자 ${i+1}의 이름과 연락처를 입력해주세요.`); return }
+      workers.push({ name, mobile, tools: tools||'', notes: notes||'' })
+    }
+
+    try {
+      await api('PATCH', `/api/pms-care/${id}/schedule`, {
+        scheduled_at: new Date(scheduled_at).toISOString(),
+        workers,
+        gatepass_notes,
+      })
+      closeModal()
+      alert('일정이 확정되었습니다. 임차인에게 알림이 전송됩니다.')
+      nav('pms-care')
+    } catch(e) { alert('오류: ' + e.message) }
+  }
+
+  showModal(`
+    <div style="font-size:16px;font-weight:700;margin-bottom:16px">📅 홈케어 일정 확정</div>
+
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:700;color:var(--m);display:block;margin-bottom:5px">확정 방문 일시 *</label>
+      <input class="fi" id="care-scheduled-at" type="datetime-local" style="width:100%">
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-size:11px;font-weight:700;color:var(--m)">GATEPASS 작업자 정보</span>
+      <button onclick="addWorker()" style="background:var(--N);color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">+ 작업자 추가</button>
+    </div>
+    <div id="care-workers-container"></div>
+
+    <div style="margin-top:10px">
+      <label style="font-size:11px;font-weight:700;color:var(--m);display:block;margin-bottom:5px">게이트패스 메모 (선택)</label>
+      <textarea class="fi" id="care-gatepass-notes" placeholder="콘도 관리실 전달 메모, 차량 정보 등" style="width:100%;height:60px;resize:none"></textarea>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
+      <button onclick="closeModal()" class="btn btn-o">취소</button>
+      <button onclick="submitCareSchedule()" class="btn btn-g">일정 확정 저장</button>
+    </div>
+  `)
+  renderWorkers()
 }
 
 async function careComplete(id) {
