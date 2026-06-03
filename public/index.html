@@ -3203,11 +3203,11 @@ function updateRpCount() {
 function _buildReportCard(l, forPrint) {
   const RBS_BASE = 'https://rbs-homes.com'
   const detailUrl = l.rbs_unit_id ? RBS_BASE + '/properties/detail-id' + l.rbs_unit_id : ''
-  const imgH = forPrint ? '100px' : '110px'
+  const imgH = forPrint ? '140px' : '150px'
   const noImgH = forPrint ? '40px' : '50px'
-  const fs1 = forPrint ? '11px' : '12px'
-  const fs2 = forPrint ? '8px' : '9px'
-  const fs3 = forPrint ? '13px' : '14px'
+  const fs1 = forPrint ? '11px' : '13px'
+  const fs2 = forPrint ? '8px' : '10px'
+  const fs3 = forPrint ? '13px' : '16px'
   const pad = forPrint ? '7px' : '8px'
   const br = forPrint ? '6px' : '8px'
 
@@ -3281,7 +3281,7 @@ function getReportPreviewHtml() {
 
   return '<div style="font-family:Arial,sans-serif;color:#2C2C2C;background:#fff;padding:16px">'
     + headerHtml
-    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">' + cardsHtml + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:16px">' + cardsHtml + '</div>'
     + footerHtml
     + '</div>'
 }
@@ -3299,14 +3299,14 @@ function getReportPrintHtml() {
 
   // 페이지당 6개
   const pages = []
-  for (let i = 0; i < selected.length; i += 6) pages.push(selected.slice(i, i+6))
+  for (let i = 0; i < selected.length; i += 4) pages.push(selected.slice(i, i+4))
 
   const pagesHtml = pages.map(function(pageListings, pi) {
     const pageStyle = 'width:210mm;height:297mm;padding:12mm 12mm 10mm;box-sizing:border-box;font-family:Arial,sans-serif;color:#2C2C2C;display:flex;flex-direction:column;' + (pi > 0 ? 'page-break-before:always;break-before:page;' : '')
     const cardsHtml = pageListings.map(l => _buildReportCard(l, true)).join('')
     return '<div style="' + pageStyle + '">'
       + headerHtml
-      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:1;align-content:start">' + cardsHtml + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;flex:1;align-content:start">' + cardsHtml + '</div>'
       + footerHtml
       + '</div>'
   }).join('')
