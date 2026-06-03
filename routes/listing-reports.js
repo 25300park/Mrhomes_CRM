@@ -1,3 +1,6 @@
+// routes/listing-reports.js (v2)
+// contact_id 연결 지원
+
 const router = require('express').Router()
 const auth   = require('../middleware/auth')
 
@@ -5,19 +8,20 @@ const auth   = require('../middleware/auth')
 router.get('/', auth, async (req, res) => {
   const isAdmin       = req.user.role === 'admin'
   const includeShared = req.query.include_shared === '1'
+  const contactId     = req.query.contact_id
 
   let query = req.supabase
     .from('listing_reports')
     .select('*')
     .order('report_date', { ascending: false })
 
-  if (isAdmin) {
+  if (contactId) {
+    query = query.eq('contact_id', contactId)
+  } else if (isAdmin) {
     // Admin: 전체 조회
   } else if (includeShared) {
-    // 내 Report + 공유된 Report
     query = query.or(`created_by.eq.${req.user.id},is_shared.eq.true`)
   } else {
-    // 내 Report만
     query = query.eq('created_by', req.user.id)
   }
 
@@ -28,12 +32,13 @@ router.get('/', auth, async (req, res) => {
 
 // POST /api/listing-reports
 router.post('/', auth, async (req, res) => {
-  const { client_name, report_date, agent_name, listing_ids } = req.body
+  const { client_name, report_date, agent_name, listing_ids, contact_id } = req.body
   const { data, error } = await req.supabase
     .from('listing_reports')
     .insert({
       client_name, report_date, agent_name,
       listing_ids: listing_ids || [],
+      contact_id:  contact_id || null,
       created_by:  req.user.id
     })
     .select().single()
@@ -43,7 +48,7 @@ router.post('/', auth, async (req, res) => {
 
 // PATCH /api/listing-reports/:id
 router.patch('/:id', auth, async (req, res) => {
-  const allowed = ['client_name','report_date','agent_name','listing_ids','is_shared','shared_at']
+  const allowed = ['client_name','report_date','agent_name','listing_ids','is_shared','shared_at','contact_id']
   const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)))
   updates.updated_at = new Date().toISOString()
   const { data, error } = await req.supabase
@@ -52,7 +57,7 @@ router.patch('/:id', auth, async (req, res) => {
   res.json(data)
 })
 
-// DELETE /api/listing-reports/:id (작성자 또는 admin만)
+// DELETE /api/listing-reports/:id
 router.delete('/:id', auth, async (req, res) => {
   const { data: report } = await req.supabase
     .from('listing_reports').select('created_by').eq('id', req.params.id).single()
