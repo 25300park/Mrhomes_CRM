@@ -3219,13 +3219,13 @@ function updateRpCount() {
 function _buildReportCard(l, forPrint) {
   const RBS_BASE = 'https://rbs-homes.com'
   const detailUrl = l.rbs_unit_id ? RBS_BASE + '/properties/detail-id' + l.rbs_unit_id : ''
-  const imgH = forPrint ? '110px' : '160px'
+  const imgH = forPrint ? '90px' : '160px'
   const noImgH = forPrint ? '30px' : '50px'
   const fs1 = forPrint ? '11px' : '14px'
   const fs2 = forPrint ? '8px' : '11px'
-  const fs3 = forPrint ? '13px' : '18px'
-  const pad = forPrint ? '7px' : '12px'
-  const br = forPrint ? '6px' : '8px'
+  const fs3 = forPrint ? '12px' : '18px'
+  const pad = forPrint ? '6px' : '12px'
+  const br = forPrint ? '5px' : '8px'
 
   const imgHtml = l.photo_url
     ? '<img src="' + l.photo_url + '" style="width:100%;height:' + imgH + ';object-fit:cover;display:block">'
@@ -3322,7 +3322,7 @@ function getReportPrintHtml() {
     const cardsHtml = pageListings.map(l => _buildReportCard(l, true)).join('')
     return '<div style="' + pageStyle + '">'
       + headerHtml
-      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:1;align-content:start">' + cardsHtml + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:8px;flex:1">' + cardsHtml + '</div>'
       + footerHtml
       + '</div>'
   }).join('')
