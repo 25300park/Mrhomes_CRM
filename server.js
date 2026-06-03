@@ -6,6 +6,7 @@ const path       = require('path')
 const { createClient } = require('@supabase/supabase-js')
 const pmsPayments = require('./routes/pms-payments')
 const pmsCare = require('./routes/pms-care')
+const pmsAccounts = require('./routes/pms-accounts')
 
 
 // ── 환경변수 확인 ─────────────────────────────
@@ -48,6 +49,7 @@ app.use('/api/loi',            require('./routes/loi'))
 app.use('/api/listing-reports',require('./routes/listing-reports'))
 app.use('/api/pms-payments', pmsPayments)
 app.use('/api/pms-care', pmsCare)
+app.use('/api/pms-accounts', pmsAccounts)
 
 
 // ── 헬스체크 (Railway 상태 확인용) ───────────
