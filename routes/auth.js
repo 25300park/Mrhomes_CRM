@@ -28,7 +28,7 @@ router.post('/login', async (req, res) => {
 
   res.json({
     token,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role, work_mode: user.work_mode }
+    user: { id: user.id, name: user.name, email: user.email, role: user.role, work_mode: user.work_mode, mobile: user.mobile || null }
   })
 })
 
@@ -36,7 +36,7 @@ router.post('/login', async (req, res) => {
 router.get('/me', auth, async (req, res) => {
   const { data, error } = await req.supabase
     .from('users')
-    .select('id, name, email, role, work_mode, base_salary')
+    .select('id, name, email, role, work_mode, base_salary, mobile')
     .eq('id', req.user.id)
     .single()
   if (error) return res.status(404).json({ error: '사용자를 찾을 수 없습니다' })
