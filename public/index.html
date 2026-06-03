@@ -4814,106 +4814,90 @@ async function saveTenantInfo(dealId) {
 // ── 납부 일정 로드 ──────────────────────────────────────
 // ═══════════ PMS 계정 관리 ═══════════
 async function loadPmsAccounts(dealId) {
-  const area = document.getElementById(`pms-accounts-area-${dealId}`)
+  const areaId = 'pms-accounts-area-' + dealId
+  const area = document.getElementById(areaId)
   if (!area) return
   try {
-    const res = await api('GET', `/api/pms-accounts/deal/${dealId}`)
-    const { pms_accounts } = res
+    const res = await api('GET', '/api/pms-accounts/deal/' + dealId)
+    const pa = res.pms_accounts
     const isAdmin = me.role === 'admin'
 
-    const renderAccount = (type, acc) => {
-      const label = type === 'tenant' ? '임차인' : '임대인'
-      const icon  = type === 'tenant' ? 'ti-user' : 'ti-building'
+    function renderAccount(type, acc) {
+      const label   = type === 'tenant' ? '임차인' : '임대인'
+      const icon    = type === 'tenant' ? 'ti-user' : 'ti-building'
       const roleVal = type === 'tenant' ? 'tenant' : 'landlord'
-
       if (!acc.contact) return ''
 
-      return `
-      <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="display:flex;align-items:center;gap:6px">
-            <i class="ti ${icon}" style="color:var(--N)"></i>
-            <span style="font-size:12px;font-weight:700">${label}</span>
-            <span style="font-size:11px;color:var(--m)">${acc.contact.name}</span>
-          </div>
-          ${acc.connected
-            ? `<span style="background:#E0F3ED;color:#0F6E56;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">✅ 연결됨</span>`
-            : `<span style="background:#FDEAEA;color:#A33030;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">미연결</span>`}
-        </div>
-        <div style="font-size:11px;color:var(--m);margin-bottom:8px">
-          📧 ${acc.contact.email || '<span style="color:var(--R)">이메일 없음</span>'}
-          ${acc.contact.mobile ? ` · 📱 ${acc.contact.mobile}` : ''}
-        </div>
-        ${acc.connected ? `
-          <div style="font-size:10px;color:var(--m);margin-bottom:8px">
-            연결일: ${new Date(acc.created_at).toLocaleDateString('ko-KR')}
-          </div>
-          ${isAdmin ? `
-          <div style="display:flex;gap:6px">
-            <button onclick="pmsResetPassword('${acc.auth_uid}')"
-              style="background:#E6F1FB;color:#185FA5;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">
-              🔑 비밀번호 재설정
-            </button>
-            <button onclick="pmsDisconnect('${acc.contact.id}','${dealId}')"
-              style="background:#FDEAEA;color:#A33030;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">
-              ✕ 연결 해제
-            </button>
-          </div>` : ''}
-        ` : `
-          ${isAdmin ? `
-          ${acc.contact.email ? `
-          <button onclick="pmsCreateAccount('${acc.contact.id}','${roleVal}','${dealId}')"
-            style="background:var(--N);color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%">
-            <i class="ti ti-device-mobile"></i> PMS 계정 생성
-          </button>` : `
-          <div style="background:#FDF0DC;border-radius:8px;padding:8px;font-size:11px;color:#7A4F00">
-            ⚠️ Contacts에서 이메일을 먼저 등록해주세요.
-          </div>`}
-          ` : '<div style="font-size:11px;color:var(--m)">Admin만 계정을 생성할 수 있습니다.</div>'}
-        `}
-      </div>`
+      const emailHtml = acc.contact.email
+        ? acc.contact.email
+        : '<span style="color:var(--R)">이메일 없음</span>'
+
+      const mobileHtml = acc.contact.mobile ? ' · 📱 ' + acc.contact.mobile : ''
+
+      let statusBadge = acc.connected
+        ? '<span style="background:#E0F3ED;color:#0F6E56;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">✅ 연결됨</span>'
+        : '<span style="background:#FDEAEA;color:#A33030;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">미연결</span>'
+
+      let actionHtml = ''
+      if (acc.connected) {
+        const connDate = new Date(acc.created_at).toLocaleDateString('ko-KR')
+        actionHtml = '<div style="font-size:10px;color:var(--m);margin-bottom:8px">연결일: ' + connDate + '</div>'
+        if (isAdmin) {
+          actionHtml += '<div style="display:flex;gap:6px">'
+          actionHtml += '<button onclick="pmsResetPassword(\'' + acc.auth_uid + '\')" style="background:#E6F1FB;color:#185FA5;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">🔑 비밀번호 재설정</button>'
+          actionHtml += '<button onclick="pmsDisconnect(\'' + acc.contact.id + '\',\'' + dealId + '\')" style="background:#FDEAEA;color:#A33030;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">✕ 연결 해제</button>'
+          actionHtml += '</div>'
+        }
+      } else {
+        if (isAdmin) {
+          if (acc.contact.email) {
+            actionHtml = '<button onclick="pmsCreateAccount(\'' + acc.contact.id + '\',\'' + roleVal + '\',\'' + dealId + '\')" style="background:var(--N);color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%"><i class="ti ti-device-mobile"></i> PMS 계정 생성</button>'
+          } else {
+            actionHtml = '<div style="background:#FDF0DC;border-radius:8px;padding:8px;font-size:11px;color:#7A4F00">⚠️ Contacts에서 이메일을 먼저 등록해주세요.</div>'
+          }
+        } else {
+          actionHtml = '<div style="font-size:11px;color:var(--m)">Admin만 계정을 생성할 수 있습니다.</div>'
+        }
+      }
+
+      return '<div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:8px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+        + '<div style="display:flex;align-items:center;gap:6px">'
+        + '<i class="ti ' + icon + '" style="color:var(--N)"></i>'
+        + '<span style="font-size:12px;font-weight:700">' + label + '</span>'
+        + '<span style="font-size:11px;color:var(--m)">' + acc.contact.name + '</span>'
+        + '</div>' + statusBadge + '</div>'
+        + '<div style="font-size:11px;color:var(--m);margin-bottom:8px">📧 ' + emailHtml + mobileHtml + '</div>'
+        + actionHtml
+        + '</div>'
     }
 
-    area.innerHTML =
-      renderAccount('tenant', pms_accounts.tenant) +
-      renderAccount('landlord', pms_accounts.landlord) ||
-      '<div style="text-align:center;color:var(--m);font-size:12px;padding:12px">연결할 계정 정보가 없습니다.</div>'
+    const html = renderAccount('tenant', pa.tenant) + renderAccount('landlord', pa.landlord)
+    area.innerHTML = html || '<div style="text-align:center;color:var(--m);font-size:12px;padding:12px">연결할 계정 정보가 없습니다.</div>'
 
   } catch(e) {
-    if (area) area.innerHTML = `<div style="color:var(--R);font-size:12px;padding:8px">오류: ${e.message}</div>`
+    if (area) area.innerHTML = '<div style="color:var(--R);font-size:12px;padding:8px">오류: ' + e.message + '</div>'
   }
 }
 
 async function pmsCreateAccount(contactId, role, dealId) {
   const label = role === 'tenant' ? '임차인' : '임대인'
-  if (!confirm(`${label} PMS 계정을 생성하시겠습니까?
-임시 비밀번호가 발급됩니다.`)) return
+  if (!confirm(label + ' PMS 계정을 생성하시겠습니까?\n임시 비밀번호가 발급됩니다.')) return
   try {
-    const res = await api('POST', '/api/pms-accounts/create', {
-      contact_id: contactId,
-      role,
-    })
-    showModal(`
-      <div style="font-size:16px;font-weight:700;margin-bottom:16px">✅ PMS 계정 생성 완료</div>
-      <div style="background:var(--bg);border-radius:10px;padding:16px;margin-bottom:16px">
-        <div style="display:grid;gap:10px;font-size:13px">
-          <div><span style="color:var(--m);font-size:11px">이름</span><br><strong>${res.name}</strong></div>
-          <div><span style="color:var(--m);font-size:11px">이메일 (로그인 ID)</span><br><strong>${res.email}</strong></div>
-          <div>
-            <span style="color:var(--m);font-size:11px">임시 비밀번호</span><br>
-            <strong style="font-size:16px;letter-spacing:2px;color:var(--N)">${res.temp_password}</strong>
-          </div>
-          <div><span style="color:var(--m);font-size:11px">역할</span><br><strong>${res.role === 'tenant' ? '임차인' : '임대인'}</strong></div>
-        </div>
-      </div>
-      <div style="background:#FDF0DC;border-radius:8px;padding:10px;font-size:11px;color:#7A4F00;margin-bottom:16px">
-        ⚠️ 이 임시 비밀번호를 ${res.name}님께 전달해주세요.<br>
-        PMS 앱 접속 후 비밀번호를 변경하도록 안내하세요.
-      </div>
-      <div style="text-align:right">
-        <button onclick="closeDynModal();loadPmsAccounts('${dealId}')" class="btn btn-g">확인</button>
-      </div>
-    `)
+    const res = await api('POST', '/api/pms-accounts/create', { contact_id: contactId, role: role })
+    const html = '<div style="font-size:16px;font-weight:700;margin-bottom:16px">✅ PMS 계정 생성 완료</div>'
+      + '<div style="background:var(--bg);border-radius:10px;padding:16px;margin-bottom:16px">'
+      + '<div style="display:grid;gap:10px;font-size:13px">'
+      + '<div><span style="color:var(--m);font-size:11px">이름</span><br><strong>' + res.name + '</strong></div>'
+      + '<div><span style="color:var(--m);font-size:11px">이메일 (로그인 ID)</span><br><strong>' + res.email + '</strong></div>'
+      + '<div><span style="color:var(--m);font-size:11px">임시 비밀번호</span><br><strong style="font-size:18px;letter-spacing:2px;color:var(--N)">' + res.temp_password + '</strong></div>'
+      + '<div><span style="color:var(--m);font-size:11px">역할</span><br><strong>' + (res.role === 'tenant' ? '임차인' : '임대인') + '</strong></div>'
+      + '</div></div>'
+      + '<div style="background:#FDF0DC;border-radius:8px;padding:10px;font-size:11px;color:#7A4F00;margin-bottom:16px">'
+      + '⚠️ 이 임시 비밀번호를 ' + res.name + '님께 전달해주세요.<br>PMS 앱 접속 후 비밀번호를 변경하도록 안내하세요.'
+      + '</div>'
+      + '<div style="text-align:right"><button onclick="closeDynModal();loadPmsAccounts(\'' + dealId + '\')" class="btn btn-g">확인</button></div>'
+    showModal(html)
   } catch(e) { alert('오류: ' + e.message) }
 }
 
@@ -4921,27 +4905,23 @@ async function pmsResetPassword(authUid) {
   if (!confirm('임시 비밀번호를 재발급하시겠습니까?')) return
   try {
     const res = await api('POST', '/api/pms-accounts/reset-password', { auth_uid: authUid })
-    showModal(`
-      <div style="font-size:16px;font-weight:700;margin-bottom:16px">🔑 비밀번호 재설정 완료</div>
-      <div style="background:var(--bg);border-radius:10px;padding:16px;margin-bottom:16px;text-align:center">
-        <div style="font-size:11px;color:var(--m);margin-bottom:8px">새 임시 비밀번호</div>
-        <div style="font-size:22px;font-weight:800;letter-spacing:3px;color:var(--N)">${res.temp_password}</div>
-      </div>
-      <div style="background:#FDF0DC;border-radius:8px;padding:10px;font-size:11px;color:#7A4F00;margin-bottom:16px">
-        ⚠️ 임차인/임대인에게 이 비밀번호를 전달해주세요.
-      </div>
-      <div style="text-align:right">
-        <button onclick="closeDynModal()" class="btn btn-g">확인</button>
-      </div>
-    `)
+    const html = '<div style="font-size:16px;font-weight:700;margin-bottom:16px">🔑 비밀번호 재설정 완료</div>'
+      + '<div style="background:var(--bg);border-radius:10px;padding:16px;margin-bottom:16px;text-align:center">'
+      + '<div style="font-size:11px;color:var(--m);margin-bottom:8px">새 임시 비밀번호</div>'
+      + '<div style="font-size:22px;font-weight:800;letter-spacing:3px;color:var(--N)">' + res.temp_password + '</div>'
+      + '</div>'
+      + '<div style="background:#FDF0DC;border-radius:8px;padding:10px;font-size:11px;color:#7A4F00;margin-bottom:16px">'
+      + '⚠️ 임차인/임대인에게 이 비밀번호를 전달해주세요.'
+      + '</div>'
+      + '<div style="text-align:right"><button onclick="closeDynModal()" class="btn btn-g">확인</button></div>'
+    showModal(html)
   } catch(e) { alert('오류: ' + e.message) }
 }
 
 async function pmsDisconnect(contactId, dealId) {
-  if (!confirm('PMS 계정 연결을 해제하시겠습니까?
-(Supabase Auth 계정은 유지됩니다)')) return
+  if (!confirm('PMS 계정 연결을 해제하시겠습니까?\n(Supabase Auth 계정은 유지됩니다)')) return
   try {
-    await api('DELETE', `/api/pms-accounts/${contactId}`)
+    await api('DELETE', '/api/pms-accounts/' + contactId)
     toast('✓ PMS 계정 연결이 해제되었습니다')
     loadPmsAccounts(dealId)
   } catch(e) { alert('오류: ' + e.message) }
