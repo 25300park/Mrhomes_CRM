@@ -1289,15 +1289,16 @@ async function vContactDetail(id) {
   history.pushState({ view:'contact-detail', id }, '', '#contact/' + id)
   vc(`<div class="loading">Loading contact...</div>`)
   try {
-    const [contact, leads, activities, deals, staff, listings] = await Promise.all([
+    const [contact, leads, activities, deals, staff, listings, lois] = await Promise.all([
       api('GET', `/api/contacts/${id}`),
       api('GET', `/api/leads?contact_id=${id}`),
       api('GET', `/api/activities?contact_id=${id}&limit=30`),
       api('GET', '/api/deals'),
       api('GET', '/api/staff'),
-      api('GET', '/api/listings')
+      api('GET', '/api/listings'),
+      api('GET', '/api/loi').catch(()=>[])
     ])
-    const relDeals    = deals.filter(d => d.owner_contact_id===id || d.tenant_contact_id===id)
+    _leadDocs = lois.filter(d => d.linked_contact_id === id)
     const activeLeads = leads.filter(l => !l.status.startsWith('CLOSED'))
     const ct = CT[contact.type] || { l:contact.type, bg:'#eee', c:'#666' }
 
@@ -1506,10 +1507,95 @@ async function vContactDetail(id) {
       </div>
     </div>
   </div>
+
+  <!-- 문서 보관함 (LOI 연결) -->
+  <div class="card" style="margin-top:10px">
+    <div class="card-h" style="justify-content:space-between">
+      <span><i class="ti ti-folder"></i> 문서 보관함</span>
+      <button class="btn btn-o" style="font-size:10px;padding:3px 8px"
+        onclick="openLeadDocPicker('${id}')">
+        <i class="ti ti-link"></i> LOI 연결
+      </button>
+    </div>
+    <div id="lead-docs-${id}" style="min-height:48px;padding:8px 12px">
+      ${renderLeadDocsSync(_leadDocs||[],'${id}')}
+    </div>
+  </div>
 </div></div>`)
 
     setCActType('CALL')
   } catch(e) { err(e) }
+}
+
+// ═══════════ LEAD 문서 보관함 ═══════════
+let _leadDocs = {}  // {contactId: [loi_document]}
+
+function renderLeadDocsSync(docs, contactId) {
+  const filtered = (docs||[]).filter(d => d.linked_contact_id === contactId || d.id)
+  if (!filtered.length) return '<div style="padding:12px;font-size:11px;color:var(--m);text-align:center">연결된 문서가 없습니다. LOI 연결 버튼으로 추가하세요.</div>'
+  return filtered.map(d => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--b)">
+      <i class="ti ti-file-certificate" style="color:var(--A);font-size:16px;flex-shrink:0"></i>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          ${d.tenant_name||'LOI'} · ${d.property_name||''}
+        </div>
+        <div style="font-size:10px;color:var(--m)">${d.loi_date||''} · ${d.agent_name||''}</div>
+      </div>
+      <button onclick="unlinkLeadDoc('${d.id}','${contactId}')"
+        style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:3px;flex-shrink:0">
+        <i class="ti ti-x" style="font-size:12px"></i>
+      </button>
+    </div>`).join('')
+}
+
+async function openLeadDocPicker(contactId) {
+  // 저장된 LOI 목록 가져오기
+  let lois = []
+  try { lois = await api('GET', '/api/loi') } catch(e) {}
+  if (!lois.length) { alert('저장된 LOI가 없습니다. Documents 탭에서 먼저 LOI를 저장해주세요.'); return }
+
+  const opts = lois.map(d =>
+    `<option value="${d.id}">${d.loi_date||''} · ${d.tenant_name||''} · ${d.property_name||''}</option>`
+  ).join('')
+
+  const html = `
+    <div style="background:rgba(0,0,0,.4);position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;padding:20px" id="loi-picker-modal" onclick="if(event.target===this)this.remove()">
+      <div style="background:#fff;border-radius:14px;width:100%;max-width:420px;padding:24px">
+        <h3 style="margin-bottom:16px;font-size:16px"><i class="ti ti-link"></i> LOI 문서 연결</h3>
+        <div class="mf">
+          <label>연결할 LOI 선택</label>
+          <select class="fi" id="loi-picker-select">${opts}</select>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button class="btn btn-o" style="flex:1" onclick="document.getElementById('loi-picker-modal').remove()">Cancel</button>
+          <button class="btn btn-g" style="flex:1" onclick="linkLeadDoc('${contactId}')">
+            <i class="ti ti-link"></i> 연결
+          </button>
+        </div>
+      </div>
+    </div>`
+  document.body.insertAdjacentHTML('beforeend', html)
+}
+
+async function linkLeadDoc(contactId) {
+  const loiId = document.getElementById('loi-picker-select')?.value
+  if (!loiId) return
+  try {
+    await api('PATCH', `/api/loi/${loiId}`, { linked_contact_id: contactId })
+    document.getElementById('loi-picker-modal')?.remove()
+    toast('✓ LOI 연결됨')
+    vContactDetail(contactId)
+  } catch(e) { alert('Error: ' + e.message) }
+}
+
+async function unlinkLeadDoc(loiId, contactId) {
+  if (!confirm('이 LOI 연결을 해제하시겠습니까?')) return
+  try {
+    await api('PATCH', `/api/loi/${loiId}`, { linked_contact_id: null })
+    toast('연결 해제됨')
+    vContactDetail(contactId)
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 let _cActType = 'CALL'
@@ -1576,19 +1662,76 @@ async function quickLeadStatusChange(leadId, contactId, status) {
     vContactDetail(contactId)
   } catch(e) { alert(e.message) }
 }
-async function addLeadForContact(contactId, contactName) {
-  const type=prompt(`${contactName}의 요청 Type:\nRENT (Rent)\nBUY (Sale)`)?.toUpperCase()
-  if (!['RENT','BUY'].includes(type)) return
-  const budget=parseFloat(prompt('예산 (PHP):'))
-  if (!budget) return
-  const location=prompt('선호 지역 (예: BGC, Makati):')
-  const remarks=prompt('요구사항 Notes:')
-  try {
-    await api('POST','/api/leads',{contact_id:contactId,request_type:type,budget,location_pref:location||null,remarks:remarks||null,assigned_user_id:me?.id,status:'NEW'})
-    toast('리드가 Added'); vContactDetail(contactId)
-  } catch(e) { alert(e.message) }
+function addLeadForContact(contactId, contactName) {
+  // 기존 값 초기화
+  ;['al-budget','al-location','al-remarks','al-min-price',
+    'al-bedrooms','al-bathrooms','al-area-sqm'].forEach(id => {
+    const el = document.getElementById(id)
+    if (el) el.value = ''
+  })
+  document.getElementById('al-type').value = 'RENT'
+  document.getElementById('al-furnished').value = ''
+  document.getElementById('al-pet').value = ''
+
+  // Staff 목록 채우기
+  const agentEl = document.getElementById('al-agent')
+  if (agentEl) {
+    const staffOpts = (_staff||[]).map(s => `<option value="${s.id}">${s.name}</option>`).join('')
+    agentEl.innerHTML = '<option value="">-- Select --</option>' + staffOpts
+    agentEl.value = me?.id || ''
+  }
+
+  // Contact 정보 표시
+  const label = document.getElementById('al-contact-label')
+  if (label) label.textContent = contactName + '의 Lead 추가'
+
+  // hidden 값 설정
+  document.getElementById('al-contact-id').value   = contactId
+  document.getElementById('al-contact-name').value = contactName
+
+  document.getElementById('modal-add-lead').style.display = 'flex'
 }
 
+async function saveAddLead() {
+  const contactId  = document.getElementById('al-contact-id').value
+  const type       = document.getElementById('al-type').value
+  const budget     = parseFloat(document.getElementById('al-budget').value) || null
+  const location   = document.getElementById('al-location').value.trim() || null
+  const remarks    = document.getElementById('al-remarks').value.trim() || null
+  const minPrice   = parseFloat(document.getElementById('al-min-price').value) || null
+  const maxPrice   = parseFloat(document.getElementById('al-max-price').value) || null
+  const bedrooms   = parseInt(document.getElementById('al-bedrooms').value)   || null
+  const bathrooms  = parseInt(document.getElementById('al-bathrooms').value)  || null
+  const areaSqm    = parseFloat(document.getElementById('al-area-sqm').value) || null
+  const furnished  = document.getElementById('al-furnished').value || null
+  const pet        = document.getElementById('al-pet').value || null
+  const agentId    = document.getElementById('al-agent').value || me?.id
+
+  if (!contactId) { alert('Contact ID missing'); return }
+  if (!type)      { alert('Lead type is required'); return }
+
+  try {
+    await api('POST', '/api/leads', {
+      contact_id:       contactId,
+      request_type:     type,
+      budget:           budget,
+      min_price:        minPrice,
+      max_price:        maxPrice,
+      location_pref:    location,
+      bedrooms:         bedrooms,
+      bathrooms:        bathrooms,
+      area_sqm:         areaSqm,
+      furnished_pref:   furnished,
+      pet_friendly:     pet === 'true' ? true : pet === 'false' ? false : null,
+      remarks:          remarks,
+      assigned_user_id: agentId || me?.id,
+      status:           'NEW'
+    })
+    toast('✓ Lead Added')
+    closeModal('modal-add-lead')
+    vContactDetail(contactId)
+  } catch(e) { alert(e.message) }
+}
 async function vCust() {
   try {
     // 본인 연락처만 표시 (admin은 전체)
@@ -2958,11 +3101,12 @@ async function saveNewContract() {
   const rent    = parseFloat(document.getElementById('nc-rent').value)
   const deposit = parseFloat(document.getElementById('nc-deposit').value) || null
 
-  if (!_ncListingId) { alert('Please select a listing'); return }
-  if (!_ncTenantId)  { alert('Please select a tenant contact'); return }
-  if (!movein)       { alert('Move-in date is required'); return }
-  if (!months)       { alert('Contract duration is required'); return }
-  if (!rent)         { alert('Monthly rent is required'); return }
+  if (!_ncListingId) { alert('매물을 선택해주세요'); return }
+  if (!_ncTenantId)  { alert('임차인을 선택해주세요'); return }
+  if (!movein)       { alert('입주일을 입력해주세요'); return }
+  if (!months)       { alert('계약기간을 입력해주세요'); return }
+  if (!rent)         { alert('월세를 입력해주세요'); return }
+  // 수수료는 선택사항 — Admin이 나중에 설정 가능
 
   try {
     // 1. Deal 생성 (커미션은 0으로 초기화, 나중에 Admin이 설정)
@@ -4103,8 +4247,41 @@ async function updateLeadStatus(id, status) {
   try {
     await api('PATCH', `/api/leads/${id}`, { status })
     toast(`Lead → ${LEAD_STATUSES.find(s=>s.key===status)?.l}`)
+    // CLOSED_WON → 자동으로 Register Contract 모달 오픈
+    if (status === 'CLOSED_WON') {
+      // Lead 정보 가져와서 자동채움
+      const lead = _leads.find(l => l.id === id) ||
+                   await api('GET', `/api/leads/${id}`).catch(() => null)
+      await openNewContractFromLead(lead)
+    }
     vLeads()
   } catch(e) { alert('Error: ' + e.message) }
+}
+
+async function openNewContractFromLead(lead) {
+  // Register New Contract 모달 오픈
+  openNewContract()
+  if (!lead) return
+  // 잠시 후 자동채움 (모달 렌더링 대기)
+  setTimeout(() => {
+    // Tenant 자동채움
+    if (lead.contact_id && lead.contact?.name) {
+      document.getElementById('nc-tenant-search').value = lead.contact.name
+      window._ncTenantId = lead.contact_id
+      const sel = document.getElementById('nc-tenant-selected')
+      if (sel) { sel.textContent = '✓ ' + lead.contact.name; sel.style.display = '' }
+    }
+    // 담당자 자동채움
+    if (lead.assigned_user_id) {
+      const agentEl = document.getElementById('nc-tenant-agent')
+      if (agentEl) agentEl.value = lead.assigned_user_id
+    }
+    // 예산 → 월세 자동채움
+    if (lead.budget) {
+      document.getElementById('nc-rent').value = lead.budget
+    }
+    toast('Lead 정보가 자동으로 입력됐습니다. 계약 내용을 확인해주세요.')
+  }, 400)
 }
 
 function openAddLead() { openAddLeadInStatus('NEW') }
@@ -5868,6 +6045,119 @@ async function vStaff() {
     <div class="modal-ft">
       <button class="btn btn-o" onclick="closeModal('modal-create-user')">Cancel</button>
       <button class="btn btn-g" onclick="createUser()"><i class="ti ti-user-check"></i> Create User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Lead Modal -->
+<div class="modal-overlay" id="modal-add-lead" style="display:none" onclick="if(event.target===this)closeModal('modal-add-lead')">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-hd">
+      <div>
+        <h2><i class="ti ti-user-plus"></i> Add Lead</h2>
+        <p id="al-contact-label" style="font-size:12px;color:var(--m);margin-top:2px"></p>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-add-lead')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="al-contact-id">
+      <input type="hidden" id="al-contact-name">
+
+      <!-- 기본 정보 -->
+      <div class="mf-row">
+        <div class="mf">
+          <label>Lead Type *</label>
+          <select class="fi" id="al-type">
+            <option value="RENT">Rent (임대)</option>
+            <option value="BUY">Buy (매매)</option>
+          </select>
+        </div>
+        <div class="mf">
+          <label>Assigned Member</label>
+          <select class="fi" id="al-agent">
+            <option value="">-- Select --</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 예산 -->
+      <div class="mf-row">
+        <div class="mf">
+          <label>Min Budget (PHP)</label>
+          <input class="fi" id="al-min-price" type="number" placeholder="e.g. 20000">
+        </div>
+        <div class="mf">
+          <label>Max Budget (PHP)</label>
+          <input class="fi" id="al-budget" type="number" placeholder="e.g. 50000">
+        </div>
+      </div>
+      <input type="hidden" id="al-max-price">
+
+      <!-- 선호지역 -->
+      <div class="mf">
+        <label>선호 지역</label>
+        <input class="fi" id="al-location" placeholder="e.g. BGC, Makati, Ortigas...">
+      </div>
+
+      <!-- 매물 조건 -->
+      <div class="mf-row">
+        <div class="mf">
+          <label>Bedrooms</label>
+          <select class="fi" id="al-bedrooms">
+            <option value="">Any</option>
+            <option value="0">Studio</option>
+            <option value="1">1 BR</option>
+            <option value="2">2 BR</option>
+            <option value="3">3 BR</option>
+            <option value="4">4+ BR</option>
+          </select>
+        </div>
+        <div class="mf">
+          <label>Bathrooms</label>
+          <select class="fi" id="al-bathrooms">
+            <option value="">Any</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3+</option>
+          </select>
+        </div>
+      </div>
+      <div class="mf-row">
+        <div class="mf">
+          <label>Min Area (sqm)</label>
+          <input class="fi" id="al-area-sqm" type="number" placeholder="e.g. 30">
+        </div>
+        <div class="mf">
+          <label>Furnished</label>
+          <select class="fi" id="al-furnished">
+            <option value="">Any</option>
+            <option value="Fully Furnished">Fully Furnished</option>
+            <option value="Semi Furnished">Semi Furnished</option>
+            <option value="Unfurnished">Unfurnished</option>
+          </select>
+        </div>
+      </div>
+      <div class="mf">
+        <label>Pet Friendly</label>
+        <select class="fi" id="al-pet">
+          <option value="">Any</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </div>
+
+      <!-- 요구사항 -->
+      <div class="mf">
+        <label>요구사항 / Notes</label>
+        <textarea class="fi" id="al-remarks" rows="3" style="resize:vertical"
+          placeholder="특별 요구사항, 선호 조건 등..."></textarea>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-o" onclick="closeModal('modal-add-lead')">Cancel</button>
+      <button class="btn btn-g" onclick="saveAddLead()">
+        <i class="ti ti-plus"></i> Add Lead
+      </button>
     </div>
   </div>
 </div>
