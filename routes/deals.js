@@ -77,8 +77,9 @@ router.post('/', auth, async (req, res) => {
     is_co_broke, remarks
   } = req.body
 
-  if (!listing_id || !contract_date || !gross_commission)
-    return res.status(400).json({ error: '매물, 계약일, 수수료는 필수입니다' })
+  if (!listing_id || !contract_date)
+    return res.status(400).json({ error: '매물과 계약일은 필수입니다' })
+  // 수수료는 선택사항 — Admin이 나중에 설정 가능
 
   const { data: deal, error } = await req.supabase
     .from('deals')
