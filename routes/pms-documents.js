@@ -60,28 +60,53 @@ router.post('/send-listing-report', auth, async (req, res) => {
     // listing 상세 조회
     const listingIds = report.listing_ids || []
     let listingsHtml = ''
+    let listingsJson = []
     if (listingIds.length > 0) {
       const { data: listings } = await req.supabase
         .from('listings')
-        .select('id, name, unit_no, address, price, bedrooms, bathrooms, area_sqm, photos')
+        .select('id, name, unit_no, address, price, monthly_rent, bedrooms, bathrooms, area_sqm, photo_url, photos, rbs_unit_id, transaction_type')
         .in('id', listingIds)
 
-      listingsHtml = (listings || []).map((l, i) => {
-        const photo = Array.isArray(l.photos) && l.photos[0] ? l.photos[0] : null
-        return `
-        <div style="border:1px solid #EAE6DF;border-radius:10px;overflow:hidden;margin-bottom:16px">
-          ${photo ? `<img src="${photo}" style="width:100%;height:180px;object-fit:cover">` : ''}
+      // listing_ids 순서대로 정렬
+      const sorted = listingIds
+        .map(id => (listings || []).find(l => l.id === id))
+        .filter(Boolean)
+
+      listingsJson = sorted.map(l => ({
+        id: l.id,
+        name: l.name,
+        unit_no: l.unit_no,
+        address: l.address,
+        price: l.price,
+        monthly_rent: l.monthly_rent,
+        bedrooms: l.bedrooms,
+        bathrooms: l.bathrooms,
+        area_sqm: l.area_sqm,
+        photo_url: l.photo_url || (Array.isArray(l.photos) && l.photos[0]) || null,
+        rbs_unit_id: l.rbs_unit_id,
+        transaction_type: l.transaction_type,
+      }))
+
+      listingsHtml = sorted.map((l, i) => {
+        const photo = l.photo_url || (Array.isArray(l.photos) && l.photos[0]) || null
+        const displayPrice = l.transaction_type === 'RENT'
+          ? (l.monthly_rent ? `₱${Math.round(l.monthly_rent).toLocaleString('en-PH')}/mo` : '')
+          : (l.price ? `₱${Math.round(l.price).toLocaleString('en-PH')}` : '')
+        const rbsUrl = l.rbs_unit_id ? `https://rbs-homes.com/detail/${l.rbs_unit_id}` : null
+        return `<div style="border:1px solid #EAE6DF;border-radius:10px;overflow:hidden;margin-bottom:16px" data-listing-id="${l.id}" data-rbs-url="${rbsUrl || ''}">
+          ${photo ? `<img src="${photo}" style="width:100%;height:180px;object-fit:cover;display:block">` : `<div style="width:100%;height:120px;background:#F1EFE8;display:flex;align-items:center;justify-content:center;color:#888;font-size:12px">No Photo</div>`}
           <div style="padding:14px 16px">
             <div style="font-size:15px;font-weight:700;color:#1C3553;margin-bottom:4px">
               ${i+1}. ${l.name}${l.unit_no ? ' ' + l.unit_no : ''}
             </div>
             <div style="font-size:12px;color:#6B7280;margin-bottom:8px">${l.address || ''}</div>
-            <div style="display:flex;gap:12px;font-size:12px;color:#374151">
+            <div style="display:flex;gap:12px;font-size:12px;color:#374151;flex-wrap:wrap">
               ${l.bedrooms ? `<span>🛏 ${l.bedrooms}BR</span>` : ''}
               ${l.bathrooms ? `<span>🚿 ${l.bathrooms}Bath</span>` : ''}
               ${l.area_sqm ? `<span>📐 ${l.area_sqm}㎡</span>` : ''}
-              ${l.price ? `<span style="font-weight:700;color:#1C3553">₱${Math.round(l.price).toLocaleString('en-PH')}/월</span>` : ''}
+              ${displayPrice ? `<span style="font-weight:700;color:#1C3553">${displayPrice}</span>` : ''}
             </div>
+            ${rbsUrl ? `<div style="margin-top:10px"><a href="${rbsUrl}" style="font-size:11px;color:#185FA5;text-decoration:underline">View on rbs-homes.com →</a></div>` : ''}
           </div>
         </div>`
       }).join('')
@@ -93,7 +118,7 @@ router.post('/send-listing-report', auth, async (req, res) => {
       .insert({
         contact_id,
         type: 'LISTING_REPORT',
-        title: `Listing Report — ${report.report_date}`,
+        title: `Listing Report — ${report.report_date} (${listingIds.length} listings)`,
         html_content: listingsHtml,
         status: 'SENT',
         sent_by: req.user.id,
