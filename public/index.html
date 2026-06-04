@@ -3560,6 +3560,12 @@ async function sendLoiToPms() {
   const loiData = _loiDocs?.find(d => d.id === _loiEditId)
   if (!loiData) { alert('LOI data not found.'); return }
 
+  // _contacts가 없으면 먼저 로드
+  if (!_contacts.length) {
+    const cl = await api('GET', '/api/contacts?limit=300').catch(() => ({ data: [] }))
+    _contacts = cl.data || cl.contacts || (Array.isArray(cl) ? cl : [])
+  }
+
   // contacts에서 tenant_name으로 검색
   const tenantName = loiData.tenant_name || ''
   let contactId = null
@@ -3600,17 +3606,22 @@ async function sendLoiToPms() {
   await doSendLoi(_loiEditId, contactId)
 }
 
-function searchLoiContact(q) {
+async function searchLoiContact(q) {
   const res = document.getElementById('loi-contact-results')
   if (!res) return
   if (!q) { res.innerHTML = ''; return }
+  // _contacts가 없으면 먼저 로드
+  if (!_contacts.length) {
+    const cl = await api('GET', '/api/contacts?limit=300').catch(() => ({ data: [] }))
+    _contacts = cl.data || cl.contacts || (Array.isArray(cl) ? cl : [])
+  }
   const matches = _contacts.filter(c => c.name.toLowerCase().includes(q.toLowerCase())).slice(0, 8)
   res.innerHTML = matches.map(c =>
     '<div data-lid="' + _loiEditId + '" data-cid="' + c.id + '" onclick="closeDynModal();doSendLoi(this.dataset.lid,this.dataset.cid)" '
-    + 'style="padding:8px 12px;cursor:pointer;border-radius:6px;font-size:13px">'
+    + 'style="padding:8px 12px;cursor:pointer;border-radius:6px;font-size:13px;border-bottom:1px solid var(--b)">'
     + c.name + '<span style="font-size:11px;color:var(--m);margin-left:6px">' + (c.email || '') + '</span>'
     + '</div>'
-  ).join('') || '<div style="padding:8px;color:var(--m);font-size:12px">No results</div>'
+  ).join('') || '<div style="padding:8px;color:var(--m);font-size:12px">No results found</div>'
 }
 
 async function doSendLoi(loiId, contactId) {
@@ -4029,6 +4040,12 @@ let _loiTenantTimer = null
 function searchLOITenant(q) {
   const res = document.getElementById('loi-tenant-results')
   if (!q || q.length < 1) { res.style.display='none'; return }
+  // _contacts 없으면 로드
+  if (!_contacts.length) {
+    api('GET', '/api/contacts?limit=300').then(d => {
+      _contacts = d.data || d.contacts || (Array.isArray(d) ? d : [])
+    }).catch(() => {})
+  }
   clearTimeout(_loiTenantTimer)
   _loiTenantTimer = setTimeout(() => {
     const filtered = (_contacts||[]).filter(c =>
