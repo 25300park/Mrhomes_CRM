@@ -84,9 +84,7 @@ router.get('/contact/:contactId', auth, async (req, res) => {
 // ── POST /api/pms-accounts/create
 // PMS 계정 생성 + pms_auth_map 연결
 router.post('/create', auth, async (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: '관리자만 PMS 계정을 생성할 수 있습니다.' })
-  }
+  // admin/agent 모두 계정 생성 가능
 
   try {
     const { contact_id, role, temp_password } = req.body

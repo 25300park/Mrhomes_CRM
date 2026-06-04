@@ -1286,7 +1286,7 @@ async function vDashAgent() {
 // ═══════════ CONTACT DETAIL ═══════════
 // Contacts에서 직접 PMS prospective 계정 생성
 async function createProspectivePmsAccount(contactId) {
-  if (me.role !== 'admin') { alert('Admin만 PMS 계정을 생성할 수 있습니다.'); return }
+  // 모든 CRM 직원(agent/admin) 계정 생성 가능
   if (!confirm('이 고객에게 PMS 예비 고객(Prospective) 계정을 생성하시겠습니까?')) return
   try {
     const res = await api('POST', '/api/pms-accounts/create', {
@@ -1347,7 +1347,7 @@ async function vContactDetail(id) {
     <button onclick="toggleContactEdit('${id}')" class="btn btn-o">
       <i class="ti ti-edit" aria-hidden="true"></i> Edit
     </button>
-    ${!pmsInfo?.connected && me.role==='admin' ? '<button onclick="createProspectivePmsAccount(\'' + id + '\')" class="btn btn-g" style="font-size:11px"><i class=\"ti ti-device-mobile\"></i> PMS 계정</button>' : ''}
+    ${!pmsInfo?.connected ? '<button onclick="createProspectivePmsAccount(\'' + id + '\')" class="btn btn-g" style="font-size:11px"><i class=\"ti ti-device-mobile\"></i> PMS 계정</button>' : ''}
   </div>
 </div>
 <div class="pb">
