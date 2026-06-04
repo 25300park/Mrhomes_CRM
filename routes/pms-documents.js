@@ -98,7 +98,10 @@ router.post('/send-listing-report', auth, async (req, res) => {
         const photo = l.photo_url || (Array.isArray(l.photos) && l.photos[0]) || null
         const displayPrice = l.price ? `₱${Math.round(l.price).toLocaleString('en-PH')}${l.transaction_type === 'RENT' ? '/mo' : ''}` : ''
         const rbsUrl = l.hyperlink || null
-        return `<div style="border:1px solid #EAE6DF;border-radius:10px;overflow:hidden;margin-bottom:16px" data-listing-id="${l.id}" data-rbs-url="${rbsUrl || ''}">
+        const cardStyle = rbsUrl
+          ? 'border:1px solid #B5D4F4;border-radius:10px;overflow:hidden;margin-bottom:16px;cursor:pointer'
+          : 'border:1px solid #EAE6DF;border-radius:10px;overflow:hidden;margin-bottom:16px'
+        return `<div style="${cardStyle}" data-listing-id="${l.id}" data-rbs-url="${rbsUrl || ''}">
           ${photo ? `<img src="${photo}" style="width:100%;height:180px;object-fit:cover;display:block">` : `<div style="width:100%;height:120px;background:#F1EFE8;display:flex;align-items:center;justify-content:center;color:#888;font-size:12px">No Photo</div>`}
           <div style="padding:14px 16px">
             <div style="font-size:15px;font-weight:700;color:#1C3553;margin-bottom:4px">
