@@ -3552,21 +3552,65 @@ async function saveReportAndGetId() {
 
 async function sendLoiToPms() {
   if (!_loiEditId) {
-    alert('먼저 LOI를 저장해주세요.')
+    alert('Please save the LOI first.')
     return
   }
-  // LOI contact 조회
+
+  // LOI에서 tenant_name으로 contact 자동 검색
   const loiData = _loiDocs?.find(d => d.id === _loiEditId)
-  const contactId = loiData?.contact_id || _rpContactId || null
+  if (!loiData) { alert('LOI data not found.'); return }
+
+  // contacts에서 tenant_name으로 검색
+  const tenantName = loiData.tenant_name || ''
+  let contactId = null
+
+  if (tenantName && _contacts.length) {
+    const matched = _contacts.filter(c =>
+      c.name.toLowerCase().includes(tenantName.toLowerCase()) ||
+      tenantName.toLowerCase().includes(c.name.toLowerCase())
+    )
+    if (matched.length === 1) {
+      contactId = matched[0].id
+    } else if (matched.length > 1) {
+      // 여러 명 매칭 시 선택 모달
+      const html = '<div style="font-size:15px;font-weight:700;margin-bottom:12px">Select Contact for LOI</div>'
+        + '<div style="font-size:12px;color:var(--m);margin-bottom:12px">Tenant: <strong>' + tenantName + '</strong></div>'
+        + matched.map(function(c) {
+            return '<button data-lid="' + _loiEditId + '" data-cid="' + c.id + '" onclick="closeDynModal();doSendLoi(this.dataset.lid,this.dataset.cid)" '
+              + 'style="display:block;width:100%;text-align:left;padding:10px 14px;margin-bottom:6px;background:var(--bg);border:1px solid var(--b);border-radius:8px;cursor:pointer;font-size:13px">'
+              + c.name + '<span style="font-size:11px;color:var(--m);margin-left:8px">' + (c.email || '') + '</span></button>'
+          }).join('')
+        + '<div style="text-align:right;margin-top:8px"><button onclick="closeDynModal()" class="btn btn-o">Cancel</button></div>'
+      showModal(html)
+      return
+    }
+  }
+
   if (!contactId) {
-    // 고객 선택 모달
-    const cid = prompt('전송할 고객의 Contact ID를 입력해주세요:')
-    if (!cid) return
-    await doSendLoi(_loiEditId, cid)
+    // 직접 검색
+    const html = '<div style="font-size:15px;font-weight:700;margin-bottom:12px">Select Contact for LOI</div>'
+      + '<input class="fi" id="loi-contact-search" placeholder="Search contact name..." oninput="searchLoiContact(this.value)" style="width:100%;margin-bottom:8px">'
+      + '<div id="loi-contact-results" style="max-height:200px;overflow-y:auto"></div>'
+      + '<div style="text-align:right;margin-top:8px"><button onclick="closeDynModal()" class="btn btn-o">Cancel</button></div>'
+    showModal(html)
     return
   }
-  if (!confirm('이 LOI를 고객의 PMS 앱으로 전송하시겠습니까?\n고객 이메일로도 동시 발송됩니다.')) return
+
+  if (!confirm('Send this LOI to the PMS app?\nAn email will also be sent.')) return
   await doSendLoi(_loiEditId, contactId)
+}
+
+function searchLoiContact(q) {
+  const res = document.getElementById('loi-contact-results')
+  if (!res) return
+  if (!q) { res.innerHTML = ''; return }
+  const matches = _contacts.filter(c => c.name.toLowerCase().includes(q.toLowerCase())).slice(0, 8)
+  res.innerHTML = matches.map(c =>
+    '<div data-lid="' + _loiEditId + '" data-cid="' + c.id + '" onclick="closeDynModal();doSendLoi(this.dataset.lid,this.dataset.cid)" '
+    + 'style="padding:8px 12px;cursor:pointer;border-radius:6px;font-size:13px">'
+    + c.name + '<span style="font-size:11px;color:var(--m);margin-left:6px">' + (c.email || '') + '</span>'
+    + '</div>'
+  ).join('') || '<div style="padding:8px;color:var(--m);font-size:12px">No results</div>'
 }
 
 async function doSendLoi(loiId, contactId) {
