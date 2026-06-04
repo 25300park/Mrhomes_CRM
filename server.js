@@ -4,9 +4,10 @@ const cors       = require('cors')
 const morgan     = require('morgan')
 const path       = require('path')
 const { createClient } = require('@supabase/supabase-js')
-const pmsPayments = require('./routes/pms-payments')
-const pmsCare = require('./routes/pms-care')
-const pmsAccounts = require('./routes/pms-accounts')
+const pmsPayments  = require('./routes/pms-payments')
+const pmsCare      = require('./routes/pms-care')
+const pmsAccounts  = require('./routes/pms-accounts')
+const pmsDocuments = require('./routes/pms-documents')
 
 
 // ── 환경변수 확인 ─────────────────────────────
@@ -47,10 +48,10 @@ app.use('/api/condos',        require('./routes/condos'))
 app.use('/api/tenants',       require('./routes/tenants'))
 app.use('/api/loi',            require('./routes/loi'))
 app.use('/api/listing-reports',require('./routes/listing-reports'))
-app.use('/api/pms-payments', pmsPayments)
-app.use('/api/pms-care', pmsCare)
-app.use('/api/pms-accounts', pmsAccounts)
-app.use('/api/pms-documents', require('./routes/pms-documents'))
+app.use('/api/pms-payments',  pmsPayments)
+app.use('/api/pms-care',      pmsCare)
+app.use('/api/pms-accounts',  pmsAccounts)
+app.use('/api/pms-documents', pmsDocuments)
 
 
 // ── 헬스체크 (Railway 상태 확인용) ───────────
