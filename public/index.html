@@ -1284,6 +1284,31 @@ async function vDashAgent() {
 }
 
 // ═══════════ CONTACT DETAIL ═══════════
+// Contacts에서 직접 PMS prospective 계정 생성
+async function createProspectivePmsAccount(contactId) {
+  if (me.role !== 'admin') { alert('Admin만 PMS 계정을 생성할 수 있습니다.'); return }
+  if (!confirm('이 고객에게 PMS 예비 고객(Prospective) 계정을 생성하시겠습니까?')) return
+  try {
+    const res = await api('POST', '/api/pms-accounts/create', {
+      contact_id: contactId,
+      role: 'prospective'
+    })
+    const html = '<div style="font-size:16px;font-weight:700;margin-bottom:16px">✅ PMS 계정 생성 완료</div>'
+      + '<div style="background:var(--bg);border-radius:10px;padding:16px;margin-bottom:16px">'
+      + '<div style="display:grid;gap:10px;font-size:13px">'
+      + '<div><span style="color:var(--m);font-size:11px">이름</span><br><strong>' + res.name + '</strong></div>'
+      + '<div><span style="color:var(--m);font-size:11px">이메일 (로그인 ID)</span><br><strong>' + res.email + '</strong></div>'
+      + '<div><span style="color:var(--m);font-size:11px">임시 비밀번호</span><br><strong style="font-size:18px;letter-spacing:2px;color:var(--N)">' + res.temp_password + '</strong></div>'
+      + '<div><span style="color:var(--m);font-size:11px">역할</span><br><strong>예비 고객 (Prospective)</strong></div>'
+      + '</div></div>'
+      + '<div style="background:#FDF0DC;border-radius:8px;padding:10px;font-size:11px;color:#7A4F00;margin-bottom:16px">'
+      + '⚠️ 이 임시 비밀번호를 ' + res.name + '님께 전달해주세요.'
+      + '</div>'
+      + '<div style="text-align:right"><button onclick="closeDynModal()" class="btn btn-g">확인</button></div>'
+    showModal(html)
+  } catch(e) { alert('오류: ' + e.message) }
+}
+
 async function vContactDetail(id) {
   saveScroll('contacts')
   history.pushState({ view:'contact-detail', id }, '', '#contact/' + id)
@@ -1300,6 +1325,9 @@ async function vContactDetail(id) {
     const relDeals    = deals.filter(d => d.owner_contact_id===id || d.tenant_contact_id===id)
     const activeLeads = leads.filter(l => !l.status.startsWith('CLOSED'))
     const ct = CT[contact.type] || { l:contact.type, bg:'#eee', c:'#666' }
+    // PMS 계정 연결 상태 조회
+    const pmsMapList = await api('GET', '/api/pms-accounts/contact/' + id).catch(() => [])
+    const pmsInfo = pmsMapList?.[0] || null
 
     vc(`
 <div class="ph">
@@ -1312,12 +1340,14 @@ async function vContactDetail(id) {
       <div class="ph-sub">${contact.mobile||''} ${contact.email?'· '+contact.email:''}</div>
     </div>
   </div>
-  <div style="display:flex;gap:8px;align-items:center">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     ${bdg(ct.l, ct.bg, ct.c)}
     ${bdg(contact.status==='ACTIVE'?'Active':'Inactive', contact.status==='ACTIVE'?'#E0F3ED':'#F1EFE8', contact.status==='ACTIVE'?'#19846B':'#5F5E5A')}
+    ${pmsInfo?.connected ? '<span style="background:#E6F1FB;color:#185FA5;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700"><i class=\"ti ti-device-mobile\"></i> PMS연결</span>' : ''}
     <button onclick="toggleContactEdit('${id}')" class="btn btn-o">
       <i class="ti ti-edit" aria-hidden="true"></i> Edit
     </button>
+    ${!pmsInfo?.connected && me.role==='admin' ? '<button onclick="createProspectivePmsAccount(\'' + id + '\')" class="btn btn-g" style="font-size:11px"><i class=\"ti ti-device-mobile\"></i> PMS 계정</button>' : ''}
   </div>
 </div>
 <div class="pb">
@@ -3216,6 +3246,9 @@ async function buildReportPanel() {
       <button class="btn btn-g" style="flex:1;justify-content:center;background:var(--G)" onclick="saveReport()">
         <i class="ti ti-device-floppy"></i> Save
       </button>
+      <button class="btn btn-g" style="flex:1;justify-content:center" onclick="sendReportToPms()">
+        <i class="ti ti-device-mobile"></i> PMS 전송
+      </button>
     </div>
   </div>
 
@@ -3488,6 +3521,60 @@ function printReport() {
 }
 
 let _reportContactId = null  // 리포트 전송 대상 contact
+
+// ── PMS 문서 전송 함수들 ──────────────────────────────
+async function sendReportToPms() {
+  if (!_reportContactId) {
+    alert('먼저 고객(Prepared For)을 선택해주세요.')
+    return
+  }
+  if (!_reportEditId) {
+    const saved = await saveReportAndGetId()
+    if (!saved) return
+  }
+  if (!confirm('이 Listing Report를 고객의 PMS 앱으로 전송하시겠습니까?\n고객 이메일로도 동시 발송됩니다.')) return
+  try {
+    const res = await api('POST', '/api/pms-documents/send-listing-report', {
+      report_id:  _reportEditId,
+      contact_id: _reportContactId,
+    })
+    toast('✓ PMS 전송 완료' + (res.email_sent ? ' · 이메일 발송됨' : ''))
+  } catch(e) { alert('전송 오류: ' + e.message) }
+}
+
+async function saveReportAndGetId() {
+  await saveReport()
+  return _reportEditId
+}
+
+async function sendLoiToPms() {
+  if (!_loiEditId) {
+    alert('먼저 LOI를 저장해주세요.')
+    return
+  }
+  // LOI contact 조회
+  const loiData = _loiDocs?.find(d => d.id === _loiEditId)
+  const contactId = loiData?.contact_id || _rpContactId || null
+  if (!contactId) {
+    // 고객 선택 모달
+    const cid = prompt('전송할 고객의 Contact ID를 입력해주세요:')
+    if (!cid) return
+    await doSendLoi(_loiEditId, cid)
+    return
+  }
+  if (!confirm('이 LOI를 고객의 PMS 앱으로 전송하시겠습니까?\n고객 이메일로도 동시 발송됩니다.')) return
+  await doSendLoi(_loiEditId, contactId)
+}
+
+async function doSendLoi(loiId, contactId) {
+  try {
+    const res = await api('POST', '/api/pms-documents/send-loi', {
+      loi_id:     loiId,
+      contact_id: contactId,
+    })
+    toast('✓ LOI PMS 전송 완료' + (res.email_sent ? ' · 이메일 발송됨' : ''))
+  } catch(e) { alert('전송 오류: ' + e.message) }
+}
 
 async function saveReport() {
   if (!_docSelected.size) { alert('Please select at least one listing'); return }
@@ -3789,6 +3876,9 @@ async function buildLOIPanel() {
       </button>
       <button class="btn btn-g" style="flex:1;justify-content:center;background:var(--G)" onclick="saveLOI()">
         <i class="ti ti-device-floppy"></i> Save LOI
+      </button>
+      <button class="btn btn-g" style="flex:1;justify-content:center" onclick="sendLoiToPms()">
+        <i class="ti ti-device-mobile"></i> PMS 전송
       </button>
     </div>
   </div>
@@ -5055,7 +5145,7 @@ async function loadPmsAccounts(dealId) {
       } else {
         if (isAdmin) {
           if (acc.contact.email) {
-            actionHtml = '<button onclick="pmsCreateAccount(\'' + acc.contact.id + '\',\'' + roleVal + '\',\'' + dealId + '\')" style="background:var(--N);color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%"><i class="ti ti-device-mobile"></i> PMS 계정 생성</button>'
+            actionHtml = '<div style="display:flex;flex-direction:column;gap:6px">' + '<button onclick="pmsCreateAccount(\'' + acc.contact.id + '\',\'' + roleVal + '\',\'' + dealId + '\')" style="background:var(--N);color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%"><i class="ti ti-device-mobile"></i> PMS 계정 생성 (' + (roleVal==='tenant'?'임차인':'임대인') + ')</button>' + '</div>'
           } else {
             actionHtml = '<div style="background:#FDF0DC;border-radius:8px;padding:8px;font-size:11px;color:#7A4F00">⚠️ Contacts에서 이메일을 먼저 등록해주세요.</div>'
           }

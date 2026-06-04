@@ -50,6 +50,7 @@ app.use('/api/listing-reports',require('./routes/listing-reports'))
 app.use('/api/pms-payments', pmsPayments)
 app.use('/api/pms-care', pmsCare)
 app.use('/api/pms-accounts', pmsAccounts)
+app.use('/api/pms-documents', require('./routes/pms-documents'))
 
 
 // ── 헬스체크 (Railway 상태 확인용) ───────────

@@ -68,6 +68,19 @@ router.get('/deal/:dealId', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }) }
 })
 
+// ── GET /api/pms-accounts/contact/:contactId
+// contact_id로 PMS 계정 연결 상태 조회
+router.get('/contact/:contactId', auth, async (req, res) => {
+  try {
+    const { data, error } = await req.supabase
+      .from('pms_auth_map')
+      .select('auth_uid, contact_id, role, created_at')
+      .eq('contact_id', req.params.contactId)
+    if (error) return res.status(500).json({ error: error.message })
+    res.json(data?.map(m => ({ ...m, connected: true })) || [])
+  } catch(e) { res.status(500).json({ error: e.message }) }
+})
+
 // ── POST /api/pms-accounts/create
 // PMS 계정 생성 + pms_auth_map 연결
 router.post('/create', auth, async (req, res) => {
@@ -78,7 +91,7 @@ router.post('/create', auth, async (req, res) => {
   try {
     const { contact_id, role, temp_password } = req.body
     if (!contact_id || !role) return res.status(400).json({ error: 'contact_id와 role이 필요합니다.' })
-    if (!['tenant', 'landlord'].includes(role)) return res.status(400).json({ error: 'role은 tenant 또는 landlord 이어야 합니다.' })
+    if (!['tenant', 'landlord', 'prospective'].includes(role)) return res.status(400).json({ error: 'role은 tenant, landlord, prospective 이어야 합니다.' })
 
     // contact 정보 조회
     const { data: contact } = await req.supabase
