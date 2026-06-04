@@ -69,7 +69,7 @@ router.post('/send-listing-report', auth, async (req, res) => {
     if (listingIds.length > 0) {
       const { data: listings, error: listErr } = await req.supabase
         .from('listings')
-        .select('id, name, unit_no, address, price, monthly_rent, bedrooms, bathrooms, area_sqm, photo_url, photos, rbs_unit_id, transaction_type')
+        .select('id, name, unit_no, address, price, bedrooms, bathrooms, area_sqm, photo_url, photos, hyperlink, transaction_type')
         .in('id', listingIds)
 
       console.log('[PMS-DOCS] listings:', listings?.length, 'err:', listErr?.message || 'none')
@@ -86,21 +86,18 @@ router.post('/send-listing-report', auth, async (req, res) => {
         unit_no: l.unit_no,
         address: l.address,
         price: l.price,
-        monthly_rent: l.monthly_rent,
         bedrooms: l.bedrooms,
         bathrooms: l.bathrooms,
         area_sqm: l.area_sqm,
         photo_url: l.photo_url || (Array.isArray(l.photos) && l.photos[0]) || null,
-        rbs_unit_id: l.rbs_unit_id,
+        hyperlink: l.hyperlink,
         transaction_type: l.transaction_type,
       }))
 
       listingsHtml = sorted.map((l, i) => {
         const photo = l.photo_url || (Array.isArray(l.photos) && l.photos[0]) || null
-        const displayPrice = l.transaction_type === 'RENT'
-          ? (l.monthly_rent ? `₱${Math.round(l.monthly_rent).toLocaleString('en-PH')}/mo` : '')
-          : (l.price ? `₱${Math.round(l.price).toLocaleString('en-PH')}` : '')
-        const rbsUrl = l.rbs_unit_id ? `https://rbs-homes.com/detail/${l.rbs_unit_id}` : null
+        const displayPrice = l.price ? `₱${Math.round(l.price).toLocaleString('en-PH')}${l.transaction_type === 'RENT' ? '/mo' : ''}` : ''
+        const rbsUrl = l.hyperlink || null
         return `<div style="border:1px solid #EAE6DF;border-radius:10px;overflow:hidden;margin-bottom:16px" data-listing-id="${l.id}" data-rbs-url="${rbsUrl || ''}">
           ${photo ? `<img src="${photo}" style="width:100%;height:180px;object-fit:cover;display:block">` : `<div style="width:100%;height:120px;background:#F1EFE8;display:flex;align-items:center;justify-content:center;color:#888;font-size:12px">No Photo</div>`}
           <div style="padding:14px 16px">
