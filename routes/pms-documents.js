@@ -58,7 +58,12 @@ router.post('/send-listing-report', auth, async (req, res) => {
     if (!contact.email) return res.status(400).json({ error: '고객 이메일이 없습니다.' })
 
     // listing 상세 조회
-    const listingIds = report.listing_ids || []
+    // listing_ids 타입 처리 (string 또는 array 모두 지원)
+    let listingIds = report.listing_ids || []
+    if (typeof listingIds === 'string') {
+      try { listingIds = JSON.parse(listingIds) } catch(e) { listingIds = [] }
+    }
+    console.log('[PMS-DOCS] report_id:', report.id, 'listing_ids:', listingIds)
     let listingsHtml = ''
     let listingsJson = []
     if (listingIds.length > 0) {
