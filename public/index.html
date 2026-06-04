@@ -3627,15 +3627,25 @@ async function loadReport(id) {
   _reportEditId = id
   const isOwner = d.created_by === me?.id || me?.role === 'admin'
 
-  // 공유된 Report는 client/date readonly (작성자만 수정 가능)
+  // contact_id 복원 (PMS 전송에 필요)
+  _reportContactId = d.contact_id || null
+
   const clientEl = document.getElementById('rp-client')
   const dateEl   = document.getElementById('rp-date')
+  const infoEl   = document.getElementById('rp-client-info')
   clientEl.value    = d.client_name || ''
   dateEl.value      = d.report_date?.slice(0,10) || tod()
   clientEl.readOnly = !isOwner
   dateEl.readOnly   = !isOwner
   clientEl.style.background = isOwner ? '' : 'var(--b2)'
   dateEl.style.background   = isOwner ? '' : 'var(--b2)'
+
+  // contact 연결 배지 표시
+  if (infoEl) {
+    infoEl.innerHTML = _reportContactId
+      ? d.client_name + ' <span style="background:#E0F3ED;color:#0F6E56;font-size:9px;padding:1px 6px;border-radius:20px;font-weight:700">✓ CRM Connected</span>'
+      : d.client_name || ''
+  }
 
   // 선택된 리스팅 복원
   _docSelected = new Set(d.listing_ids || [])
