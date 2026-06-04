@@ -67,15 +67,18 @@ router.post('/send-listing-report', auth, async (req, res) => {
     let listingsHtml = ''
     let listingsJson = []
     if (listingIds.length > 0) {
-      const { data: listings } = await req.supabase
+      const { data: listings, error: listErr } = await req.supabase
         .from('listings')
         .select('id, name, unit_no, address, price, monthly_rent, bedrooms, bathrooms, area_sqm, photo_url, photos, rbs_unit_id, transaction_type')
         .in('id', listingIds)
+
+      console.log('[PMS-DOCS] listings:', listings?.length, 'err:', listErr?.message || 'none')
 
       // listing_ids 순서대로 정렬
       const sorted = listingIds
         .map(id => (listings || []).find(l => l.id === id))
         .filter(Boolean)
+      console.log('[PMS-DOCS] sorted:', sorted.length, 'html will be:', sorted.length > 0 ? 'non-empty' : 'empty')
 
       listingsJson = sorted.map(l => ({
         id: l.id,
