@@ -1733,8 +1733,42 @@ function renderCustView() {
     <button class="tab" onclick="custTab('p',this)">Lead Pipeline</button>
     <button class="tab" onclick="custTab('a',this)">Activity History</button>
   </div>
+  <!-- 검색창: cc 밖에 고정 배치 (innerHTML 교체해도 포커스 유지) -->
+  <div style="display:flex;gap:8px;margin:8px 0;align-items:center">
+    <div style="position:relative;flex:1;max-width:280px">
+      <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--m);font-size:14px"></i>
+      <input type="text" id="c-search-input"
+        placeholder="이름, 연락처, 이메일 검색..."
+        value="${_cQ}"
+        style="width:100%;padding:8px 12px 8px 32px;border:1px solid var(--b);border-radius:8px;font-size:12px;outline:none;background:#fff"
+        oninput="_cQ=this.value;_cPage=0;refreshContacts()"
+        onfocus="this.style.borderColor='var(--A)'" onblur="this.style.borderColor='var(--b)'">
+    </div>
+    <span id="c-search-count" style="font-size:11px;color:var(--m)"></span>
+  </div>
   <div id="cc">${renderContacts()}</div>
 </div>`)
+  // 렌더링 후 포커스 복원
+  setTimeout(() => {
+    const inp = document.getElementById('c-search-input')
+    if (inp && _cQ) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length) }
+  }, 50)
+}
+
+function refreshContacts() {
+  const el = document.getElementById('cc')
+  if (el) el.innerHTML = renderContacts()
+  const cnt = document.getElementById('c-search-count')
+  if (cnt) {
+    const q = _cQ.toLowerCase()
+    const n = _contacts.filter(c =>
+      (!q || c.name.toLowerCase().includes(q) || (c.mobile||'').includes(q) || (c.email||'').toLowerCase().includes(q)) &&
+      (!_cf.agent  || c.assigned_user_id === _cf.agent) &&
+      (!_cf.status || c.status === _cf.status) &&
+      (!_cf.type   || c.type   === _cf.type)
+    ).length
+    cnt.textContent = _cQ ? n + '명' : ''
+  }
 }
 function pgBar(total, page, limit, onPage, onLimit) {
   const totalPages = Math.ceil(total / limit)
@@ -1753,27 +1787,32 @@ function pgBar(total, page, limit, onPage, onLimit) {
 }
 
 function renderContacts() {
-  const filtered = _contacts.filter(c => c.name.toLowerCase().includes(_cQ))
+  const q = _cQ.toLowerCase()
+  const filtered = _contacts.filter(c => {
+    const matchQ      = !q || c.name.toLowerCase().includes(q) || (c.mobile||'').includes(q) || (c.email||'').toLowerCase().includes(q)
+    const matchAgent  = !_cf.agent  || c.assigned_user_id === _cf.agent
+    const matchStatus = !_cf.status || c.status === _cf.status
+    const matchType   = !_cf.type   || c.type   === _cf.type
+    return matchQ && matchAgent && matchStatus && matchType
+  })
   const total = filtered.length
   const rows  = filtered.slice(_cPage * _cLimit, (_cPage + 1) * _cLimit)
   return `
 <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
-  <input class="fi" style="max-width:180px;flex-shrink:0" placeholder="Search name..."
-    value="${_cQ}" oninput="_cQ=this.value;_cPage=0;document.getElementById('cc').innerHTML=renderContacts()">
-  <select class="fs" style="max-width:130px" onchange="_cf.agent=this.value;_cPage=0;vCust()">
+  <select class="fs" style="max-width:130px" onchange="_cf.agent=this.value;_cPage=0;refreshContacts()">
     <option value="">All Members</option>
     ${_staff.map(s=>`<option value="${s.id}" ${_cf.agent===s.id?'selected':''}>${s.name}</option>`).join('')}
   </select>
-  <select class="fs" style="max-width:120px" onchange="_cf.status=this.value;_cPage=0;vCust()">
+  <select class="fs" style="max-width:120px" onchange="_cf.status=this.value;_cPage=0;refreshContacts()">
     <option value="">All Status</option>
     <option value="ACTIVE"   ${_cf.status==='ACTIVE'?'selected':''}>Active</option>
     <option value="INACTIVE" ${_cf.status==='INACTIVE'?'selected':''}>Inactive</option>
   </select>
-  <select class="fs" style="max-width:140px" onchange="_cf.type=this.value;_cPage=0;vCust()">
+  <select class="fs" style="max-width:140px" onchange="_cf.type=this.value;_cPage=0;refreshContacts()">
     <option value="">All Types</option>
     ${Object.entries(CT).filter(([k])=>k!=='CO-BROKER').map(([k,v])=>`<option value="${k}" ${_cf.type===k?'selected':''}>${v.l}</option>`).join('')}
   </select>
-  ${(_cf.agent||_cf.status||_cf.type)?`<button class="btn btn-o" style="font-size:11px;padding:6px 10px" onclick="_cf={agent:'',status:'',type:''};_cPage=0;vCust()"><i class="ti ti-x"></i> Clear</button>`:''}
+  ${(_cf.agent||_cf.status||_cf.type||_cQ)?`<button class="btn btn-o" style="font-size:11px;padding:6px 10px" onclick="_cf={agent:'',status:'',type:''};_cQ='';document.getElementById('c-search-input').value='';refreshContacts()"><i class="ti ti-x"></i> Clear</button>`:''}
 </div>
 <div class="card"><div class="scroll-x"><table class="tbl">
   <tr><th>No.</th><th>Name</th><th>Type</th><th>Mobile</th><th>Member</th><th>Status</th><th>Date</th><th>Notes</th><th></th></tr>
@@ -1813,12 +1852,12 @@ function renderPipeline() {
 }
 function custTab(t,btn) {
   document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.remove('on')); btn.classList.add('on')
-  if(t==='c') document.getElementById('cc').innerHTML=renderContacts()
+  if(t==='c') refreshContacts()
   else if(t==='p') document.getElementById('cc').innerHTML=renderPipeline()
   else vActivities()
 }
-function filterC(q) { _cQ=q.toLowerCase(); document.getElementById('cc').innerHTML=renderContacts() }
-function setTF(t,btn) { _cTypeF=t; document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); document.getElementById('cc').innerHTML=renderContacts() }
+function filterC(q) { _cQ=q.toLowerCase(); _cPage=0; refreshContacts() }
+function setTF(t,btn) { _cTypeF=t; document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); refreshContacts() }
 async function deleteContact(id, name) {
   if (!confirm(`Delete "${name}"?\nThis will permanently remove this contact.`)) return
   try {
@@ -2861,15 +2900,24 @@ function filterListings(q) {
   const activeTab = document.querySelector('.tab.on')
   if (activeTab) {
     const tabText = activeTab.textContent.trim()
-    if (tabText === 'Rent')       filtered = filtered.filter(l => l.transaction_type === 'RENT')
-    else if (tabText === 'Sale')  filtered = filtered.filter(l => l.transaction_type === 'SALE')
+    if (tabText === 'Rent')            filtered = filtered.filter(l => l.transaction_type === 'RENT')
+    else if (tabText === 'Sale')       filtered = filtered.filter(l => l.transaction_type === 'SALE')
     else if (tabText === 'Active')     filtered = filtered.filter(l => l.status === 'ACTIVE')
     else if (tabText === 'On Hold')    filtered = filtered.filter(l => l.status === 'ON-HOLD')
     else if (tabText === 'Contracted') filtered = filtered.filter(l => l.status === 'CONTRACTED')
   }
-  const cnt = document.getElementById('listing-search-count')
-  if (cnt) cnt.textContent = _listingSearchQ ? filtered.length + '개 결과' : ''
   renderListView(filtered)
+  // vc() 후 검색창 포커스 + 커서 복원
+  setTimeout(() => {
+    const inp = document.getElementById('listing-search-input')
+    if (inp) {
+      inp.focus()
+      const len = inp.value.length
+      inp.setSelectionRange(len, len)
+    }
+    const cnt = document.getElementById('listing-search-count')
+    if (cnt) cnt.textContent = _listingSearchQ ? filtered.length + '개 결과' : ''
+  }, 30)
 }
 
 function clearListingSearch() {
@@ -2892,11 +2940,13 @@ function renderListView(allData) {
   </div>
 </div>
 <div class="pb">
-  <!-- 검색바 -->
+  <!-- 검색바: value="${_listingSearchQ}" 로 유지 -->
   <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
     <div style="position:relative;flex:1;max-width:320px">
       <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--m);font-size:14px"></i>
-      <input type="text" id="listing-search-input" placeholder="매물명, 주소, 유닛번호 검색..."
+      <input type="text" id="listing-search-input"
+        placeholder="매물명, 주소, 유닛번호 검색..."
+        value="${_listingSearchQ}"
         style="width:100%;padding:8px 12px 8px 32px;border:1px solid var(--b);border-radius:8px;font-size:12px;outline:none;background:#fff"
         oninput="filterListings(this.value)"
         onfocus="this.style.borderColor='var(--A)'" onblur="this.style.borderColor='var(--b)'">
@@ -2904,7 +2954,7 @@ function renderListView(allData) {
     <button class="btn btn-o" style="font-size:11px;padding:6px 12px" onclick="clearListingSearch()">
       <i class="ti ti-x"></i> Clear
     </button>
-    <span id="listing-search-count" style="font-size:11px;color:var(--m)"></span>
+    <span id="listing-search-count" style="font-size:11px;color:var(--m)">${_listingSearchQ ? '' : ''}</span>
   </div>
   <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
     ${['ALL','RENT','SALE'].map((tp,i)=>`<button class="tab ${i===0?'on':''}" onclick="fLS('${tp}','type',this)">${tp==='ALL'?'All':tp==='RENT'?'Rent':'Sale'}</button>`).join('')}
