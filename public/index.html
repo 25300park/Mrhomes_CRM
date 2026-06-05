@@ -940,7 +940,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
           <i class="ti ti-lock" style="font-size:13px"></i> Private Notes
           <span style="font-size:10px;font-weight:400;color:#B07830">본인만 열람 가능</span>
         </label>
-        <textarea id="ml-private-notes" placeholder="비밀 메모 (소유주 연락처, 협상 여지, 특이사항 등...)" style="resize:vertical;min-height:64px;margin-top:6px;background:#FFFDF0"></textarea>
+        <textarea id="ml-private-notes" placeholder="비밀 메모 (소유주 Contact, 협상 여지, 특이사항 등...)" style="resize:vertical;min-height:64px;margin-top:6px;background:#FFFDF0"></textarea>
       </div>
     </div>
     <div class="modal-ft">
@@ -1386,12 +1386,12 @@ async function vContactDetail(id) {
 
   <!-- 왼쪽: Contact Info + 빠른 활동 -->
   <div>
-    <!-- 연락처 정보 (보기) -->
+    <!-- Contact 정보 (보기) -->
     <div class="card" id="contact-view-${id}">
       <div class="card-h"><i class="ti ti-user" aria-hidden="true"></i> Contact Info</div>
       <div class="card-b">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-          ${[['Type',ct.l],['연락처',contact._private?'🔒 Private':(contact.mobile||'-')],['Platform',contact.platform||'-'],['Nationality',contact.nationality||'-'],['Email',contact._private?'Private':(contact.email||'-')],['담당자',contact.assigned_user?.name||'-']].map(([k,v])=>`
+          ${[['Type',ct.l],['Contact',contact._private?'🔒 Private':(contact.mobile||'-')],['Platform',contact.platform||'-'],['Nationality',contact.nationality||'-'],['Email',contact._private?'Private':(contact.email||'-')],['Assigned',contact.assigned_user?.name||'-']].map(([k,v])=>`
           <div style="padding:10px;background:#F8F5F0;border-radius:8px">
             <div style="font-size:10px;color:var(--m);margin-bottom:3px">${k}</div>
             <div style="font-size:13px;font-weight:600;word-break:break-all">${v}</div>
@@ -1468,21 +1468,21 @@ async function vContactDetail(id) {
           </button>`).join('')}
         </div>
         ${activeLeads.length?`
-        <div class="ff"><label class="fl">관련 리드</label>
+        <div class="ff"><label class="fl">Related Lead</label>
           <select class="fs" id="cact-lead" onchange="onCActLeadChange()">
             <option value="">Select (Select사항)</option>
             ${activeLeads.map(l=>`<option value="${l.id}">${LEAD_STATUS_LABELS[l.status]} · ${fmt(l.budget)}${l.request_type==='RENT'?'/Month':''} · ${l.location_pref||''}</option>`).join('')}
           </select></div>
         <div class="ff" id="cact-status-wrap" style="display:none;padding:10px 12px;background:#F8F5F0;border-radius:8px">
-          <label class="fl">리드 상태 변경</label>
+          <label class="fl">Change Lead Status</label>
           <select class="fs" id="cact-lead-status">
             <option value="">Keep status</option>
             ${Object.entries(LEAD_STATUS_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
           </select></div>`:''}
-        <div class="ff"><label class="fl">관련 Listing</label>
+        <div class="ff"><label class="fl">Related Listing</label>
           <div style="position:relative">
             <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--m);font-size:13px;pointer-events:none"></i>
-            <input class="fi" id="cact-listing-search" placeholder="매물명 또는 주소 검색..."
+            <input class="fi" id="cact-listing-search" placeholder="Search listing name or address..."
               style="padding-left:32px" autocomplete="off"
               oninput="searchCActListing(this.value,'${id}')"
               onfocus="searchCActListing(this.value,'${id}')">
@@ -1499,7 +1499,7 @@ async function vContactDetail(id) {
         </div>
         <div class="ff"><label class="fl">Notes</label>
           <textarea class="fi" id="cact-notes" rows="3" placeholder="Call / visit / message notes..." style="resize:vertical;font-size:12px;line-height:1.6"></textarea></div>
-        <div class="ff"><label class="fl"><i class="ti ti-calendar-event" aria-hidden="true"></i> 다음 팔로업</label>
+        <div class="ff"><label class="fl"><i class="ti ti-calendar-event" aria-hidden="true"></i> Next Follow-up</label>
           <input class="fi" type="date" id="cact-followup"></div>
         <button class="btn btn-g" style="width:100%;justify-content:center" onclick="saveContactActivity('${id}')">
           <i class="ti ti-device-floppy" aria-hidden="true"></i> Save Activity
@@ -1514,7 +1514,7 @@ async function vContactDetail(id) {
     <div class="card" style="margin-bottom:12px">
       <div class="card-h">
         <span><i class="ti ti-filter" aria-hidden="true"></i> Lead Status</span>
-        <span style="font-size:11px;color:var(--m)">${activeLeads.length}개 진행중 · 총 ${leads.length}deals</span>
+        <span style="font-size:11px;color:var(--m)">${activeLeads.length}개 Active · 총 ${leads.length}deals</span>
       </div>
       ${leads.length ? leads.map(l=>{
         const s=SL[l.status]||{l:l.status,bg:'#eee',c:'#666'}
@@ -1580,7 +1580,7 @@ async function vContactDetail(id) {
             ${a.next_followup_at?`<div style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;background:#FDF0DC;color:#854F0B;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px"><i class="ti ti-calendar-event" aria-hidden="true"></i> Follow-up: ${a.next_followup_at}</div>`:''}
             <div style="font-size:10px;color:var(--m);margin-top:3px">${a.created_by_user?.name||''}</div>
           </div>`
-        }).join('') : `<div style="padding:30px;text-align:center;color:var(--m)"><i class="ti ti-history" style="font-size:28px;display:block;margin-bottom:8px" aria-hidden="true"></i>Activity History이 없습니다</div>`}
+        }).join('') : `<div style="padding:30px;text-align:center;color:var(--m)"><i class="ti ti-history" style="font-size:28px;display:block;margin-bottom:8px" aria-hidden="true"></i>No activity history yet</div>`}
       </div>
     </div>
   </div>
@@ -1640,7 +1640,15 @@ function selectCActListing(id, name, photo) {
   const thumb = document.getElementById('cact-listing-thumb')
   const label = document.getElementById('cact-listing-label')
   if (sel) sel.style.display = 'flex'
-  if (thumb) { thumb.src = photo || ''; thumb.style.display = photo ? '' : 'none' }
+  if (thumb) {
+    if (photo) {
+      thumb.src = photo
+      thumb.style.display = ''
+      thumb.onerror = function() { this.style.display = 'none' }
+    } else {
+      thumb.style.display = 'none'
+    }
+  }
   if (label) label.textContent = name
 }
 
@@ -1673,7 +1681,7 @@ function setCActType(type) {
         const el = document.getElementById('rp-client')
         if (el) el.value = contactName
       }
-      toast('Listing Report 작성 페이지로 이동했습니다')
+      toast('Navigated to Listing Report page')
     }, 500)
     return
   }
@@ -1719,7 +1727,7 @@ function setCActType(type) {
             if (!lead?.budget && listing.price) set('loi-rent', listing.price)
           }
         }
-        toast('LOI 작성 페이지로 이동했습니다. 임차인 정보가 자동 입력됐습니다.')
+        toast('Navigated to LOI. Tenant info has been auto-filled.')
       }, 300)
     }, 500)
     return
@@ -1782,16 +1790,12 @@ async function saveContactActivity(contactId) {
 }
 // Lead 액션 버튼 렌더링 (백틱 중첩 방지용 별도 함수)
 function renderLeadAction(l, contactId) {
-  const safeId = l.id.replace(/'/g, "")
+  const safeId  = l.id.replace(/'/g, "")
   const safeCId = (contactId||'').replace(/'/g, "")
-  const inactiveBtn = '<button onclick="event.stopPropagation();setLeadInactive(' + JSON.stringify(safeId) + ',' + JSON.stringify(safeCId) + ')" '
-    + 'title="Inactive 처리" style="background:none;border:1px solid #ccc;color:#888;padding:3px 7px;border-radius:6px;font-size:10px;cursor:pointer;margin-left:4px">'
-    + '<i class="ti ti-eye-off" style="font-size:11px"></i></button>'
 
   if (l.status === 'CLOSED_WON') {
     return '<button onclick="event.stopPropagation();goToTenantsFromLead(' + JSON.stringify(safeId) + ',' + JSON.stringify(safeCId) + ')" '
       + 'style="background:#19846B;color:#fff;border:none;padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">Go to Tenants &rarr;</button>'
-      + inactiveBtn
   }
   if (!l.status.startsWith('CLOSED')) {
     const opts = Object.entries(LEAD_STATUS_LABELS)
@@ -1801,19 +1805,11 @@ function renderLeadAction(l, contactId) {
     return '<select class="fs" style="font-size:11px;padding:4px 8px;width:auto" '
       + 'data-lid="' + safeId + '" data-cid="' + safeCId + '" '
       + 'onchange="quickLeadStatusChange(this.dataset.lid,this.dataset.cid,this.value)">'
-      + opts + '</select>' + inactiveBtn
+      + opts + '</select>'
   }
-  return inactiveBtn
+  return ''
 }
 
-async function setLeadInactive(leadId, contactId) {
-  if (!confirm('이 Lead를 Inactive로 전환하시겠습니까?')) return
-  try {
-    await api('PATCH', '/api/leads/' + leadId, { status: 'CLOSED_LOST' })
-    toast('Lead가 Inactive 처리됐습니다')
-    vContactDetail(contactId)
-  } catch(e) { alert('오류: ' + e.message) }
-}
 
 
 
@@ -1851,7 +1847,7 @@ async function goToTenantsFromLead(leadId, contactId) {
 async function quickLeadStatusChange(leadId, contactId, status) {
   try {
     await api('PATCH',`/api/leads/${leadId}`,{status})
-    toast('리드 상태: '+(LEAD_STATUS_LABELS[status]||status))
+    toast('Lead status: '+(LEAD_STATUS_LABELS[status]||status))
     vContactDetail(contactId)
   } catch(e) { alert(e.message) }
 }
@@ -1913,7 +1909,7 @@ async function saveAddLead() {
       assigned_user_id: agentId || me?.id,
       status:           'NEW'
     })
-    toast('✓ Lead 추가됨')
+    toast('✓ Lead added')
     closeModal('modal-add-lead')
     vContactDetail(contactId)
   } catch(e) { alert(e.message) }
@@ -1921,12 +1917,12 @@ async function saveAddLead() {
 
 async function vCust() {
   try {
-    // 본인 연락처만 표시 (admin은 전체)
+    // 본인 Contact만 표시 (admin은 전체)
     let url = '/api/contacts?limit=300'
     if (_cf.agent)  url += `&agent=${_cf.agent}`
     if (_cf.status) url += `&status=${_cf.status}`
     if (_cf.type)   url += `&type=${_cf.type}`
-    // 일반 직원: 본인이 입력한 연락처만
+    // 일반 직원: 본인이 입력한 Contact만
     if (me?.role !== 'admin') url += `&agent=${me.id}`
     const [c, l, st] = await Promise.all([
       api('GET', url),
@@ -1961,7 +1957,7 @@ function renderCustView() {
     <div style="position:relative;flex:1;max-width:280px">
       <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--m);font-size:14px"></i>
       <input type="text" id="c-search-input"
-        placeholder="이름, 연락처, 이메일 검색..."
+        placeholder="Name, Contact, 이메일 검색..."
         value="${_cQ}"
         style="width:100%;padding:8px 12px 8px 32px;border:1px solid var(--b);border-radius:8px;font-size:12px;outline:none;background:#fff"
         oninput="_cQ=this.value;_cPage=0;refreshContacts()"
@@ -2296,7 +2292,7 @@ function togglePwVis(inputId, btn) {
 }
 
 async function openProfile() {
-  // 현재 내 정보 불러오기
+  // 현재 Mine: 정보 불러오기
   try {
     const data = await api('GET', '/api/auth/me')
     document.getElementById('prof-name').value      = data.name    || me.name || ''
@@ -2471,7 +2467,7 @@ async function addContact() {
     st.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.name}</option>`)
     if (!_staff.length) _staff = st
   } catch(e) {}
-  // 로그인 계정을 기본 담당자로 설정
+  // 로그인 계정을 기본 Assigned로 설정
   sel.value = me?.id || ''
   ;['mc-name','mc-mobile','mc-email','mc-remarks','mc-nickname'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = ''
@@ -2594,7 +2590,7 @@ async function saveNewListing() {
   } catch(e) { alert('Save Error: ' + e.message) }
 }
 
-// ESC 키 → 모달 닫지 않음 (모달 내 작업 유지)
+// ESC 키 → 모달 닫지 않음 (모달 Mine: 작업 유지)
 // (사용자 요청: ESC로 모달 밖으로 나가지 않도록)
 
 // ── 스크롤 위치 저장 ────────────────────────────────────────
@@ -3266,10 +3262,10 @@ function searchCondoName(q) {
 }
 
 function selectCondo(condo) {
-  // 이름 입력 (기존 입력값 뒤에 유닛번호가 있으면 유지)
+  // Name 입력 (기존 입력값 뒤에 유닛번호가 있으면 유지)
   const nameEl = document.getElementById('ml-name')
   const currentVal = nameEl.value.trim()
-  // 콘도 이름이 이미 포함되어 있으면 유지, 아니면 교체
+  // 콘도 Name이 이미 포함되어 있으면 유지, 아니면 교체
   if (!currentVal.toLowerCase().includes(condo.name.toLowerCase())) {
     nameEl.value = condo.name
   }
@@ -3493,7 +3489,7 @@ const LOGO_URL = 'https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/pub
 const COMPANY  = { name: 'Mr. Homes Philippines', web: 'rbs-homes.com', email: 'maymrhomes082023@gmail.com', phone: '+63 XXX XXX XXXX' }
 
 let _docListings = [], _docSelected = new Set(), _docClient = ''
-let _allContributions = {}  // { userId: [listingId, ...] } — 전체 담당자별 선택
+let _allContributions = {}  // { userId: [listingId, ...] } — Total: Assigned별 선택
 
 async function vDocuments() {
   vc(`
@@ -3631,7 +3627,7 @@ function renderReportSavedList() {
   if (!_reportDocs.length) return '<div style="padding:12px;text-align:center;font-size:11px;color:var(--m)">No saved reports</div>'
   const myId = me?.id
   const isAdmin = me?.role === 'admin'
-  // 내 것 + 공유된 것 필터
+  // Mine: 것 + 공유된 것 필터
   const visible = _reportDocs.filter(d => d.created_by === myId || d.is_shared || isAdmin)
   if (!visible.length) return '<div style="padding:12px;text-align:center;font-size:11px;color:var(--m)">No reports yet. Shared reports will appear here.</div>'
   return visible.map(d => {
@@ -3670,7 +3666,7 @@ function renderSelectedListings() {
   const myId = me?.id || 'unknown'
   const isAdmin = me?.role === 'admin'
 
-  // 전체 contributions 합산
+  // Total: contributions 합산
   const allSelectedIds = new Set([
     ...Array.from(_docSelected),
     ...Object.values(_allContributions).flat()
@@ -3689,7 +3685,7 @@ function renderSelectedListings() {
     const isMine = _docSelected.has(l.id)
     const canRemove = isMine || isAdmin
 
-    // 담당자 이름 찾기
+    // Assigned Name 찾기
     let ownerName = isMine ? (me?.name || 'Me') : ''
     if (!isMine) {
       for (const [uid, ids] of Object.entries(_allContributions)) {
@@ -3715,7 +3711,7 @@ function renderSelectedListings() {
       + '<div style="flex:1;min-width:0">'
       + '<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (l.name||'') + '</div>'
       + '<div style="font-size:10px;color:var(--m)">' + fmt(l.price) + (l.transaction_type==='RENT'?' /mo':'') + ' · ' + (l.bedrooms!=null?l.bedrooms+'BR ':'') + (l.area_sqm?l.area_sqm+'㎡':'') + '</div>'
-      + '<div style="font-size:9px;color:' + (isMine?'#0F6E56':'#185FA5') + ';margin-top:1px">' + (isMine?'✓ 내 매물':'📌 ' + ownerName) + '</div>'
+      + '<div style="font-size:9px;color:' + (isMine?'#0F6E56':'#185FA5') + ';margin-top:1px">' + (isMine?'✓ Mine: 매물':'📌 ' + ownerName) + '</div>'
       + '</div>'
       + removeBtn
       + '</div>'
@@ -3729,7 +3725,7 @@ function removeFromReport(listingId, who) {
   const isAdmin = me?.role === 'admin'
   const myId = me?.id || 'unknown'
   if (who === 'mine' || _docSelected.has(listingId)) {
-    // 내 것 제거
+    // Mine: 것 제거
     _docSelected.delete(listingId)
   } else if (isAdmin) {
     // Admin: 다른 직원 것도 제거 가능
@@ -3800,7 +3796,7 @@ function updateRpCount() {
   const el = document.getElementById('rp-sel-count')
   if (el) {
     if (totalAll > _docSelected.size) {
-      el.textContent = '내 ' + _docSelected.size + '개 · 전체 ' + totalAll + '개'
+      el.textContent = 'Mine: ' + _docSelected.size + '개 · Total: ' + totalAll + '개'
     } else {
       el.textContent = _docSelected.size + '개 선택'
     }
@@ -3876,7 +3872,7 @@ function _buildReportFooter(forPrint) {
 }
 
 function getReportPreviewHtml() {
-  // 전체 contributions 합산 (중복 제거)
+  // Total: contributions 합산 (중복 제거)
   const allPreviewIds = new Set([
     ...Array.from(_docSelected),
     ...Object.values(_allContributions).flat()
@@ -3938,7 +3934,7 @@ function previewReport() {
   ])
   // 로드된 Report 또는 직접 선택한 매물이 있으면 Preview 허용
   if (!allIds.size && !_reportEditId) {
-    alert('Saved Reports에서 Report를 선택하거나 매물을 추가한 후 Preview하세요')
+    alert('Please load a saved report or add listings before previewing')
     return
   }
   const html = getReportPreviewHtml()
@@ -3954,7 +3950,7 @@ function printReport() {
     ...Array.from(_docSelected),
     ...Object.values(_allContributions).flat()
   ])
-  if (!allPrintIds.size) { alert('공유된 Report를 먼저 불러오거나 매물을 추가해주세요'); return }
+  if (!allPrintIds.size) { alert('Please load a shared report or add listings first'); return }
   const printHtml = getReportPrintHtml()
   // iframe으로 인쇄 (페이지 나누기 완벽 지원)
   let iframe = document.getElementById('report-print-iframe')
@@ -3982,7 +3978,7 @@ async function saveReport() {
   const contactId = _reportContactId || null
   const myId      = me?.id || 'unknown'
 
-  // contributions: 내 선택만 업데이트 (다른 담당자 것 유지)
+  // contributions: Mine: 선택만 업데이트 (다른 Assigned 것 유지)
   const newContributions = Object.assign({}, _allContributions, {
     [myId]: Array.from(_docSelected)
   })
@@ -3993,7 +3989,7 @@ async function saveReport() {
   // listing_ids: 모든 contributions 합산
   const allIds = [...new Set(Object.values(newContributions).flat())]
 
-  if (!allIds.length && !_reportEditId) { alert('추가된 매물이 없습니다. 매물을 선택해주세요'); return }
+  if (!allIds.length && !_reportEditId) { alert('Please select at least one listing'); return }
 
   const payload = {
     client_name:    client,
@@ -4067,7 +4063,7 @@ async function loadReport(id) {
   } else {
     _allContributions = {}
   }
-  // 내 선택만 _docSelected에
+  // Mine: 선택만 _docSelected에
   _docSelected = new Set(_allContributions[myId] || [])
 
   renderSelectedListings()
@@ -4080,7 +4076,7 @@ async function loadReport(id) {
   const cntEl = document.getElementById('rp-sel-count')
   if (cntEl) {
     if (totalAll > 0) {
-      cntEl.textContent = '내 ' + _docSelected.size + '개 · 전체 ' + totalAll + '개'
+      cntEl.textContent = 'Mine: ' + _docSelected.size + '개 · Total: ' + totalAll + '개'
     } else {
       cntEl.textContent = '0개 선택'
     }
@@ -5173,7 +5169,14 @@ async function vLeads() {
                 style="font-size:10px;border:1px solid var(--b);border-radius:6px;padding:2px 4px;background:#fff;cursor:pointer">
                 ${LEAD_STATUSES.map(s=>`<option value="${s.key}" ${l.status===s.key?'selected':''}>${s.l}</option>`).join('')}
               </select>
-              <span style="font-size:10px;color:var(--m)">${days===0?'Today':days+'d ago'}</span>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:10px;color:var(--m)">${days===0?'Today':days+'d ago'}</span>
+                <button onclick="event.stopPropagation();setLeadInactiveFromKanban('${l.id}')"
+                  title="Set Inactive"
+                  style="background:none;border:1px solid #ddd;color:#aaa;padding:2px 5px;border-radius:5px;font-size:10px;cursor:pointer;line-height:1">
+                  <i class="ti ti-eye-off" style="font-size:10px"></i>
+                </button>
+              </div>
             </div>
           </div>`
         }).join('')}
@@ -5183,6 +5186,15 @@ async function vLeads() {
   </div>
 </div>`)
   } catch(e) { err(e) }
+}
+
+async function setLeadInactiveFromKanban(leadId) {
+  if (!confirm('Set this lead as Inactive?\nIt will be hidden from the board.')) return
+  try {
+    await api('PATCH', '/api/leads/' + leadId, { status: 'CLOSED_LOST' })
+    toast('Lead set as Inactive')
+    vLeads()
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 async function updateLeadStatus(id, status) {
@@ -5253,7 +5265,7 @@ async function openNewContractFromLead(lead) {
     document.getElementById('nc-notes').value = '[Lead] ' + lead.remarks
   }
 
-  // 모달 상단에 lead 정보 안내 배너 추가
+  // 모달 상단에 lead 정보 안Mine: 배너 추가
   const existingBanner = document.getElementById('nc-lead-banner')
   if (existingBanner) existingBanner.remove()
 
@@ -5515,8 +5527,8 @@ async function careDetail(id) {
         <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:8px">
           <div style="font-size:11px;font-weight:700;color:var(--m);margin-bottom:6px">작업자 ${i+1}</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
-            <div><span style="color:var(--m)">이름</span><br><strong>${w.name||'-'}</strong></div>
-            <div><span style="color:var(--m)">연락처</span><br><strong>${w.mobile||'-'}</strong></div>
+            <div><span style="color:var(--m)">Name</span><br><strong>${w.name||'-'}</strong></div>
+            <div><span style="color:var(--m)">Contact</span><br><strong>${w.mobile||'-'}</strong></div>
             <div style="grid-column:1/-1"><span style="color:var(--m)">작업 도구</span><br>${w.tools||'-'}</div>
             ${w.notes?`<div style="grid-column:1/-1"><span style="color:var(--m)">비고</span><br>${w.notes}</div>`:''}
           </div>
@@ -5592,11 +5604,11 @@ function careSchedule(id) {
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div>
-            <label style="font-size:10px;font-weight:600;color:var(--m);display:block;margin-bottom:3px">이름 *</label>
+            <label style="font-size:10px;font-weight:600;color:var(--m);display:block;margin-bottom:3px">Name *</label>
             <input class="fi" id="w-name-${i}" placeholder="Juan dela Cruz" style="width:100%">
           </div>
           <div>
-            <label style="font-size:10px;font-weight:600;color:var(--m);display:block;margin-bottom:3px">연락처 *</label>
+            <label style="font-size:10px;font-weight:600;color:var(--m);display:block;margin-bottom:3px">Contact *</label>
             <input class="fi" id="w-mobile-${i}" placeholder="+63912345678" style="width:100%">
           </div>
           <div style="grid-column:1/-1">
@@ -5647,7 +5659,7 @@ function careSchedule(id) {
       const mobile = document.getElementById(`w-mobile-${i}`)?.value?.trim()
       const tools  = document.getElementById(`w-tools-${i}`)?.value?.trim()
       const notes  = document.getElementById(`w-notes-${i}`)?.value?.trim()
-      if (!name || !mobile) { alert(`작업자 ${i+1}의 이름과 연락처를 입력해주세요.`); return }
+      if (!name || !mobile) { alert(`작업자 ${i+1}의 Name과 Contact를 입력해주세요.`); return }
       workers.push({ name, mobile, tools: tools||'', notes: notes||'' })
     }
 
@@ -6051,7 +6063,7 @@ async function pmsCreateAccount(contactId, role, dealId) {
     const html = '<div style="font-size:16px;font-weight:700;margin-bottom:16px">✅ PMS 계정 생성 완료</div>'
       + '<div style="background:var(--bg);border-radius:10px;padding:16px;margin-bottom:16px">'
       + '<div style="display:grid;gap:10px;font-size:13px">'
-      + '<div><span style="color:var(--m);font-size:11px">이름</span><br><strong>' + res.name + '</strong></div>'
+      + '<div><span style="color:var(--m);font-size:11px">Name</span><br><strong>' + res.name + '</strong></div>'
       + '<div><span style="color:var(--m);font-size:11px">이메일 (로그인 ID)</span><br><strong>' + res.email + '</strong></div>'
       + '<div><span style="color:var(--m);font-size:11px">임시 비밀번호</span><br><strong style="font-size:18px;letter-spacing:2px;color:var(--N)">' + res.temp_password + '</strong></div>'
       + '<div><span style="color:var(--m);font-size:11px">역할</span><br><strong>' + (res.role === 'tenant' ? '임차인' : '임대인') + '</strong></div>'
@@ -6562,13 +6574,13 @@ function renderActivityView() {
 
         <!-- 리드 연결 (Contact Select 시 표시) -->
         <div class="ff" id="act-lead-wrap" style="display:none">
-          <label class="fl">관련 리드 (Select)</label>
+          <label class="fl">Related Lead</label>
           <select class="fs" id="act-lead">
             <option value="">리드 Select</option>
           </select>
         </div>
 
-        <!-- 리드 상태 변경 (리드 Select 시 표시) -->
+        <!-- Lead Status Change (shown when lead selected) -->
         <div class="ff" id="act-status-wrap" style="display:none;padding:10px 12px;background:#F8F5F0;border-radius:8px">
           <label class="fl">Update Lead Status (optional)</label>
           <select class="fs" id="act-lead-status">
@@ -6577,9 +6589,9 @@ function renderActivityView() {
           </select>
         </div>
 
-        <!-- 관련 Listing -->
+        <!-- Related Listing -->
         <div class="ff">
-          <label class="fl">관련 Listing (Select)</label>
+          <label class="fl">Related Listing</label>
           <select class="fs" id="act-listing">
             <option value="">Select Listing</option>
             ${listings.map(l=>`<option value="${l.id}">[${l.code||''}] ${l.name} · ${fmt(l.price)}${l.transaction_type==='RENT'?'/Month':''}</option>`).join('')}
@@ -6590,11 +6602,11 @@ function renderActivityView() {
         <div class="ff">
           <label class="fl">Notes</label>
           <textarea class="fi" id="act-notes" rows="4"
-            placeholder="통화: 예산 ₱35K, BGC 선호, 다음주 방문 희망&#10;방문: 1207B 쇼잉 완료, 가격 협상 의향 있음&#10;메시지: 계약 진행 의사 확인, 서류 안내 완료"
+            placeholder="통화: 예산 ₱35K, BGC 선호, 다음주 방문 희망&#10;방문: 1207B 쇼잉 완료, 가격 협상 의향 있음&#10;메시지: 계약 진행 의사 확인, 서류 안Mine: 완료"
             style="resize:vertical;line-height:1.7;font-size:12px"></textarea>
         </div>
 
-        <!-- 다음 팔로업 -->
+        <!-- Next Follow-up -->
         <div class="ff">
           <label class="fl"><i class="ti ti-calendar-event" aria-hidden="true"></i> Next Follow-up Date</label>
           <input class="fi" type="date" id="act-followup">
@@ -6635,7 +6647,7 @@ function renderActivityView() {
 }
 
 function renderActList(acts) {
-  if (!acts.length) return `<div style="padding:30px;text-align:center;color:var(--m)"><i class="ti ti-history" style="font-size:28px;display:block;margin-bottom:8px" aria-hidden="true"></i>Activity History이 없습니다</div>`
+  if (!acts.length) return `<div style="padding:30px;text-align:center;color:var(--m)"><i class="ti ti-history" style="font-size:28px;display:block;margin-bottom:8px" aria-hidden="true"></i>No activity history yet</div>`
 
   // 날짜별 그룹핑
   const today     = new Date().toDateString()
@@ -6780,14 +6792,14 @@ async function saveActivity() {
       created_by:      me?.id
     })
 
-    // 리드 상태 변경 (Select했을 경우)
+    // Lead Status 변경 (Select했을 경우)
     if (leadId && newStatus) {
       await api('PATCH', `/api/leads/${leadId}`, { status: newStatus, next_followup_at: followup||undefined })
     } else if (leadId && followup) {
       await api('PATCH', `/api/leads/${leadId}`, { next_followup_at: followup })
     }
 
-    toast('Activity saved' + (newStatus ? ` · 리드 상태 → ${LEAD_STATUS_LABELS[newStatus]}` : ''))
+    toast('Activity saved' + (newStatus ? ' · Status → ' + (LEAD_STATUS_LABELS[newStatus]||newStatus) : ''))
 
     // 폼 초기화
     ;['act-notes','act-followup'].forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
