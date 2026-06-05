@@ -976,12 +976,13 @@ const fmtK = n => n >= 1e6 ? '₱' + (n / 1e6).toFixed(1) + 'M' : n >= 1000 ? '�
 const tod  = () => new Date().toISOString().slice(0, 10)
 
 const ACT_TYPE = {
-  CALL:     { l:'Call',    bg:'#E6F1FB', c:'#185FA5', icon:'ti-phone'     },
-  MESSAGE:  { l:'Message',  bg:'#EEEDFE', c:'#534AB7', icon:'ti-message'   },
-  VISIT:    { l:'Site Visit',bg:'#E1F5EE', c:'#0F6E56', icon:'ti-home'      },
-  OFFER:    { l:'Listing Offer',bg:'#FDF0DC', c:'#854F0B', icon:'ti-clipboard' },
-  CONTRACT: { l:'Contract',    bg:'#E0F3ED', c:'#19846B', icon:'ti-file-text' },
-  OTHER:    { l:'Other',    bg:'#F1EFE8', c:'#5F5E5A', icon:'ti-dots'      }
+  CALL:     { l:'Call',         bg:'#E6F1FB', c:'#185FA5', icon:'ti-phone'      },
+  MESSAGE:  { l:'Message',      bg:'#EEEDFE', c:'#534AB7', icon:'ti-message'    },
+  VISIT:    { l:'Site Visit',   bg:'#E1F5EE', c:'#0F6E56', icon:'ti-home'       },
+  OFFER:    { l:'Listing Offer',bg:'#FDF0DC', c:'#854F0B', icon:'ti-clipboard'  },
+  LOI:      { l:'LOI',          bg:'#FDE8F0', c:'#A0295A', icon:'ti-signature'  },
+  CONTRACT: { l:'Contract',     bg:'#E0F3ED', c:'#19846B', icon:'ti-file-text'  },
+  OTHER:    { l:'Other',        bg:'#F1EFE8', c:'#5F5E5A', icon:'ti-dots'       }
 }
 const LEAD_STATUS_LABELS = {
   NEW:'New', SEARCHING:'Searching', OFFER_SENT:'Offer Sent',
@@ -1479,10 +1480,23 @@ async function vContactDetail(id) {
             ${Object.entries(LEAD_STATUS_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
           </select></div>`:''}
         <div class="ff"><label class="fl">관련 Listing</label>
-          <select class="fs" id="cact-listing">
-            <option value="">Select (Select사항)</option>
-            ${listings.map(l=>`<option value="${l.id}">[${l.code||''}] ${l.name}</option>`).join('')}
-          </select></div>
+          <div style="position:relative">
+            <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--m);font-size:13px;pointer-events:none"></i>
+            <input class="fi" id="cact-listing-search" placeholder="매물명 또는 주소 검색..."
+              style="padding-left:32px" autocomplete="off"
+              oninput="searchCActListing(this.value,'${id}')"
+              onfocus="searchCActListing(this.value,'${id}')">
+            <input type="hidden" id="cact-listing">
+            <div id="cact-listing-results"
+              style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--b);border-radius:10px;max-height:240px;overflow-y:auto;z-index:300;box-shadow:0 4px 20px rgba(0,0,0,.13)">
+            </div>
+          </div>
+          <div id="cact-listing-selected" style="display:none;margin-top:6px;padding:6px 10px;background:#F0F8F5;border-radius:8px;font-size:11px;color:#0F6E56;display:flex;align-items:center;gap:8px">
+            <img id="cact-listing-thumb" src="" style="width:36px;height:36px;border-radius:5px;object-fit:cover;flex-shrink:0">
+            <span id="cact-listing-label" style="flex:1;font-weight:600"></span>
+            <button onclick="clearCActListing()" style="background:none;border:none;cursor:pointer;color:#DC4A4A;font-size:11px;padding:0">✕</button>
+          </div>
+        </div>
         <div class="ff"><label class="fl">Notes</label>
           <textarea class="fi" id="cact-notes" rows="3" placeholder="Call / visit / message notes..." style="resize:vertical;font-size:12px;line-height:1.6"></textarea></div>
         <div class="ff"><label class="fl"><i class="ti ti-calendar-event" aria-hidden="true"></i> 다음 팔로업</label>
@@ -1577,7 +1591,140 @@ async function vContactDetail(id) {
 }
 
 let _cActType = 'CALL'
+// ── Listing 검색 (사진 포함) ──────────────────────────────
+let _cactListingTimer = null
+function searchCActListing(q) {
+  const res = document.getElementById('cact-listing-results')
+  if (!res) return
+  clearTimeout(_cactListingTimer)
+  _cactListingTimer = setTimeout(() => {
+    const filtered = (_listings||[]).filter(l =>
+      !q ||
+      (l.name||'').toLowerCase().includes(q.toLowerCase()) ||
+      (l.address||'').toLowerCase().includes(q.toLowerCase()) ||
+      (l.unit_no||'').toLowerCase().includes(q.toLowerCase())
+    ).slice(0, 12)
+    if (!filtered.length) { res.style.display = 'none'; return }
+    res.innerHTML = ''
+    filtered.forEach(l => {
+      const price = l.price ? '\u20B1' + Number(l.price).toLocaleString() + (l.transaction_type==='RENT'?'/mo':'') : ''
+      const div = document.createElement('div')
+      div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-bottom:1px solid #EAE6DF'
+      div.addEventListener('mouseenter', function() { this.style.background='#F8F5F0' })
+      div.addEventListener('mouseleave', function() { this.style.background='' })
+      div.addEventListener('click', function() { selectCActListing(l.id, l.name||'', l.photo_url||'') })
+      const img = l.photo_url
+        ? '<img src="' + l.photo_url + '" style="width:44px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0">'
+        : '<div style="width:44px;height:44px;border-radius:6px;background:#EAE6DF;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#8B8680;font-size:18px">&#x1F3E2;</div>'
+      div.innerHTML = img
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (l.name||'') + '</div>'
+        + '<div style="font-size:10px;color:#8B8680">' + (l.address||'') + (l.unit_no?' &middot; Unit '+l.unit_no:'') + '</div>'
+        + '<div style="font-size:11px;color:#C8892A;font-weight:600">' + price + '</div>'
+        + '</div>'
+      res.appendChild(div)
+    })
+    res.style.display = 'block'
+  }, 150)
+}
+
+
+function selectCActListing(id, name, photo) {
+  document.getElementById('cact-listing').value = id
+  const inp = document.getElementById('cact-listing-search')
+  if (inp) inp.value = name
+  const res = document.getElementById('cact-listing-results')
+  if (res) res.style.display = 'none'
+  // 선택 표시
+  const sel = document.getElementById('cact-listing-selected')
+  const thumb = document.getElementById('cact-listing-thumb')
+  const label = document.getElementById('cact-listing-label')
+  if (sel) sel.style.display = 'flex'
+  if (thumb) { thumb.src = photo || ''; thumb.style.display = photo ? '' : 'none' }
+  if (label) label.textContent = name
+}
+
+function clearCActListing() {
+  document.getElementById('cact-listing').value = ''
+  const inp = document.getElementById('cact-listing-search')
+  if (inp) inp.value = ''
+  const sel = document.getElementById('cact-listing-selected')
+  if (sel) sel.style.display = 'none'
+  const res = document.getElementById('cact-listing-results')
+  if (res) res.style.display = 'none'
+}
+
+// 외부 클릭 시 결과 닫기
+document.addEventListener('click', e => {
+  if (!e.target.closest('#cact-listing-search') && !e.target.closest('#cact-listing-results')) {
+    const r = document.getElementById('cact-listing-results')
+    if (r) r.style.display = 'none'
+  }
+})
+
 function setCActType(type) {
+  // OFFER → Listing Report 페이지 이동
+  if (type === 'OFFER') {
+    const contactName = document.querySelector('.ph-title')?.textContent?.trim() || ''
+    nav('documents')
+    setTimeout(() => {
+      switchDocTab('report', document.getElementById('dt-report'))
+      if (contactName) {
+        const el = document.getElementById('rp-client')
+        if (el) el.value = contactName
+      }
+      toast('Listing Report 작성 페이지로 이동했습니다')
+    }, 500)
+    return
+  }
+
+  // LOI → LOI 페이지 이동 + 임차인 자동채움
+  if (type === 'LOI') {
+    const hash = location.hash
+    const contactId = hash.startsWith('#contact/') ? hash.replace('#contact/','') : null
+    const contactName = document.querySelector('.ph-title')?.textContent?.trim() || ''
+    const leadSel = document.getElementById('cact-lead')
+    const lead = leadSel?.value ? (_leads||[]).find(l => l.id === leadSel.value) : null
+    const listingId = document.getElementById('cact-listing')?.value
+    const listingName = document.getElementById('cact-listing-label')?.textContent?.trim()
+
+    nav('documents')
+    setTimeout(() => {
+      switchDocTab('loi', document.getElementById('dt-loi'))
+      setTimeout(() => {
+        // 임차인 자동채움
+        if (contactName) {
+          const ts = document.getElementById('loi-tenant-search')
+          const th = document.getElementById('loi-tenant')
+          if (ts) ts.value = contactName
+          if (th && contactId) th.value = contactId
+        }
+        // Lead 예산 → 월세
+        if (lead?.budget) {
+          const re = document.getElementById('loi-rent')
+          if (re) re.value = lead.budget
+        }
+        // 선택된 Listing 자동채움
+        if (listingId) {
+          const ls = document.getElementById('loi-listing-search')
+          const lh = document.getElementById('loi-listing')
+          if (ls && listingName) ls.value = listingName
+          if (lh) lh.value = listingId
+          const listing = (_listings||[]).find(l => l.id === listingId)
+          if (listing) {
+            const set = (id, val) => { const el=document.getElementById(id); if(el&&val) el.value=val }
+            set('loi-addr', listing.address)
+            set('loi-unit', listing.unit_no)
+            set('loi-area', listing.area_sqm)
+            if (!lead?.budget && listing.price) set('loi-rent', listing.price)
+          }
+        }
+        toast('LOI 작성 페이지로 이동했습니다. 임차인 정보가 자동 입력됐습니다.')
+      }, 300)
+    }, 500)
+    return
+  }
+
   _cActType = type
   Object.keys(ACT_TYPE).forEach(k => {
     const btn = document.getElementById('cact-' + k)
@@ -3766,6 +3913,15 @@ async function saveReport() {
       }
     }
     _allContributions = newContributions
+    // Report 저장 시 Activity 자동 기록
+    if (contactId) {
+      await api('POST', '/api/activities', {
+        type:       'OFFER',
+        contact_id: contactId,
+        notes:      'Listing Report 작성 완료 · ' + (client||'') + ' · ' + allIds.length + '개 매물',
+        created_by: me?.id
+      }).catch(() => {})
+    }
     _reportDocs = await api('GET', '/api/listing-reports?include_shared=1').catch(()=>[])
     const listEl = document.getElementById('rp-saved-list')
     if (listEl) listEl.innerHTML = renderReportSavedList()
@@ -4313,6 +4469,17 @@ async function saveLOI() {
     } else {
       await api('POST', '/api/loi', payload)
       toast('✓ LOI Saved')
+    }
+    // LOI 저장 시 Activity 자동 기록
+    const loiContactId = document.getElementById('loi-tenant')?.value
+    if (loiContactId) {
+      await api('POST', '/api/activities', {
+        type:       'LOI',
+        contact_id: loiContactId,
+        listing_id: document.getElementById('loi-listing')?.value || null,
+        notes:      'LOI 작성 완료 · ' + (document.getElementById('loi-tenant-search')?.value||''),
+        created_by: me?.id
+      }).catch(() => {})
     }
     _loiDocs = await api('GET', '/api/loi').catch(()=>[])
     const listEl = document.getElementById('loi-saved-list')
