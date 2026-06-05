@@ -529,7 +529,13 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
         </div>
       </div>
 
-      <div class="mf" style="margin-top:10px"><label>REMARKS</label><textarea class="fi" id="ql-remarks" rows="2" style="resize:vertical"></textarea></div>
+      <div class="mf" style="margin-top:10px"><label>REMARKS <span style="font-size:10px;color:var(--m);font-weight:400">(외부 공개)</span></label><textarea class="fi" id="ql-remarks" rows="2" style="resize:vertical"></textarea></div>
+      <div class="mf" style="margin-top:8px;background:#FFF8E7;border:1px solid #F0D080;border-radius:8px;padding:10px 12px">
+        <label style="font-size:11px;font-weight:600;color:#854F0B;display:flex;align-items:center;gap:5px">
+          <i class="ti ti-lock" style="font-size:12px"></i> PRIVATE NOTES <span style="font-size:10px;font-weight:400">본인만 열람</span>
+        </label>
+        <textarea class="fi" id="ql-private-notes" rows="2" style="resize:vertical;margin-top:6px;background:#FFFDF0" placeholder="비밀 메모..."></textarea>
+      </div>
 
       <!-- 사진 업로드 -->
       <div class="mf" style="margin-top:10px">
@@ -925,8 +931,16 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       </div>
       <!-- Notes -->
       <div class="mf">
-        <label>Notes</label>
+        <label>Notes <span style="font-size:10px;color:var(--m);font-weight:400">(외부 공개)</span></label>
         <textarea id="ml-remarks" placeholder="Remarks, conditions, etc." style="resize:vertical;min-height:64px"></textarea>
+      </div>
+      <!-- Private Notes -->
+      <div class="mf" style="background:#FFF8E7;border:1px solid #F0D080;border-radius:8px;padding:10px 12px">
+        <label style="color:#854F0B;display:flex;align-items:center;gap:6px">
+          <i class="ti ti-lock" style="font-size:13px"></i> Private Notes
+          <span style="font-size:10px;font-weight:400;color:#B07830">본인만 열람 가능</span>
+        </label>
+        <textarea id="ml-private-notes" placeholder="비밀 메모 (소유주 연락처, 협상 여지, 특이사항 등...)" style="resize:vertical;min-height:64px;margin-top:6px;background:#FFFDF0"></textarea>
       </div>
     </div>
     <div class="modal-ft">
@@ -2031,6 +2045,7 @@ async function saveListingFromAI() {
       listing_source_id,
       assigned_user_id: me?.id,
       remarks:          document.getElementById('ql-remarks').value           || null,
+      private_notes:    document.getElementById('ql-private-notes').value     || null,
       status: 'ACTIVE'
     })
 
@@ -2359,6 +2374,7 @@ async function saveNewListing() {
       assigned_user_id:  document.getElementById('ml-agent').value   || null,
       hyperlink:         document.getElementById('ml-link').value    || null,
       remarks:           document.getElementById('ml-remarks').value || null,
+      private_notes:     document.getElementById('ml-private-notes').value || null,
       lat:               parseFloat(document.getElementById('ml-lat').value) || null,
       lng:               parseFloat(document.getElementById('ml-lng').value) || null,
       status: 'ACTIVE'
@@ -2578,6 +2594,13 @@ async function vListingDetail(id) {
           <i class="ti ti-external-link" aria-hidden="true"></i> External Link (Lamudi etc.)
         </a>` : ''}
         ${listing.remarks ? `<div style="margin-top:10px;padding:10px 12px;background:#F8F5F0;border-radius:8px;font-size:12px;color:var(--N);line-height:1.6">${listing.remarks}</div>` : ''}
+        ${(listing.private_notes && (listing.assigned_user_id === me?.id || me?.role === 'admin')) ? `
+        <div style="margin-top:8px;padding:10px 12px;background:#FFF8E7;border:1px solid #F0D080;border-radius:8px;font-size:12px;color:#854F0B;line-height:1.6">
+          <div style="font-size:10px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:4px">
+            <i class="ti ti-lock" style="font-size:11px"></i> Private Notes (본인만 열람)
+          </div>
+          ${listing.private_notes}
+        </div>` : ''}
       </div>
     </div>
 
@@ -2621,7 +2644,12 @@ async function vListingDetail(id) {
         </div>
         <div style="margin-top:-6px;margin-bottom:6px"><a href="https://www.latlong.net/" target="_blank" rel="noopener" style="font-size:11px;color:var(--G);text-decoration:none"><i class="ti ti-map-pin" style="font-size:11px"></i> 좌표 찾기 → latlong.net</a></div>
         <div class="ff"><label class="fl">External Link (Lamudi etc.)</label><input class="fi" id="e-link" value="${listing.hyperlink||''}"></div>
-        <div class="ff"><label class="fl">Notes</label><textarea class="fi" id="e-rem" rows="3" style="resize:vertical">${listing.remarks||''}</textarea></div>
+        <div class="ff"><label class="fl">Notes <span style="font-size:10px;color:var(--m);font-weight:400">(외부 공개)</span></label><textarea class="fi" id="e-rem" rows="3" style="resize:vertical">${listing.remarks||''}</textarea></div>
+        ${(listing.assigned_user_id === me?.id || me?.role === 'admin') ? `
+        <div class="ff" style="background:#FFF8E7;border:1px solid #F0D080;border-radius:8px;padding:8px 10px">
+          <label class="fl" style="color:#854F0B"><i class="ti ti-lock" style="font-size:11px"></i> Private Notes <span style="font-size:10px;font-weight:400">본인만 열람</span></label>
+          <textarea class="fi" id="e-private-notes" rows="2" style="background:#FFFDF0;resize:vertical" placeholder="비밀 메모...">${listing.private_notes||''}</textarea>
+        </div>` : ''}
         <div style="display:flex;gap:8px">
           <button class="btn btn-g" style="flex:1;justify-content:center" onclick="saveListingEdit('${id}')"><i class="ti ti-device-floppy" aria-hidden="true"></i> Save</button>
           <button class="btn btn-o" onclick="toggleListingEdit('${id}')">Cancel</button>
@@ -2756,7 +2784,8 @@ async function saveListingEdit(id) {
       lat:          parseFloat(document.getElementById('e-lat').value) || null,
       lng:          parseFloat(document.getElementById('e-lng').value) || null,
       hyperlink:    document.getElementById('e-link').value || null,
-      remarks:      document.getElementById('e-rem').value  || null,
+      remarks:       document.getElementById('e-rem').value              || null,
+      private_notes: document.getElementById('e-private-notes')?.value || null,
     })
     toast('Saved')
     vListingDetail(id)
@@ -4660,6 +4689,107 @@ function resetAckForm() {
   if (wrap) wrap.innerHTML = '<div style="text-align:center;color:var(--m);padding:40px 0"><i class="ti ti-writing" style="font-size:40px;margin-bottom:10px;display:block"></i>Fill in the details and click "Preview"</div>'
   const btns = document.getElementById('ack-editor-btns')
   if (btns) btns.style.display = 'none'
+}
+
+
+// ═══════════ PMS DOCUMENTS (복원) ═══════════
+async function createProspectivePmsAccount(contactId) {
+  // 모든 CRM 직원(agent/admin) 계정 생성 가능
+  if (!confirm('이 고객에게 PMS 예비 고객(Prospective) 계정을 생성하시겠습니까?')) return
+  try {
+    const res = await api('POST', '/api/pms-accounts/create', {
+      contact_id: contactId,
+      role: 'prospective'
+    })
+    const html = '<div style="font-size:16px;font-weight:700;margin-bottom:16px">✅ PMS Account Created</div>'
+      + '<div style="background:var(--bg);border-radius:10px;padding:16px;margin-bottom:16px">'
+      + '<div style="display:grid;gap:10px;font-size:13px">'
+      + '<div><span style="color:var(--m);font-size:11px">Name</span><br><strong>' + res.name + '</strong></div>'
+      + '<div><span style="color:var(--m);font-size:11px">Email (Login ID)</span><br><strong>' + res.email + '</strong></div>'
+      + '<div><span style="color:var(--m);font-size:11px">Temporary Password</span><br><strong style="font-size:18px;letter-spacing:2px;color:var(--N)">' + res.temp_password + '</strong></div>'
+      + '<div><span style="color:var(--m);font-size:11px">Role</span><br><strong>Prospective</strong></div>'
+      + '</div></div>'
+      + '<div style="background:#FDF0DC;border-radius:8px;padding:10px;font-size:11px;color:#7A4F00;margin-bottom:16px">'
+      + '⚠️ 이 Temporary Password를 ' + res.name + '.'
+      + '</div>'
+      + '<div style="text-align:right"><button onclick="closeDynModal()" class="btn btn-g">확인</button></div>'
+    showModal(html)
+  } catch(e) { alert('Error: ' + e.message) }
+}
+
+async function sendReportToPms() {
+  if (!_reportContactId) {
+    alert('먼저 고객(Prepared For)을 선택해주세요.')
+    return
+  }
+  if (!_reportEditId) {
+    const saved = await saveReportAndGetId()
+    if (!saved) return
+  }
+  if (!confirm('이 Listing Report를 고객의 PMS 앱으로 전송하시겠습니까?\n고객 이메일로도 동시 발송됩니다.')) return
+  try {
+    const res = await api('POST', '/api/pms-documents/send-listing-report', {
+      report_id:  _reportEditId,
+      contact_id: _reportContactId,
+    })
+    toast('✓ Send to PMS Completed' + (res.email_sent ? ' · 이메일 발송됨' : ''))
+  } catch(e) { alert('전송 Error: ' + e.message) }
+}
+
+async function sendLoiToPms() {
+  if (!_loiEditId) {
+    alert('Please save the LOI first.')
+    return
+  }
+
+  // LOI에서 tenant_name으로 contact 자동 검색
+  const loiData = _loiDocs?.find(d => d.id === _loiEditId)
+  if (!loiData) { alert('LOI data not found.'); return }
+
+  // _contacts가 없으면 먼저 로드
+  if (!_contacts.length) {
+    const cl = await api('GET', '/api/contacts?limit=300').catch(() => ({ data: [] }))
+    _contacts = cl.data || cl.contacts || (Array.isArray(cl) ? cl : [])
+  }
+
+  // contacts에서 tenant_name으로 검색
+  const tenantName = loiData.tenant_name || ''
+  let contactId = null
+
+  if (tenantName && _contacts.length) {
+    const matched = _contacts.filter(c =>
+      c.name.toLowerCase().includes(tenantName.toLowerCase()) ||
+      tenantName.toLowerCase().includes(c.name.toLowerCase())
+    )
+    if (matched.length === 1) {
+      contactId = matched[0].id
+    } else if (matched.length > 1) {
+      // 여러 명 매칭 시 선택 모달
+      const html = '<div style="font-size:15px;font-weight:700;margin-bottom:12px">Select Contact for LOI</div>'
+        + '<div style="font-size:12px;color:var(--m);margin-bottom:12px">Tenant: <strong>' + tenantName + '</strong></div>'
+        + matched.map(function(c) {
+            return '<button data-lid="' + _loiEditId + '" data-cid="' + c.id + '" onclick="closeDynModal();doSendLoi(this.dataset.lid,this.dataset.cid)" '
+              + 'style="display:block;width:100%;text-align:left;padding:10px 14px;margin-bottom:6px;background:var(--bg);border:1px solid var(--b);border-radius:8px;cursor:pointer;font-size:13px">'
+              + c.name + '<span style="font-size:11px;color:var(--m);margin-left:8px">' + (c.email || '') + '</span></button>'
+          }).join('')
+        + '<div style="text-align:right;margin-top:8px"><button onclick="closeDynModal()" class="btn btn-o">Cancel</button></div>'
+      showModal(html)
+      return
+    }
+  }
+
+  if (!contactId) {
+    // 직접 검색
+    const html = '<div style="font-size:15px;font-weight:700;margin-bottom:12px">Select Contact for LOI</div>'
+      + '<input class="fi" id="loi-contact-search" placeholder="Search contact name..." oninput="searchLoiContact(this.value)" style="width:100%;margin-bottom:8px">'
+      + '<div id="loi-contact-results" style="max-height:200px;overflow-y:auto"></div>'
+      + '<div style="text-align:right;margin-top:8px"><button onclick="closeDynModal()" class="btn btn-o">Cancel</button></div>'
+    showModal(html)
+    return
+  }
+
+  if (!confirm('Send this LOI to the PMS app?\nAn email will also be sent.')) return
+  await doSendLoi(_loiEditId, contactId)
 }
 
 // ═══════════ LEADS KANBAN ═══════════
