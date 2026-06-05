@@ -3543,8 +3543,18 @@ function toggleRpListing(id) {
 }
 
 function updateRpCount() {
+  const totalAll = new Set([
+    ...Array.from(_docSelected),
+    ...Object.values(_allContributions).flat()
+  ]).size
   const el = document.getElementById('rp-sel-count')
-  if (el) el.textContent = `${_docSelected.size} selected`
+  if (el) {
+    if (totalAll > _docSelected.size) {
+      el.textContent = '내 ' + _docSelected.size + '개 · 전체 ' + totalAll + '개'
+    } else {
+      el.textContent = _docSelected.size + '개 선택'
+    }
+  }
 }
 
 // 화면용 미리보기 HTML (반응형, mm 단위 없음)
@@ -3672,13 +3682,12 @@ function getReportPrintHtml() {
 }
 
 function previewReport() {
-  // 전체 contributions 합산
+  // 전체 contributions 합산 (내 선택 없어도 다른 직원 것으로 미리보기 가능)
   const allIds = new Set([
     ...Array.from(_docSelected),
     ...Object.values(_allContributions).flat()
   ])
-  if (!allIds.size) { alert('Please select at least one listing'); return }
-  // 미리보기용으로 allIds 기반 selected 임시 설정
+  if (!allIds.size) { alert('공유된 Report를 먼저 불러오거나 매물을 추가해주세요'); return }
   const html = getReportPreviewHtml()
   const card = document.getElementById('rp-preview-card')
   const wrap = document.getElementById('rp-preview-wrap')
@@ -3688,7 +3697,11 @@ function previewReport() {
 }
 
 function printReport() {
-  if (!_docSelected.size) { alert('Please select at least one listing'); return }
+  const allPrintIds = new Set([
+    ...Array.from(_docSelected),
+    ...Object.values(_allContributions).flat()
+  ])
+  if (!allPrintIds.size) { alert('공유된 Report를 먼저 불러오거나 매물을 추가해주세요'); return }
   const printHtml = getReportPrintHtml()
   // iframe으로 인쇄 (페이지 나누기 완벽 지원)
   let iframe = document.getElementById('report-print-iframe')
@@ -3723,7 +3736,7 @@ async function saveReport() {
   // listing_ids: 모든 contributions 합산
   const allIds = [...new Set(Object.values(newContributions).flat())]
 
-  if (!allIds.length) { alert('Please select at least one listing'); return }
+  if (!allIds.length) { alert('추가된 매물이 없습니다. 매물을 선택해주세요'); return }
 
   const payload = {
     client_name:    client,
@@ -3784,7 +3797,14 @@ async function loadReport(id) {
   renderSelectedListings()
   updateRpCount()
   searchRpListing('')
-  toast(isOwner ? 'Report loaded' : '공유 Report 로드 — 자신의 매물을 추가하고 Save하세요')
+  // 전체 매물 수 표시 (내 것 + 다른 직원 것)
+  const totalAll = new Set([
+    ...Array.from(_docSelected),
+    ...Object.values(_allContributions).flat()
+  ]).size
+  const cntEl = document.getElementById('rp-sel-count')
+  if (cntEl) cntEl.textContent = '내 ' + _docSelected.size + '개 · 전체 ' + totalAll + '개'
+  toast(isOwner ? 'Report loaded' : '공유 Report 로드 완료 — 매물을 추가하거나 Preview로 확인하세요')
 }
 
 async function toggleShareReport(id, currentShared) {
