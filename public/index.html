@@ -3629,14 +3629,18 @@ async function buildReportPanel() {
 
 function renderReportSavedList() {
   if (!_reportDocs.length) return '<div style="padding:12px;text-align:center;font-size:11px;color:var(--m)">No saved reports</div>'
-  // 내 report + 공유된 report 모두 표시
-  return _reportDocs.map(d => {
-    const isOwner  = d.created_by === me?.id || me?.role === 'admin'
-    const isMine   = d.created_by === me?.id
+  const myId = me?.id
+  const isAdmin = me?.role === 'admin'
+  // 내 것 + 공유된 것 필터
+  const visible = _reportDocs.filter(d => d.created_by === myId || d.is_shared || isAdmin)
+  if (!visible.length) return '<div style="padding:12px;text-align:center;font-size:11px;color:var(--m)">No reports yet. Shared reports will appear here.</div>'
+  return visible.map(d => {
+    const isOwner  = d.created_by === myId || isAdmin
+    const isMine   = d.created_by === myId
     const shared   = d.is_shared
     const sharedBadge = shared
       ? '<span style="font-size:9px;background:#E0F3ED;color:#19846B;padding:1px 5px;border-radius:4px;margin-left:4px">공유됨</span>'
-      : ''
+      : (isMine ? '<span style="font-size:9px;background:#F1EFE8;color:#5F5E5A;padding:1px 5px;border-radius:4px;margin-left:4px">비공개</span>' : '')
     return `
     <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--b);cursor:pointer"
       onclick="loadReport('${d.id}')"
@@ -3663,44 +3667,81 @@ function renderReportSavedList() {
 }
 
 function renderSelectedListings() {
-  // 전체 contributions에서 모든 선택된 리스팅 수집
+  const myId = me?.id || 'unknown'
+  const isAdmin = me?.role === 'admin'
+
+  // 전체 contributions 합산
   const allSelectedIds = new Set([
     ...Array.from(_docSelected),
     ...Object.values(_allContributions).flat()
   ])
   const allSelected = _docListings.filter(l => allSelectedIds.has(l.id))
-  if (!allSelected.length) return '<div style="padding:16px;text-align:center;font-size:11px;color:var(--m)">No listings selected yet</div>'
 
-  return allSelected.map(l => {
+  const el = document.getElementById('rp-selected-list')
+  if (!allSelected.length) {
+    const html = '<div style="padding:16px;text-align:center;font-size:11px;color:var(--m)">No listings selected yet</div>'
+    if (el) el.innerHTML = html
+    return html
+  }
+
+  const html = allSelected.map(l => {
+    // 이 매물이 누구 것인지 판별
     const isMine = _docSelected.has(l.id)
-    // 다른 담당자 이름 찾기
-    let ownerName = ''
+    const canRemove = isMine || isAdmin
+
+    // 담당자 이름 찾기
+    let ownerName = isMine ? (me?.name || 'Me') : ''
     if (!isMine) {
       for (const [uid, ids] of Object.entries(_allContributions)) {
-        if (ids.includes(l.id)) {
-          const staff = _staff.find(s => s.id === uid)
-          ownerName = staff?.name || 'Other'
+        if (ids && ids.includes(l.id)) {
+          const staff = (_staff||[]).find(s => s.id === uid)
+          ownerName = staff?.name || (uid === myId ? (me?.name||'Me') : 'Other')
           break
         }
       }
     }
-    return `
-    <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--b);${isMine?'':'background:#FAFAF8'}">
-      ${l.photo_url ? `<img src="${l.photo_url}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0">` :
-        `<div style="width:40px;height:40px;border-radius:6px;background:var(--b);flex-shrink:0"></div>`}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.name}</div>
-        <div style="font-size:10px;color:var(--m)">${fmt(l.price)}${l.transaction_type==='RENT'?' /mo':''} · ${l.bedrooms!=null?l.bedrooms+'BR ':''} ${l.area_sqm?l.area_sqm+'㎡':''}</div>
-        ${!isMine ? `<div style="font-size:9px;color:#185FA5;margin-top:1px">📌 ${ownerName}</div>` : ''}
-      </div>
-      ${isMine ? `
-      <button onclick="_docSelected.delete('${l.id}');renderSelectedListings();searchRpListing(document.getElementById('rp-listing-search')?.value||'');updateRpCount()"
-        style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:4px;flex-shrink:0">
-        <i class="ti ti-x" style="font-size:13px"></i>
-      </button>` : `
-      <span style="font-size:9px;color:var(--m);padding:4px">🔒</span>`}
-    </div>`
+
+    const whoStr = isMine ? 'mine' : 'other'
+    const removeBtn = canRemove
+      ? '<button onclick="removeFromReport(' + JSON.stringify(l.id) + ',' + JSON.stringify(whoStr) + ')" '
+        + 'style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:4px;flex-shrink:0">'
+        + '<i class="ti ti-x" style="font-size:13px"></i></button>'
+      : '<span title="' + ownerName + '가 추가한 매물" style="font-size:9px;color:var(--m);padding:4px;flex-shrink:0">&#x1F512;</span>'
+
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--b);' + (isMine?'':'background:#FAFAF8') + '">'
+      + (l.photo_url
+        ? '<img src="' + l.photo_url + '" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0">'
+        : '<div style="width:40px;height:40px;border-radius:6px;background:var(--b);flex-shrink:0"></div>')
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (l.name||'') + '</div>'
+      + '<div style="font-size:10px;color:var(--m)">' + fmt(l.price) + (l.transaction_type==='RENT'?' /mo':'') + ' · ' + (l.bedrooms!=null?l.bedrooms+'BR ':'') + (l.area_sqm?l.area_sqm+'㎡':'') + '</div>'
+      + '<div style="font-size:9px;color:' + (isMine?'#0F6E56':'#185FA5') + ';margin-top:1px">' + (isMine?'✓ 내 매물':'📌 ' + ownerName) + '</div>'
+      + '</div>'
+      + removeBtn
+      + '</div>'
   }).join('')
+
+  if (el) el.innerHTML = html
+  return html
+}
+
+function removeFromReport(listingId, who) {
+  const isAdmin = me?.role === 'admin'
+  const myId = me?.id || 'unknown'
+  if (who === 'mine' || _docSelected.has(listingId)) {
+    // 내 것 제거
+    _docSelected.delete(listingId)
+  } else if (isAdmin) {
+    // Admin: 다른 직원 것도 제거 가능
+    for (const uid of Object.keys(_allContributions)) {
+      if (_allContributions[uid]) {
+        _allContributions[uid] = _allContributions[uid].filter(id => id !== listingId)
+      }
+    }
+  }
+  renderSelectedListings()
+  searchRpListing(document.getElementById('rp-listing-search')?.value || '')
+  updateRpCount()
 }
 
 let _rpListingTimer = null
@@ -3835,12 +3876,12 @@ function _buildReportFooter(forPrint) {
 }
 
 function getReportPreviewHtml() {
-  // 전체 contributions 합산
+  // 전체 contributions 합산 (중복 제거)
   const allPreviewIds = new Set([
     ...Array.from(_docSelected),
     ...Object.values(_allContributions).flat()
   ])
-  const selected    = _docListings.filter(l => allPreviewIds.has(l.id))
+  const selected = _docListings.filter(l => allPreviewIds.has(l.id))
   const client      = document.getElementById('rp-client')?.value || ''
   const date        = document.getElementById('rp-date')?.value || tod()
   const agent       = me?.name || ''
@@ -3891,12 +3932,15 @@ function getReportPrintHtml() {
 }
 
 function previewReport() {
-  // 전체 contributions 합산 (내 선택 없어도 다른 직원 것으로 미리보기 가능)
   const allIds = new Set([
     ...Array.from(_docSelected),
     ...Object.values(_allContributions).flat()
   ])
-  if (!allIds.size) { alert('공유된 Report를 먼저 불러오거나 매물을 추가해주세요'); return }
+  // 로드된 Report 또는 직접 선택한 매물이 있으면 Preview 허용
+  if (!allIds.size && !_reportEditId) {
+    alert('Saved Reports에서 Report를 선택하거나 매물을 추가한 후 Preview하세요')
+    return
+  }
   const html = getReportPreviewHtml()
   const card = document.getElementById('rp-preview-card')
   const wrap = document.getElementById('rp-preview-wrap')
@@ -3938,14 +3982,18 @@ async function saveReport() {
   const contactId = _reportContactId || null
   const myId      = me?.id || 'unknown'
 
-  // contributions: 내 선택만 저장 (기존 다른 담당자 것은 유지)
+  // contributions: 내 선택만 업데이트 (다른 담당자 것 유지)
   const newContributions = Object.assign({}, _allContributions, {
     [myId]: Array.from(_docSelected)
+  })
+  // 빈 배열 제거
+  Object.keys(newContributions).forEach(k => {
+    if (!newContributions[k] || newContributions[k].length === 0) delete newContributions[k]
   })
   // listing_ids: 모든 contributions 합산
   const allIds = [...new Set(Object.values(newContributions).flat())]
 
-  if (!allIds.length) { alert('추가된 매물이 없습니다. 매물을 선택해주세요'); return }
+  if (!allIds.length && !_reportEditId) { alert('추가된 매물이 없습니다. 매물을 선택해주세요'); return }
 
   const payload = {
     client_name:    client,
@@ -4007,22 +4055,37 @@ async function loadReport(id) {
   clientEl.style.background = isOwner ? '' : 'var(--b2)'
   dateEl.style.background   = isOwner ? '' : 'var(--b2)'
 
-  // contributions 복원
-  _allContributions = d.contributions || {}
+  // contributions 복원 (컬럼 없으면 listing_ids로 fallback)
   const myId = me?.id || 'unknown'
+  if (d.contributions && Object.keys(d.contributions).length > 0) {
+    // contributions 컬럼 있는 경우
+    _allContributions = d.contributions
+  } else if (d.listing_ids && d.listing_ids.length > 0) {
+    // contributions 없으면 작성자의 것으로 간주
+    _allContributions = {}
+    _allContributions[d.created_by || myId] = d.listing_ids
+  } else {
+    _allContributions = {}
+  }
   // 내 선택만 _docSelected에
   _docSelected = new Set(_allContributions[myId] || [])
+
   renderSelectedListings()
   updateRpCount()
   searchRpListing('')
-  // 전체 매물 수 표시 (내 것 + 다른 직원 것)
   const totalAll = new Set([
     ...Array.from(_docSelected),
     ...Object.values(_allContributions).flat()
   ]).size
   const cntEl = document.getElementById('rp-sel-count')
-  if (cntEl) cntEl.textContent = '내 ' + _docSelected.size + '개 · 전체 ' + totalAll + '개'
-  toast(isOwner ? 'Report loaded' : '공유 Report 로드 완료 — 매물을 추가하거나 Preview로 확인하세요')
+  if (cntEl) {
+    if (totalAll > 0) {
+      cntEl.textContent = '내 ' + _docSelected.size + '개 · 전체 ' + totalAll + '개'
+    } else {
+      cntEl.textContent = '0개 선택'
+    }
+  }
+  toast(isOwner ? 'Report loaded (' + totalAll + '개 매물)' : '공유 Report 로드 완료 — 매물을 추가하거나 Preview로 확인하세요')
 }
 
 async function toggleShareReport(id, currentShared) {
