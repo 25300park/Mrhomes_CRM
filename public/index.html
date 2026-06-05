@@ -1209,186 +1209,650 @@ async function vDashAdmin() {
     const { kpi, followup_needed: fu, active_listings: al, recent_deals: rd, pipeline: pp } = d
     const pArr = ['NEW','SEARCHING','OFFER_SENT','NEGOTIATING']
     const tot  = Math.max(Object.values(pp).reduce((s, n) => s + n, 0), 1)
+    const dateStr = new Date().toLocaleDateString('en-PH', { weekday:'long', year:'numeric', month:'long', day:'numeric' })
+
     vc(`
-<div class="ph">
-  <div><div class="ph-title">Dashboard</div><div class="ph-sub">${new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long'})} 운영 현황</div></div>
-  <div style="font-size:11px;color:var(--m)">${new Date().toLocaleDateString('ko-KR',{weekday:'long',month:'long',day:'numeric'})}</div>
-</div>
-<div class="pb">
-<div class="kpi-grid">
-  <div class="kpi"><div class="kpi-l">Monthly Commission</div><div class="kpi-v" style="color:var(--N)">${fmtK(kpi.gross_commission)}</div><div class="kpi-s">${kpi.deal_count}deals</div></div>
-  <div class="kpi"><div class="kpi-l">Company Net Income</div><div class="kpi-v" style="color:var(--G)">${fmtK(kpi.net_income)}</div><div class="kpi-s">After agent incentives</div></div>
-  <div class="kpi"><div class="kpi-l">Monthly Expenses</div><div class="kpi-v" style="color:var(--R)">${fmtK(kpi.expenses)}</div><div class="kpi-s">Total operating costs</div></div>
-  <div class="kpi"><div class="kpi-l">Operating Profit</div><div class="kpi-v" style="color:${kpi.operating_profit>=0?'var(--G)':'var(--R)'}">${fmtK(kpi.operating_profit)}</div><div class="kpi-s">Net income − expenses</div></div>
-</div>
-<div class="g2">
-  <div>
-    <div class="card">
-      <div class="card-h"><span><i class="ti ti-bell-ringing"></i> Today's Follow-ups</span>${bdg(fu.length+'deals','#FDEAEA','#DC4A4A')}</div>
-      ${fu.length ? fu.map(l => {const s=SL[l.status]||{};return`
-      <div style="padding:9px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:flex-start">
-        <div><div style="font-weight:600">${l.contact_name||'-'}</div>
-        <div style="font-size:10px;color:var(--m);margin-top:1px">${l.location_pref||''} · ${fmt(l.budget)}${l.request_type==='RENT'?'/Month':''}</div>
-        <div style="font-size:10px;color:var(--m)">${l.remarks||''}</div></div>
-        <div style="flex-shrink:0;margin-left:10px">${bdg(s.l||l.status,s.bg||'#eee',s.c||'#666')}<div style="font-size:10px;color:var(--m);margin-top:3px">${l.agent_name||''}</div></div>
-      </div>`}).join('') : `<div style="padding:20px;text-align:center;color:var(--m)">No follow-ups today ✓</div>`}
+<div style="display:flex;flex-direction:column;height:calc(100vh - 56px);overflow:hidden;padding:0">
+
+  <!-- 헤더 -->
+  <div class="ph" style="flex-shrink:0;padding:12px 20px">
+    <div>
+      <div class="ph-title">Dashboard</div>
+      <div class="ph-sub">${new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long'})} Operations</div>
     </div>
-    <div class="card">
-      <div class="card-h"><i class="ti ti-filter"></i> Lead Pipeline</div>
-      <div class="card-b">
-        ${pArr.map(s=>{const st=SL[s];const cnt=pp[s]||0;return`
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
-          <span class="bdg" style="background:${st.bg};color:${st.c};width:68px;justify-content:center">${st.l}</span>
-          <div style="flex:1;height:6px;border-radius:3px;background:#F0EDE8"><div style="height:100%;border-radius:3px;background:${st.c};width:${Math.max(cnt/tot*100,4)}%"></div></div>
-          <span style="font-size:12px;font-weight:700;color:${st.c};min-width:16px">${cnt}</span>
-        </div>`}).join('')}
-      </div>
-    </div>
-  </div>
-  <div>
-    <div class="card">
-      <div class="card-h"><i class="ti ti-receipt"></i> Recent Deals</div>
-      ${rd.length ? rd.map(d=>`
-      <div style="padding:9px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">
-        <div><div style="font-weight:600;font-size:12px">${d.listing?.name||'-'}</div>
-        <div style="font-size:10px;color:var(--m)">${d.contract_date}${d.is_co_broke?' · Co-broke':''}</div></div>
-        <div style="text-align:right"><div style="font-size:13px;font-weight:700">${fmt(d.gross_commission)}</div>
-        <div style="font-size:11px;color:var(--G)">순 ${fmt(d.net_company_income)}</div></div>
-      </div>`).join('') : `<div style="padding:20px;text-align:center;color:var(--m)">No deals this month</div>`}
-    </div>
-    <div class="card">
-      <div class="card-h"><i class="ti ti-building"></i> Active Listings (${al.length}deals)</div>
-      ${al.slice(0,5).map(l=>`
-      <div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">
-        <div><div style="font-size:12px;font-weight:600">${l.name}</div>
-        <div style="font-size:10px;color:var(--m)">${l.code||''}</div></div>
-        <div style="text-align:right;font-size:12px;font-weight:600">${fmt(l.price)}${l.transaction_type==='RENT'?'/Month':''}</div>
-      </div>`).join('')}
-    </div>
+    <div style="font-size:11px;color:var(--m)">${dateStr}</div>
   </div>
 
-  <!-- Activity History -->
-  <div style="margin-top:14px">
-    <div class="card">
-      <div class="card-h" style="justify-content:space-between">
-        <span><i class="ti ti-history"></i> Activity History</span>
-        <span id="dash-act-count" style="font-size:11px;color:var(--m)"></span>
+  <!-- KPI 바 -->
+  <div class="kpi-grid" style="flex-shrink:0;padding:0 16px 10px">
+    <div class="kpi"><div class="kpi-l">Monthly Commission</div><div class="kpi-v" style="color:var(--N)">${fmtK(kpi.gross_commission)}</div><div class="kpi-s">${kpi.deal_count} deals</div></div>
+    <div class="kpi"><div class="kpi-l">Net Income</div><div class="kpi-v" style="color:var(--G)">${fmtK(kpi.net_income)}</div><div class="kpi-s">After incentives</div></div>
+    <div class="kpi"><div class="kpi-l">Expenses</div><div class="kpi-v" style="color:var(--R)">${fmtK(kpi.expenses)}</div><div class="kpi-s">Operating costs</div></div>
+    <div class="kpi"><div class="kpi-l">Operating Profit</div><div class="kpi-v" style="color:${kpi.operating_profit>=0?'var(--G)':'var(--R)'}">${fmtK(kpi.operating_profit)}</div><div class="kpi-s">Net − expenses</div></div>
+  </div>
+
+  <!-- 메인 2컬럼 (좌: 정보 패널 / 우: Activity History) -->
+  <div style="display:grid;grid-template-columns:340px 1fr;gap:12px;flex:1;overflow:hidden;padding:0 16px 16px;min-height:0">
+
+    <!-- 좌측: Follow-ups + Pipeline + Deals + Listings (스크롤) -->
+    <div style="overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:4px">
+
+      <!-- Today's Follow-ups -->
+      <div class="card" style="flex-shrink:0">
+        <div class="card-h"><span><i class="ti ti-bell-ringing"></i> Today's Follow-ups</span>${bdg(fu.length+' deals','#FDEAEA','#DC4A4A')}</div>
+        ${fu.length ? fu.map(l => {const s=SL[l.status]||{};return`
+        <div style="padding:8px 14px;border-bottom:1px solid var(--b)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="font-weight:600;font-size:12px">${l.contact_name||'-'}</div>
+            ${bdg(s.l||l.status,s.bg||'#eee',s.c||'#666')}
+          </div>
+          <div style="font-size:10px;color:var(--m)">${l.location_pref||''} · ${fmt(l.budget)}${l.request_type==='RENT'?'/mo':''}</div>
+        </div>`}).join('') : `<div style="padding:14px;text-align:center;color:var(--m);font-size:12px">No follow-ups today ✓</div>`}
       </div>
-      <div id="dash-act-list"><div style="padding:16px;text-align:center;color:var(--m)">Loading...</div></div>
+
+      <!-- Lead Pipeline -->
+      <div class="card" style="flex-shrink:0">
+        <div class="card-h"><i class="ti ti-filter"></i> Lead Pipeline</div>
+        <div class="card-b">
+          ${pArr.map(s=>{const st=SL[s];const cnt=pp[s]||0;return`
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+            <span style="font-size:10px;font-weight:600;color:${st.c};min-width:72px">${st.l}</span>
+            <div style="flex:1;height:6px;border-radius:3px;background:#F0EDE8">
+              <div style="height:100%;border-radius:3px;background:${st.c};width:${Math.max(cnt/tot*100,4)}%"></div>
+            </div>
+            <span style="font-size:12px;font-weight:700;color:${st.c};min-width:16px">${cnt}</span>
+          </div>`}).join('')}
+        </div>
+      </div>
+
+      <!-- Recent Deals -->
+      <div class="card" style="flex-shrink:0">
+        <div class="card-h"><i class="ti ti-receipt"></i> Recent Deals</div>
+        ${rd.length ? rd.map(d=>`
+        <div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-weight:600;font-size:12px">${d.listing?.name||'-'}</div>
+            <div style="font-size:10px;color:var(--m)">${d.contract_date}${d.is_co_broke?' · Co-broke':''}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px;font-weight:700">${fmt(d.gross_commission)}</div>
+            <div style="font-size:10px;color:var(--G)">Net ${fmt(d.net_company_income)}</div>
+          </div>
+        </div>`).join('') : `<div style="padding:14px;text-align:center;color:var(--m);font-size:12px">No deals this month</div>`}
+      </div>
+
+      <!-- Active Listings -->
+      <div class="card" style="flex-shrink:0">
+        <div class="card-h"><i class="ti ti-building"></i> Active Listings (${al.length})</div>
+        ${al.slice(0,6).map(l=>`
+        <div style="padding:7px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px">${l.name}</div>
+            <div style="font-size:10px;color:var(--m)">${l.code||''}</div>
+          </div>
+          <div style="font-size:11px;font-weight:600;text-align:right">${fmt(l.price)}${l.transaction_type==='RENT'?'/mo':''}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- 우측: Activity History (필터 + 시계열 + 스크롤) -->
+    <div class="card" style="display:flex;flex-direction:column;overflow:hidden;min-height:0">
+      <!-- 헤더 + 필터 -->
+      <div style="flex-shrink:0;border-bottom:1px solid var(--b);padding:10px 14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-weight:700;font-size:13px"><i class="ti ti-history"></i> Activity History</span>
+          <span id="dash-act-count" style="font-size:11px;color:var(--m)"></span>
+        </div>
+        <!-- Contact 검색 -->
+        <div style="position:relative;margin-bottom:8px">
+          <i class="ti ti-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--m);font-size:13px"></i>
+          <input id="dash-act-search" type="text" placeholder="Contact Search by name..."
+            style="width:100%;padding:6px 10px 6px 28px;border:1px solid var(--b);border-radius:8px;font-size:12px;outline:none"
+            oninput="filterDashActivity()"
+            onfocus="this.style.borderColor='var(--A)'" onblur="this.style.borderColor='var(--b)'">
+        </div>
+        <!-- 타입 필터 탭 -->
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
+          ${['All','Call','Message','Site Visit','Listing Offer','LOI','Contract','Other'].map((t,i)=>
+            `<button onclick="setDashActType(this,'${t}')"
+              style="padding:3px 10px;border-radius:14px;border:1px solid var(--b);background:${i===0?'var(--N)':'transparent'};color:${i===0?'#fff':'var(--m)'};font-size:10px;cursor:pointer;transition:all .1s">${t}</button>`
+          ).join('')}
+        </div>
+        <!-- 시계열 필터 -->
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          ${[['today','Today'],['yesterday','Yesterday'],['week','This Week'],['month','This Month'],['year','This Year'],['all','All Time']].map(([v,l],i)=>
+            `<button onclick="setDashActPeriod(this,'${v}')"
+              style="padding:3px 10px;border-radius:14px;border:1px solid var(--b);background:${i===0?'var(--A)':'transparent'};color:${i===0?'#fff':'var(--m)'};font-size:10px;cursor:pointer">${l}</button>`
+          ).join('')}
+        </div>
+      </div>
+      <!-- Activity 목록 (스크롤) -->
+      <div id="dash-act-list" style="flex:1;overflow-y:auto;min-height:0">
+        <div style="padding:20px;text-align:center;color:var(--m)">Loading...</div>
+      </div>
     </div>
   </div>
-</div></div>`)
-  loadDashActivity()
+</div>`)
+    loadDashActivity()
   } catch(e) { err(e) }
 }
 
-// ── Dashboard Activity History ─────────────────────────────
+// ── Dashboard Activity History ──────────────────────────────
+let _dashActAll = []
+let _dashActType = 'All'
+let _dashActPeriod = 'today'
+
+function setDashActType(btn, type) {
+  _dashActType = type
+  document.querySelectorAll('#dash-act-list').forEach(() => {})
+  // 버튼 스타일 업데이트
+  btn.closest('div').querySelectorAll('button').forEach(b => {
+    b.style.background = b.textContent === type ? 'var(--N)' : 'transparent'
+    b.style.color      = b.textContent === type ? '#fff' : 'var(--m)'
+  })
+  renderDashActivity()
+}
+
+function setDashActPeriod(btn, period) {
+  _dashActPeriod = period
+  btn.closest('div').querySelectorAll('button').forEach(b => {
+    const isActive = b.onclick?.toString().includes("'" + period + "'")
+    b.style.background = isActive ? 'var(--A)' : 'transparent'
+    b.style.color      = isActive ? '#fff' : 'var(--m)'
+  })
+  renderDashActivity()
+}
+
+function filterDashActivity() {
+  renderDashActivity()
+}
+
+function renderDashActivity() {
+  const wrap = document.getElementById('dash-act-list')
+  const cnt  = document.getElementById('dash-act-count')
+  if (!wrap) return
+
+  const q     = (document.getElementById('dash-act-search')?.value || '').toLowerCase()
+  const today = tod()
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10)
+  const weekAgo   = new Date(Date.now() - 7  * 86400000).toISOString().slice(0,10)
+  const monthAgo  = new Date(Date.now() - 30 * 86400000).toISOString().slice(0,10)
+  const yearAgo   = new Date(Date.now() - 365* 86400000).toISOString().slice(0,10)
+
+  const typeKeyMap = {
+    'Call':'CALL', 'Message':'MESSAGE', 'Site Visit':'VISIT',
+    'Listing Offer':'OFFER', 'LOI':'LOI', 'Contract':'CONTRACT', 'Other':'OTHER'
+  }
+
+  let filtered = _dashActAll.filter(function(a) {
+    const d = (a.created_at || '').slice(0,10)
+    // 시계열 필터
+    if (_dashActPeriod === 'today'     && d !== today)      return false
+    if (_dashActPeriod === 'yesterday' && d !== yesterday)  return false
+    if (_dashActPeriod === 'week'      && d < weekAgo)      return false
+    if (_dashActPeriod === 'month'     && d < monthAgo)     return false
+    if (_dashActPeriod === 'year'      && d < yearAgo)      return false
+    // 타입 필터
+    if (_dashActType !== 'All' && a.activity_type !== typeKeyMap[_dashActType]) return false
+    // 검색
+    if (q && !(a.contact?.name||'').toLowerCase().includes(q)
+          && !(a.notes||'').toLowerCase().includes(q)
+          && !(a.listing?.name||'').toLowerCase().includes(q)) return false
+    return true
+  })
+
+  if (cnt) cnt.textContent = filtered.length + ' activities'
+
+  if (!filtered.length) {
+    wrap.innerHTML = '<div style="padding:30px;text-align:center;color:var(--m)">No activities found</div>'
+    return
+  }
+
+  // 날짜별 그룹핑
+  const groups = {}
+  filtered.forEach(function(a) {
+    const d = (a.created_at||'').slice(0,10)
+    const label = d === today ? 'Today' : d === yesterday ? 'Yesterday' : d
+    if (!groups[label]) groups[label] = []
+    groups[label].push(a)
+  })
+
+  const typeMap = { CALL:'📞', MESSAGE:'💬', VISIT:'🏠', OFFER:'📋', LOI:'✍️', CONTRACT:'📄', OTHER:'📌' }
+
+  wrap.innerHTML = Object.entries(groups).map(function(entry) {
+    const label = entry[0], items = entry[1]
+    const rows = items.map(function(a) {
+      const icon = typeMap[a.activity_type] || '📌'
+      const t    = ACT_TYPE[a.activity_type] || { l: a.activity_type||'Activity', bg:'#F1EFE8', c:'#5F5E5A' }
+      const ct   = CT[a.contact?.type] || null
+      const time = (a.created_at||'').slice(11,16)
+      return '<div style="display:flex;gap:10px;padding:8px 14px;border-bottom:1px solid var(--b);align-items:flex-start">'
+        + '<div style="font-size:15px;flex-shrink:0;margin-top:1px">' + icon + '</div>'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">'
+        + '<span style="font-size:12px;font-weight:700;cursor:pointer;color:var(--N)" onclick="vContactDetail(' + JSON.stringify(a.contact_id) + ')">' + (a.contact?.name||'-') + '</span>'
+        + (ct ? '<span style="font-size:9px;background:' + ct.bg + ';color:' + ct.c + ';padding:1px 5px;border-radius:8px">' + ct.l + '</span>' : '')
+        + '<span style="font-size:10px;background:' + t.bg + ';color:' + t.c + ';padding:1px 5px;border-radius:8px">' + t.l + '</span>'
+        + (a.listing?.name ? '<span style="font-size:10px;color:var(--m)">· ' + a.listing.name + '</span>' : '')
+        + '</div>'
+        + (a.notes ? '<div style="font-size:11px;color:var(--m);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + a.notes + '</div>' : '')
+        + (a.next_followup_at ? '<div style="font-size:10px;color:var(--A);margin-top:2px"><i class="ti ti-calendar-event"></i> Follow-up: ' + a.next_followup_at + '</div>' : '')
+        + '</div>'
+        + '<div style="text-align:right;flex-shrink:0;min-width:80px">'
+        + '<div style="font-size:10px;color:var(--m)">' + time + '</div>'
+        + '<div style="font-size:10px;color:var(--m)">' + (a.agent?.name||'') + '</div>'
+        + '</div>'
+        + '</div>'
+    }).join('')
+    return '<div style="background:#F8F5F0;padding:5px 14px;font-size:11px;font-weight:700;color:var(--m);position:sticky;top:0;z-index:1">' + label + '</div>'
+      + rows
+  }).join('')
+}
+
 async function loadDashActivity() {
   try {
-    const acts = await api('GET', '/api/activities?limit=20')
-    const wrap = document.getElementById('dash-act-list')
-    const cnt  = document.getElementById('dash-act-count')
-    if (!wrap) return
-    if (!acts || !acts.length) {
-      wrap.innerHTML = '<div style="padding:16px;text-align:center;color:var(--m)">No activity history yet</div>'
-      return
-    }
-    if (cnt) cnt.textContent = acts.length + ' recent'
-    const typeMap = { CALL:'📞', MESSAGE:'💬', VISIT:'🏠', OFFER:'📋', LOI:'✍️', CONTRACT:'📄', OTHER:'📌' }
-    wrap.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">'
-      + acts.map(function(a) {
-          const icon = typeMap[a.activity_type] || '📌'
-          const t = ACT_TYPE[a.activity_type] || { l: a.activity_type||'Activity', bg:'#F1EFE8', c:'#5F5E5A' }
-          return '<div style="display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid var(--b);align-items:flex-start">'
-            + '<div style="font-size:16px;flex-shrink:0">' + icon + '</div>'
-            + '<div style="flex:1;min-width:0">'
-            + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">'
-            + '<span style="font-size:12px;font-weight:600">' + (a.contact?.name||'-') + '</span>'
-            + '<span style="font-size:10px;background:' + t.bg + ';color:' + t.c + ';padding:1px 6px;border-radius:10px">' + t.l + '</span>'
-            + (a.listing?.name ? '<span style="font-size:10px;color:var(--m)">· ' + a.listing.name + '</span>' : '')
-            + '</div>'
-            + (a.notes ? '<div style="font-size:11px;color:var(--m);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + a.notes + '</div>' : '')
-            + '<div style="font-size:10px;color:var(--m);margin-top:2px">'
-            + (a.agent?.name||'') + ' · ' + (a.created_at||'').slice(0,10) + '</div>'
-            + '</div></div>'
-        }).join('')
-      + '</div>'
+    _dashActAll = await api('GET', '/api/activities?limit=200')
+    renderDashActivity()
   } catch(e) { console.warn('Activity load error:', e.message) }
 }
 
+
 // Agent dashboard
+// ── Agent Dashboard Drag-and-Drop Grid ─────────────────────
+const DASH_DEFAULT_LAYOUT = {
+  left:  ['my-leads', 'activity'],
+  right: ['recent-deals', 'my-listings', 'todo']
+}
+
+function getDashLayout() {
+  try {
+    const saved = localStorage.getItem('dash_layout_' + (me?.id||'agent'))
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      // 모든 카드가 포함됐는지 검증
+      const allCards = [...DASH_DEFAULT_LAYOUT.left, ...DASH_DEFAULT_LAYOUT.right]
+      const savedCards = [...(parsed.left||[]), ...(parsed.right||[])]
+      const valid = allCards.every(c => savedCards.includes(c))
+      if (valid) return parsed
+    }
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(DASH_DEFAULT_LAYOUT))
+}
+
+function saveDashLayout(layout) {
+  localStorage.setItem('dash_layout_' + (me?.id||'agent'), JSON.stringify(layout))
+}
+
+let _dashLayout = null
+let _dashDragCard = null
+let _dashData = {}
+
 async function vDashAgent() {
   try {
-    const [leads, listings] = await Promise.all([
+    const [leads, listings, activities] = await Promise.all([
       api('GET', '/api/leads'),
-      api('GET', `/api/listings?agent=${me.id}`)
+      api('GET', '/api/listings?agent=' + me.id),
+      api('GET', '/api/activities?limit=100').catch(() => [])
     ])
     const myLeads  = leads.filter(l => l.assigned_user_id === me.id)
     const myActive = myLeads.filter(l => !l.status.startsWith('CLOSED'))
     const myFU     = myActive.filter(l => l.next_followup_at && l.next_followup_at <= tod())
     const today    = new Date()
+
+    // 전역 데이터 저장
+    _dashData = { myLeads, myActive, myFU, listings, activities, today }
+    _dashLayout = getDashLayout()
+
     vc(`
 <div class="ph">
-  <div><div class="ph-title">Dashboard</div><div class="ph-sub">${me.name} · ${new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long'})}</div></div>
+  <div>
+    <div class="ph-title">Dashboard</div>
+    <div class="ph-sub">${me.name} · ${new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long'})}</div>
+  </div>
+  <div style="font-size:11px;color:var(--m)">${new Date().toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric'})}</div>
 </div>
 <div class="pb">
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
-  <div class="kpi"><div class="kpi-l">Active Leads</div><div class="kpi-v" style="color:var(--N)">${myActive.length}</div><div class="kpi-s">In pipeline</div></div>
-  <div class="kpi"><div class="kpi-l">My Listings</div><div class="kpi-v" style="color:var(--N)">${listings.length}</div><div class="kpi-s">Active ${listings.filter(l=>l.status==='ACTIVE').length}</div></div>
-  <div class="kpi"><div class="kpi-l">Follow-ups Today</div><div class="kpi-v" style="color:${myFU.length>0?'var(--R)':'var(--G)'}">${myFU.length}</div><div class="kpi-s">${myFU.length>0?'Action needed':'All done ✓'}</div></div>
-</div>
-<div class="g2">
-  <div>
-    <!-- Active Leads 테이블 -->
-    <div class="card" style="margin-bottom:12px">
-      <div class="card-h" style="justify-content:space-between">
-        <span><i class="ti ti-layout-kanban"></i> My Leads (${myActive.length})</span>
-        <button class="btn btn-o" style="font-size:10px;padding:4px 10px" onclick="nav('leads')">View Board →</button>
-      </div>
-      <div class="scroll-x">
-        <table class="tbl">
-          <tr><th>Contact</th><th>Budget</th><th>Preference</th><th>Move-in</th><th>Status</th><th>Days</th></tr>
-          ${myActive.slice(0,8).map(l => {
-            const days = Math.floor((today - new Date(l.created_at)) / 86400000)
-            const st   = LEAD_STATUSES.find(s=>s.key===l.status) || LEAD_STATUSES[0]
-            return `<tr onclick="vContactDetail('${l.contact_id}')" style="cursor:pointer">
-              <td style="font-weight:600">${l.contact?.name||'-'}${l.contact?.nickname?`<span style="font-size:10px;color:var(--m);font-weight:400"> (${l.contact.nickname})</span>`:''}</td>
-              <td style="font-weight:600">${l.budget?'₱'+Number(l.budget).toLocaleString()+(l.request_type==='RENT'?'/mo':''):'-'}</td>
-              <td style="font-size:11px;color:var(--m)">${l.preferred_buildings||l.location_pref||'-'}${l.property_type?' · '+l.property_type:''}</td>
-              <td style="font-size:11px">${l.move_in_date||'-'}</td>
-              <td><span style="background:${st.bg};color:${st.c};padding:2px 7px;border-radius:20px;font-size:10px;font-weight:500">${st.l}</span></td>
-              <td style="font-size:11px;color:var(--m)">${days}d</td>
-            </tr>`
-          }).join('')}
-        </table>
-      </div>
+  <!-- Summary Bar (고정, 이동 불가) -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+    <div class="kpi">
+      <div class="kpi-l">Active Leads</div>
+      <div class="kpi-v" style="color:var(--N)">${myActive.length}</div>
+      <div class="kpi-s">In pipeline</div>
     </div>
-    <!-- Follow-ups -->
-    <div class="card">
-      <div class="card-h"><span><i class="ti ti-bell-ringing"></i> Today's Follow-ups</span>${myFU.length>0?`<span class="bdg" style="background:#FDEAEA;color:#DC4A4A">${myFU.length}</span>`:''}</div>
-      ${myFU.length ? myFU.map(l=>{const s=SL[l.status]||{};return`
-      <div style="padding:9px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:flex-start">
-        <div><div style="font-weight:600">${l.contact?.name||'-'}</div>
-        <div style="font-size:10px;color:var(--m);margin-top:1px">${l.property_type||''} · ${fmt(l.budget)}${l.request_type==='RENT'?'/Month':''}</div></div>
-        <div style="flex-shrink:0;margin-left:10px">${bdg(s.l||l.status,s.bg||'#eee',s.c||'#666')}</div>
-      </div>`}).join('') : `<div style="padding:20px;text-align:center;color:var(--m)">No follow-ups today ✓</div>`}
+    <div class="kpi">
+      <div class="kpi-l">My Listings</div>
+      <div class="kpi-v" style="color:var(--N)">${listings.length}</div>
+      <div class="kpi-s">Active ${listings.filter(l=>l.status==='ACTIVE').length}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-l">To Do List</div>
+      <div class="kpi-v" style="color:${myFU.length>0?'var(--R)':'var(--G)'}">${myFU.length}</div>
+      <div class="kpi-s">${myFU.length>0?'Action needed':'All done ✓'}</div>
     </div>
   </div>
-  <div>
-    <div class="card">
-      <div class="card-h"><i class="ti ti-building"></i> My Listings (${listings.length})</div>
-      ${listings.slice(0,5).map(l=>{const st=SLS[l.status]||{l:l.status,bg:'#eee',c:'#666'};return`
-      <div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">
-        <div><div style="font-size:12px;font-weight:600">${l.name}</div>
-        <div style="font-size:10px;color:var(--m)">${l.address||''}</div></div>
-        <div style="text-align:right"><div style="font-size:12px;font-weight:600">${fmt(l.price)}${l.transaction_type==='RENT'?'/Month':''}</div>${bdg(st.l,st.bg,st.c)}</div>
-      </div>`}).join('')}
-      <div style="padding:10px 14px"><button class="btn btn-o" style="width:100%;justify-content:center;font-size:11px" onclick="nav('listings')">View All Listings →</button></div>
-    </div>
+
+  <!-- 2열 드래그 그리드 -->
+  <div id="dash-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
+    <div id="dash-col-left"  class="dash-col" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div id="dash-col-right" class="dash-col" style="display:flex;flex-direction:column;gap:10px"></div>
   </div>
 </div>`)
+
+    renderDashGrid()
+    initDashActivity()
   } catch(e) { err(e) }
 }
+
+// ── 카드 렌더링 ─────────────────────────────────────────────
+function renderDashGrid() {
+  const left  = document.getElementById('dash-col-left')
+  const right = document.getElementById('dash-col-right')
+  if (!left || !right) return
+
+  left.innerHTML  = ''
+  right.innerHTML = ''
+
+  _dashLayout.left.forEach(id  => { const el = buildDashCard(id);  if (el) left.appendChild(el) })
+  _dashLayout.right.forEach(id => { const el = buildDashCard(id); if (el) right.appendChild(el) })
+
+  // Drop zones 설정
+  ;['dash-col-left','dash-col-right'].forEach(colId => {
+    const col = document.getElementById(colId)
+    col.addEventListener('dragover', onDashDragOver)
+    col.addEventListener('drop',     onDashDrop)
+  })
+}
+
+function buildDashCard(cardId) {
+  const { myLeads, myActive, myFU, listings, activities, today } = _dashData
+  const wrap = document.createElement('div')
+  wrap.dataset.cardId = cardId
+  wrap.style.cssText  = 'background:#fff;border-radius:12px;border:1px solid var(--b);overflow:hidden;transition:box-shadow .15s'
+
+  // ── 드래그 핸들 헤더 ──
+  const header = document.createElement('div')
+  header.draggable = true
+  header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--b);cursor:grab;user-select:none;background:#FAFAF8'
+  header.addEventListener('dragstart', e => {
+    _dashDragCard = cardId
+    e.dataTransfer.effectAllowed = 'move'
+    setTimeout(() => wrap.style.opacity = '0.4', 0)
+  })
+  header.addEventListener('dragend', () => { wrap.style.opacity = '1' })
+
+  const CARD_TITLES = {
+    'my-leads':     { icon:'ti-layout-kanban', title:'My Leads (' + myActive.length + ')' },
+    'activity':     { icon:'ti-history',        title:'Activity History' },
+    'recent-deals': { icon:'ti-receipt',        title:'Recent Deals' },
+    'my-listings':  { icon:'ti-building',       title:'My Listings (' + listings.length + ')' },
+    'todo':         { icon:'ti-checkbox',       title:'To Do List (' + myFU.length + ')' }
+  }
+  const meta = CARD_TITLES[cardId] || { icon:'ti-layout', title:cardId }
+  header.innerHTML = '<span style="font-size:13px;font-weight:700;color:var(--N);display:flex;align-items:center;gap:6px">'
+    + '<i class="ti ' + meta.icon + '" style="font-size:14px"></i>' + meta.title + '</span>'
+    + '<i class="ti ti-grip-horizontal" style="color:var(--m);font-size:14px" title="Drag to move"></i>'
+
+  wrap.appendChild(header)
+
+  // ── 카드 본문 ──
+  const body = document.createElement('div')
+  body.innerHTML = buildDashCardBody(cardId)
+  wrap.appendChild(body)
+
+  return wrap
+}
+
+function buildDashCardBody(cardId) {
+  const { myLeads, myActive, myFU, listings, activities, today } = _dashData
+
+  if (cardId === 'my-leads') {
+    if (!myActive.length) return '<div style="padding:20px;text-align:center;color:var(--m);font-size:12px">No active leads</div>'
+    const rows = myActive.slice(0,8).map(l => {
+      const days = Math.floor((today - new Date(l.created_at)) / 86400000)
+      const st   = LEAD_STATUSES.find(s => s.key === l.status) || LEAD_STATUSES[0]
+      return '<tr onclick="vContactDetail(\'' + l.contact_id + '\')" style="cursor:pointer">'
+        + '<td style="font-weight:600">' + (l.contact?.name||'-')
+        + (l.contact?.nickname ? '<span style="font-size:10px;color:var(--m);font-weight:400"> (' + l.contact.nickname + ')</span>' : '')
+        + '</td>'
+        + '<td>' + (l.budget ? '₱' + Number(l.budget).toLocaleString() + (l.request_type==='RENT'?'/mo':'') : '-') + '</td>'
+        + '<td style="font-size:11px;color:var(--m)">' + (l.preferred_buildings||l.location_pref||'-') + '</td>'
+        + '<td><span style="background:' + st.bg + ';color:' + st.c + ';padding:2px 7px;border-radius:20px;font-size:10px">' + st.l + '</span></td>'
+        + '<td style="font-size:11px;color:var(--m)">' + days + 'd</td>'
+        + '</tr>'
+    }).join('')
+    return '<div style="padding:0 0 4px">'
+      + '<div style="padding:4px 14px 0;display:flex;justify-content:flex-end">'
+      + '<button class="btn btn-o" style="font-size:10px;padding:3px 10px" onclick="nav(\'leads\')">View Board →</button></div>'
+      + '<div class="scroll-x"><table class="tbl">'
+      + '<tr><th>Contact</th><th>Budget</th><th>Preference</th><th>Status</th><th>Days</th></tr>'
+      + rows + '</table></div></div>'
+  }
+
+  if (cardId === 'activity') {
+    return '<div style="padding:10px 14px 6px">'
+      + '<div style="position:relative;margin-bottom:8px">'
+      + '<i class="ti ti-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--m);font-size:12px"></i>'
+      + '<input id="agent-act-search" type="text" placeholder="Contact Search by name..."'
+      + ' style="width:100%;padding:6px 10px 6px 28px;border:1px solid var(--b);border-radius:8px;font-size:12px;outline:none;box-sizing:border-box"'
+      + ' oninput="renderAgentActivity()"'
+      + ' onfocus="this.style.borderColor=\'var(--A)\'" onblur="this.style.borderColor=\'var(--b)\'">'
+      + '</div>'
+      + '<div id="agent-act-type-bar" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">'
+      + ['All','Call','Message','Site Visit','Listing Offer','LOI','Contract','Other'].map((t,i) =>
+          '<button onclick="setAgentActType(this,\'' + t + '\')" style="padding:3px 10px;border-radius:14px;border:1px solid var(--b);background:'
+          + (i===0?'var(--N)':'transparent') + ';color:' + (i===0?'#fff':'var(--m)')
+          + ';font-size:10px;cursor:pointer">' + t + '</button>'
+        ).join('')
+      + '</div>'
+      + '</div>'
+      + '<div id="agent-act-list" style="max-height:360px;overflow-y:auto;border-top:1px solid var(--b)">'
+      + '<div style="padding:16px;text-align:center;color:var(--m)">Loading...</div>'
+      + '</div>'
+  }
+
+  if (cardId === 'recent-deals') {
+    // recent deals는 API 데이터가 필요하므로 비동기 로드
+    setTimeout(loadAgentRecentDeals, 100)
+    return '<div id="agent-deals-list"><div style="padding:16px;text-align:center;color:var(--m)">Loading...</div></div>'
+  }
+
+  if (cardId === 'my-listings') {
+    if (!listings.length) return '<div style="padding:20px;text-align:center;color:var(--m);font-size:12px">No listings yet</div>'
+    const rows = listings.slice(0,5).map(l => {
+      const st = SLS[l.status] || { l:l.status, bg:'#eee', c:'#666' }
+      return '<div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">'
+        + '<div><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px">' + l.name + '</div>'
+        + '<div style="font-size:10px;color:var(--m)">' + (l.address||'') + '</div></div>'
+        + '<div style="text-align:right">'
+        + '<div style="font-size:12px;font-weight:600">' + fmt(l.price) + (l.transaction_type==='RENT'?'/mo':'') + '</div>'
+        + '<span style="font-size:9px;background:' + st.bg + ';color:' + st.c + ';padding:1px 6px;border-radius:10px">' + st.l + '</span>'
+        + '</div></div>'
+    }).join('')
+    return rows + '<div style="padding:8px 14px">'
+      + '<button class="btn btn-o" style="width:100%;justify-content:center;font-size:11px" onclick="nav(\'listings\')">View All Listings →</button>'
+      + '</div>'
+  }
+
+  if (cardId === 'todo') {
+    if (!myFU.length) return '<div style="padding:20px;text-align:center;color:var(--m);font-size:12px">No follow-ups today ✓</div>'
+    return myFU.map(l => {
+      const s = SL[l.status] || {}
+      return '<div style="padding:9px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:flex-start;cursor:pointer" onclick="vContactDetail(\'' + l.contact_id + '\')">'
+        + '<div>'
+        + '<div style="font-weight:600;font-size:12px">' + (l.contact?.name||'-') + '</div>'
+        + '<div style="font-size:10px;color:var(--m);margin-top:2px">'
+        + (l.property_type||'') + ' · ' + fmt(l.budget) + (l.request_type==='RENT'?'/mo':'')
+        + '</div></div>'
+        + '<span style="background:' + (s.bg||'#eee') + ';color:' + (s.c||'#666') + ';padding:2px 7px;border-radius:20px;font-size:10px">' + (s.l||l.status) + '</span>'
+        + '</div>'
+    }).join('')
+  }
+
+  return '<div style="padding:20px;text-align:center;color:var(--m)">No data</div>'
+}
+
+// ── Activity 필터 ──────────────────────────────────────────
+let _agentActType = 'All'
+
+function setAgentActType(btn, type) {
+  _agentActType = type
+  const bar = document.getElementById('agent-act-type-bar')
+  if (bar) bar.querySelectorAll('button').forEach(b => {
+    b.style.background = b.textContent === type ? 'var(--N)' : 'transparent'
+    b.style.color      = b.textContent === type ? '#fff' : 'var(--m)'
+  })
+  renderAgentActivity()
+}
+
+function renderAgentActivity() {
+  const wrap = document.getElementById('agent-act-list')
+  if (!wrap) return
+  const q = (document.getElementById('agent-act-search')?.value||'').toLowerCase()
+  const typeKeyMap = {
+    'Call':'CALL','Message':'MESSAGE','Site Visit':'VISIT',
+    'Listing Offer':'OFFER','LOI':'LOI','Contract':'CONTRACT','Other':'OTHER'
+  }
+  const myActs = (_dashData.activities||[]).filter(a => a.agent_user_id === me?.id || !a.agent_user_id)
+  let filtered = myActs.filter(a => {
+    if (_agentActType !== 'All' && a.activity_type !== typeKeyMap[_agentActType]) return false
+    if (q && !(a.contact?.name||'').toLowerCase().includes(q)
+          && !(a.notes||'').toLowerCase().includes(q)) return false
+    return true
+  })
+
+  if (!filtered.length) {
+    wrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--m)">No activities found</div>'
+    return
+  }
+
+  const todayStr = tod()
+  const yesterdayStr = new Date(Date.now()-86400000).toISOString().slice(0,10)
+  const groups = {}
+  filtered.forEach(a => {
+    const d = (a.created_at||'').slice(0,10)
+    const label = d === todayStr ? 'Today' : d === yesterdayStr ? 'Yesterday' : d
+    if (!groups[label]) groups[label] = []
+    groups[label].push(a)
+  })
+
+  const typeMap = { CALL:'📞', MESSAGE:'💬', VISIT:'🏠', OFFER:'📋', LOI:'✍️', CONTRACT:'📄', OTHER:'📌' }
+  wrap.innerHTML = Object.entries(groups).map(([label, items]) => {
+    const rows = items.map(a => {
+      const icon = typeMap[a.activity_type] || '📌'
+      const t    = ACT_TYPE[a.activity_type] || { l:a.activity_type, bg:'#F1EFE8', c:'#5F5E5A' }
+      const ct   = CT[a.contact?.type] || null
+      const time = (a.created_at||'').slice(11,16)
+      return '<div style="display:flex;gap:10px;padding:8px 14px;border-bottom:1px solid var(--b);align-items:flex-start">'
+        + '<div style="font-size:15px;flex-shrink:0">' + icon + '</div>'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">'
+        + '<span style="font-size:12px;font-weight:700;cursor:pointer;color:var(--N)" onclick="vContactDetail(' + JSON.stringify(a.contact_id) + ')">' + (a.contact?.name||'-') + '</span>'
+        + (ct ? '<span style="font-size:9px;background:' + ct.bg + ';color:' + ct.c + ';padding:1px 5px;border-radius:8px">' + ct.l + '</span>' : '')
+        + '<span style="font-size:10px;background:' + t.bg + ';color:' + t.c + ';padding:1px 5px;border-radius:8px">' + t.l + '</span>'
+        + (a.listing?.name ? '<span style="font-size:10px;color:var(--m)">· ' + a.listing.name + '</span>' : '')
+        + '</div>'
+        + (a.notes ? '<div style="font-size:11px;color:var(--m);margin-top:1px">' + a.notes + '</div>' : '')
+        + (a.next_followup_at ? '<div style="font-size:10px;color:var(--A)"><i class="ti ti-calendar-event"></i> Follow-up: ' + a.next_followup_at + '</div>' : '')
+        + '</div>'
+        + '<div style="text-align:right;flex-shrink:0">'
+        + '<div style="font-size:10px;color:var(--m)">' + time + '</div>'
+        + '</div>'
+        + '</div>'
+    }).join('')
+    return '<div style="background:#F8F5F0;padding:5px 14px;font-size:11px;font-weight:700;color:var(--m);position:sticky;top:0;z-index:1">' + label + '</div>' + rows
+  }).join('')
+}
+
+function initDashActivity() {
+  setTimeout(renderAgentActivity, 100)
+}
+
+async function loadAgentRecentDeals() {
+  try {
+    const deals = await api('GET', '/api/deals')
+    const wrap  = document.getElementById('agent-deals-list')
+    if (!wrap) return
+    const mine = deals.filter(d => d.tenant_agent_user_id === me?.id || d.owner_agent_user_id === me?.id).slice(0,5)
+    if (!mine.length) { wrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--m);font-size:12px">No deals yet</div>'; return }
+    wrap.innerHTML = mine.map(d =>
+      '<div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">'
+      + '<div><div style="font-size:12px;font-weight:600">' + (d.listing?.name||'-') + '</div>'
+      + '<div style="font-size:10px;color:var(--m)">' + (d.contract_date||'') + '</div></div>'
+      + '<div style="text-align:right"><div style="font-size:12px;font-weight:700">' + fmt(d.gross_commission) + '</div>'
+      + '<div style="font-size:10px;color:var(--G)">Net ' + fmt(d.net_company_income) + '</div></div>'
+      + '</div>'
+    ).join('')
+  } catch(e) { console.warn('Deals load error:', e.message) }
+}
+
+// ── 드래그 앤 드롭 ─────────────────────────────────────────
+function onDashDragOver(e) {
+  e.preventDefault()
+  e.dataTransfer.dropEffect = 'move'
+  // 드롭 위치 표시
+  const col = e.currentTarget
+  const cards = [...col.querySelectorAll('[data-card-id]')]
+  const indicator = col.querySelector('.dash-drop-indicator') || (() => {
+    const el = document.createElement('div')
+    el.className = 'dash-drop-indicator'
+    el.style.cssText = 'height:3px;background:var(--A);border-radius:2px;margin:4px 0;transition:all .1s'
+    return el
+  })()
+
+  // 마우스 위치에 가장 가까운 카드 찾기
+  const afterEl = getDragAfterElement(col, e.clientY)
+  if (afterEl == null) {
+    col.appendChild(indicator)
+  } else {
+    col.insertBefore(indicator, afterEl)
+  }
+}
+
+function getDragAfterElement(container, y) {
+  const draggables = [...container.querySelectorAll('[data-card-id]')]
+  return draggables.reduce((closest, child) => {
+    const box = child.getBoundingClientRect()
+    const offset = y - box.top - box.height / 2
+    if (offset < 0 && offset > closest.offset) {
+      return { offset, element: child }
+    }
+    return closest
+  }, { offset: Number.NEGATIVE_INFINITY }).element
+}
+
+function onDashDrop(e) {
+  e.preventDefault()
+  if (!_dashDragCard) return
+
+  // 인디케이터 제거
+  document.querySelectorAll('.dash-drop-indicator').forEach(el => el.remove())
+
+  const targetCol = e.currentTarget
+  const colId = targetCol.id === 'dash-col-left' ? 'left' : 'right'
+  const otherColId = colId === 'left' ? 'right' : 'left'
+
+  // 현재 레이아웃에서 카드 제거
+  _dashLayout.left  = _dashLayout.left.filter(c => c !== _dashDragCard)
+  _dashLayout.right = _dashLayout.right.filter(c => c !== _dashDragCard)
+
+  // 드롭 위치 결정
+  const cards = [...targetCol.querySelectorAll('[data-card-id]')]
+  const afterEl = getDragAfterElement(targetCol, e.clientY)
+
+  if (afterEl == null) {
+    // 맨 아래에 추가
+    _dashLayout[colId].push(_dashDragCard)
+  } else {
+    const afterCardId = afterEl.dataset.cardId
+    const idx = _dashLayout[colId].indexOf(afterCardId)
+    _dashLayout[colId].splice(idx, 0, _dashDragCard)
+  }
+
+  saveDashLayout(_dashLayout)
+  renderDashGrid()
+  _dashDragCard = null
+}
+
 
 // ═══════════ CONTACT DETAIL ═══════════
 async function vContactDetail(id) {
