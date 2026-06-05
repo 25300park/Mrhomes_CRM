@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MrHomes CRM</title>
+<title>RBS Homes CRM</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -182,7 +182,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
   <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
     <i class="ti ti-menu-2"></i>
   </button>
-  <div class="m-logo"><img src="https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logos.jpg" style="height:28px;object-fit:contain"></div>
+  <div class="m-logo"><img src="https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logo%20white-15.png" style="height:28px;object-fit:contain"></div>
   <button class="notif-btn" onclick="toggleNotifPanel()" style="position:relative">
     <i class="ti ti-bell"></i>
     <span class="notif-badge" id="notif-badge-m" style="display:none">0</span>
@@ -195,13 +195,22 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo"><img src="https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logos.jpg" style="height:48px;object-fit:contain;margin-bottom:8px"></div>
-    <div class="login-sub">Real Estate Brokerage CRM · Philippines</div>
+    <div style="text-align:center;margin-bottom:20px">
+      <img src="https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logo%20white-15.png" style="height:64px;object-fit:contain;display:block;margin:0 auto 8px">
+    </div>
     <form id="lf">
       <label class="ll">Email</label>
-      <input class="li" type="email" id="lem" placeholder="may@rbshomes.ph" required>
+      <input class="li" type="email" id="lem" placeholder="email@example.com"
+        autocomplete="username" required>
       <label class="ll">Password</label>
-      <input class="li" type="password" id="lpw" placeholder="rbs2026!" required>
+      <input class="li" type="password" id="lpw" placeholder="Password"
+        autocomplete="current-password" required>
+      <!-- 아이디/비밀번호 저장 -->
+      <div style="display:flex;align-items:center;gap:8px;margin:8px 0 14px;font-size:12px;color:var(--m)">
+        <input type="checkbox" id="remember-me" style="width:15px;height:15px;cursor:pointer"
+          onchange="toggleRememberMe(this.checked)">
+        <label for="remember-me" style="cursor:pointer;user-select:none">아이디/비밀번호 저장</label>
+      </div>
       <button type="submit" class="login-btn" id="lbtn">Sign In</button>
       <div id="login-err">Email 또는 Password가 올바르지 않습니다</div>
     </form>
@@ -211,9 +220,8 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 <!-- APP -->
 <div id="app">
   <aside id="sidebar">
-    <div class="sb-logo" style="padding:10px 16px">
-      <img src="https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logos.jpg" style="height:36px;object-fit:contain;max-width:100%">
-      <div class="sb-logo-s" style="margin-top:4px">Real Estate Brokerage CRM</div>
+    <div class="sb-logo" style="text-align:center;padding:12px 16px">
+      <img src="https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logo%20white-15.png" style="height:40px;object-fit:contain;max-width:100%">
     </div>
     <div style="flex:1;overflow-y:auto;padding-top:6px">
       <div class="nav-sec">Main</div>
@@ -1000,8 +1008,43 @@ function vc(html) { document.getElementById('vc').innerHTML = html }
 function err(e) { vc(`<div class="loading" style="color:var(--R)"><i class="ti ti-alert-circle"></i> Error: ${e.message}</div>`) }
 
 // ═══════════ AUTH ═══════════
+// 아이디/비번 저장 기능
+function toggleRememberMe(checked) {
+  if (checked) {
+    const email = document.getElementById('lem').value
+    const pw    = document.getElementById('lpw').value
+    if (email) localStorage.setItem('crm_saved_email', email)
+    if (pw)    localStorage.setItem('crm_saved_pw', pw)
+  } else {
+    localStorage.removeItem('crm_saved_email')
+    localStorage.removeItem('crm_saved_pw')
+    localStorage.removeItem('crm_remember')
+  }
+  localStorage.setItem('crm_remember', checked ? '1' : '0')
+}
+
+// 저장된 계정 자동채움
+;(function() {
+  const rem = localStorage.getItem('crm_remember') === '1'
+  const chk = document.getElementById('remember-me')
+  if (chk) chk.checked = rem
+  if (rem) {
+    const email = localStorage.getItem('crm_saved_email')
+    const pw    = localStorage.getItem('crm_saved_pw')
+    const eEl   = document.getElementById('lem')
+    const pEl   = document.getElementById('lpw')
+    if (email && eEl) eEl.value = email
+    if (pw    && pEl) pEl.value = pw
+  }
+})()
+
 document.getElementById('lf').addEventListener('submit', async e => {
   e.preventDefault()
+  // 저장 체크 시 현재 입력값 업데이트
+  if (localStorage.getItem('crm_remember') === '1') {
+    localStorage.setItem('crm_saved_email', document.getElementById('lem').value)
+    localStorage.setItem('crm_saved_pw',    document.getElementById('lpw').value)
+  }
   const btn = document.getElementById('lbtn')
   const er  = document.getElementById('login-err')
   btn.textContent = 'Sign In 중...'; btn.disabled = true; er.style.display = 'none'
@@ -1131,6 +1174,9 @@ document.addEventListener('click', e => {
 function nav(v) {
   document.querySelectorAll('.nav-it').forEach(e => e.classList.toggle('active', e.dataset.v === v))
   vc('<div class="loading">Loading...</div>')
+  // 뒤로가기 지원 — history 기록
+  const newHash = '#' + v
+  if (location.hash !== newHash) history.pushState({ view: v }, '', newHash)
   const views = { dashboard: vDash, contacts: vCust, listings: vList, leads: vLeads, deals: vDeals, accounting: vAcct, staff: vStaff, tenants: vTenants, documents: vDocuments, 'pms-payments': vPmsPayments, 'pms-care': vPmsCare }
   if (window.innerWidth < 768) closeSidebar()
   return views[v] ? views[v]() : Promise.resolve()
@@ -1205,82 +1251,8 @@ async function vDashAdmin() {
       </div>`).join('')}
     </div>
   </div>
-
-  <!-- 전체 Lead Pipeline -->
-  <div style="margin-top:14px">
-    <div class="card">
-      <div class="card-h" style="justify-content:space-between">
-        <span><i class="ti ti-layout-kanban"></i> 전체 Lead Pipeline</span>
-        <button class="btn btn-o" style="font-size:10px;padding:4px 10px" onclick="nav('leads')">Board 보기 →</button>
-      </div>
-      <div id="dash-pipeline-wrap"><div style="padding:16px;text-align:center;color:var(--m)">Loading...</div></div>
-    </div>
-  </div>
-
-  <!-- 최근 Activity -->
-  <div style="margin-top:10px" id="dash-activity-wrap">
-    <div class="card">
-      <div class="card-h"><i class="ti ti-history"></i> 최근 Activity (전체)</div>
-      <div id="dash-activity-list"><div style="padding:16px;text-align:center;color:var(--m)">Loading...</div></div>
-    </div>
-  </div>
-
 </div></div>`)
   } catch(e) { err(e) }
-  // 비동기로 Lead Pipeline & Activity 로드
-  loadDashPipeline()
-  loadDashActivity()
-}
-
-async function loadDashPipeline() {
-  try {
-    const leads = await api('GET', '/api/leads')
-    const active = leads.filter(l => !l.status.startsWith('CLOSED')).slice(0, 15)
-    const wrap = document.getElementById('dash-pipeline-wrap')
-    if (!wrap) return
-    if (!active.length) { wrap.innerHTML = '<div style="padding:16px;text-align:center;color:var(--m)">Active Lead가 없습니다</div>'; return }
-    const rows = active.map(l => {
-      const st = LEAD_STATUSES.find(s => s.key === l.status) || LEAD_STATUSES[0]
-      const fu = l.next_followup_at
-        ? (l.next_followup_at <= tod()
-            ? '<span style="color:#DC4A4A;font-weight:700">오늘!</span>'
-            : l.next_followup_at.slice(0,10))
-        : '-'
-      return '<tr onclick="vContactDetail(\'' + l.contact_id + '\')" style="cursor:pointer">'
-        + '<td style="font-size:11px">' + ((l.assigned_user?.name) || '-') + '</td>'
-        + '<td style="font-weight:600">' + (l.contact?.name || '-') + '</td>'
-        + '<td><span class="bdg" style="background:#E6F1FB;color:#185FA5">' + (l.request_type || '-') + '</span></td>'
-        + '<td>' + (l.budget ? '₱' + Number(l.budget).toLocaleString() + (l.request_type === 'RENT' ? '/mo' : '') : '-') + '</td>'
-        + '<td style="font-size:11px;color:var(--m)">' + (l.location_pref || '-') + '</td>'
-        + '<td><span style="background:' + st.bg + ';color:' + st.c + ';padding:2px 7px;border-radius:20px;font-size:10px">' + st.l + '</span></td>'
-        + '<td style="font-size:11px">' + fu + '</td>'
-        + '</tr>'
-    }).join('')
-    wrap.innerHTML = '<div class="scroll-x"><table class="tbl">'
-      + '<tr><th>담당자</th><th>Contact</th><th>Type</th><th>Budget</th><th>지역</th><th>Status</th><th>Follow-up</th></tr>'
-      + rows + '</table></div>'
-  } catch(e) { console.warn('Pipeline load error:', e.message) }
-}
-
-async function loadDashActivity() {
-  try {
-    const acts = await api('GET', '/api/activities?limit=10')
-    const wrap = document.getElementById('dash-activity-list')
-    if (!wrap) return
-    if (!acts.length) { wrap.innerHTML = '<div style="padding:16px;text-align:center;color:var(--m)">Activity 내역이 없습니다</div>'; return }
-    const typeMap = { CALL:'📞', EMAIL:'📧', MEETING:'🤝', NOTE:'📝', TASK:'✅', VIEWING:'🏠' }
-    wrap.innerHTML = acts.map(a =>
-      '<div style="display:flex;gap:10px;padding:8px 14px;border-bottom:1px solid var(--b);align-items:flex-start">'
-      + '<div style="font-size:18px;flex-shrink:0">' + (typeMap[a.activity_type] || '📌') + '</div>'
-      + '<div style="flex:1;min-width:0">'
-      + '<div style="font-size:12px;font-weight:600">' + (a.contact?.name || '-')
-      + ' <span style="font-weight:400;color:var(--m)">· ' + (a.agent?.name || '') + '</span></div>'
-      + '<div style="font-size:11px;color:var(--m)">' + (a.notes || '').slice(0, 80) + '</div>'
-      + '</div>'
-      + '<div style="font-size:10px;color:var(--m);flex-shrink:0">' + (a.created_at || '').slice(0, 10) + '</div>'
-      + '</div>'
-    ).join('')
-  } catch(e) { console.warn('Activity load error:', e.message) }
 }
 
 // 직원 대시보드 (Contact·Listing 중심)
@@ -1353,40 +1325,8 @@ async function vDashAgent() {
       <div style="padding:10px 14px"><button class="btn btn-o" style="width:100%;justify-content:center;font-size:11px" onclick="nav('listings')">View All Listings →</button></div>
     </div>
   </div>
-
-  <!-- My Activity History -->
-  <div style="margin-top:14px">
-    <div class="card">
-      <div class="card-h"><i class="ti ti-history"></i> My Recent Activity</div>
-      <div id="agent-activity-list"><div style="padding:16px;text-align:center;color:var(--m)">Loading...</div></div>
-    </div>
-  </div>
 </div>`)
   } catch(e) { err(e) }
-  loadAgentActivity()
-}
-
-async function loadAgentActivity() {
-  try {
-    const acts = await api('GET', '/api/activities?limit=10')
-    const wrap = document.getElementById('agent-activity-list')
-    if (!wrap) return
-    if (!acts.length) {
-      wrap.innerHTML = '<div style="padding:16px;text-align:center;color:var(--m)">Activity 내역이 없습니다</div>'
-      return
-    }
-    const typeMap = { CALL:'📞', EMAIL:'📧', MEETING:'🤝', NOTE:'📝', TASK:'✅', VIEWING:'🏠' }
-    wrap.innerHTML = acts.map(a =>
-      '<div style="display:flex;gap:10px;padding:8px 14px;border-bottom:1px solid var(--b);align-items:flex-start">'
-      + '<div style="font-size:18px;flex-shrink:0">' + (typeMap[a.activity_type] || '📌') + '</div>'
-      + '<div style="flex:1;min-width:0">'
-      + '<div style="font-size:12px;font-weight:600">' + (a.contact?.name || '-') + '</div>'
-      + '<div style="font-size:11px;color:var(--m)">' + (a.notes || '').slice(0, 80) + '</div>'
-      + '</div>'
-      + '<div style="font-size:10px;color:var(--m);flex-shrink:0">' + (a.created_at || '').slice(0, 10) + '</div>'
-      + '</div>'
-    ).join('')
-  } catch(e) { console.warn('Agent activity error:', e.message) }
 }
 
 // ═══════════ CONTACT DETAIL ═══════════
@@ -1682,8 +1622,18 @@ async function saveContactActivity(contactId) {
 // Lead 액션 버튼 렌더링 (백틱 중첩 방지용 별도 함수)
 function renderLeadAction(l, contactId) {
   if (l.status === 'CLOSED_WON') {
-    // 인라인 onclick 사용 (wrapper.innerHTML 직렬화 시 이벤트 핸들러 손실 방지)
-    return '<button onclick="event.stopPropagation();goToTenantsFromLead(\''+l.id+'\',\''+contactId+'\')"\'  style="background:#19846B;color:#fff;border:none;padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">Go to Tenants →</button>'
+    const btn = document.createElement('button')
+    btn.textContent = 'Go to Tenants →'
+    btn.setAttribute('data-lid', l.id)
+    btn.setAttribute('data-cid', contactId)
+    btn.style.cssText = 'background:#19846B;color:#fff;border:none;padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap'
+    btn.onclick = function(e) {
+      e.stopPropagation()
+      goToTenantsFromLead(this.dataset.lid, this.dataset.cid)
+    }
+    const wrapper = document.createElement('div')
+    wrapper.appendChild(btn)
+    return wrapper.innerHTML
   }
   if (!l.status.startsWith('CLOSED')) {
     const opts = Object.entries(LEAD_STATUS_LABELS)
@@ -1691,22 +1641,36 @@ function renderLeadAction(l, contactId) {
         const k = entry[0], v = entry[1]
         return '<option value="' + k + '"' + (l.status === k ? ' selected' : '') + '>' + v + '</option>'
       }).join('')
-    return '<select class="fs" style="font-size:11px;padding:4px 8px;width:auto" onchange="quickLeadStatusChange(\''+l.id+'\',\''+contactId+'\',this.value)">' + opts + '</select>'
+    return '<select class="fs" style="font-size:11px;padding:4px 8px;width:auto" data-lid="' + l.id + '" data-cid="' + contactId + '" onchange="quickLeadStatusChange(this.dataset.lid,this.dataset.cid,this.value)">' + opts + '</select>'
   }
   return ''
 }
 
 // Lead → Tenants 이동 (계약 생성 모달 자동 오픈)
-let _pendingDeleteLeadId = null  // 계약 저장 후 삭제할 Lead ID
-
 async function goToTenantsFromLead(leadId, contactId) {
-  if (!confirm('이 Lead를 Tenants로 이동하시겠습니까?\n계약 등록 창이 열리며 Lead 정보가 자동으로 채워집니다.')) return
+  if (!confirm('이 Lead를 Tenants로 이동하시겠습니까? 계약 등록 창이 열리며 Lead 정보가 자동으로 채워집니다. 등록 완료 후 이 Lead는 삭제됩니다.')) return
   try {
     const lead = await api('GET', '/api/leads/' + leadId)
-    _pendingDeleteLeadId = leadId  // 계약 저장 후 삭제 대기
-    nav('tenants')  // Tenants 탭으로 이동
-    await new Promise(r => setTimeout(r, 300))  // 탭 렌더링 대기
+    if (!_contacts.length) {
+      _contacts = await api('GET', '/api/contacts').catch(function() { return [] })
+    }
     await openNewContractFromLead(lead)
+    window._pendingDeleteLeadId = leadId
+    const _origSave = window.saveNewContract
+    window.saveNewContract = async function() {
+      await _origSave()
+      if (window._pendingDeleteLeadId) {
+        try {
+          await api('DELETE', '/api/leads/' + window._pendingDeleteLeadId)
+          window._pendingDeleteLeadId = null
+          toast('Lead가 삭제되고 Tenants로 이동되었습니다')
+        } catch(e2) {
+          console.warn('Lead 삭제 실패:', e2.message)
+        }
+      }
+      window.saveNewContract = _origSave
+      setTimeout(function() { nav('tenants') }, 500)
+    }
   } catch(e) {
     alert('오류: ' + e.message)
   }
@@ -1719,75 +1683,19 @@ async function quickLeadStatusChange(leadId, contactId, status) {
     vContactDetail(contactId)
   } catch(e) { alert(e.message) }
 }
-function addLeadForContact(contactId, contactName) {
-  // 폼 초기화
-  ;['al-budget','al-location','al-remarks','al-min-price','al-bedrooms','al-bathrooms','al-area-sqm'].forEach(id => {
-    const el = document.getElementById(id)
-    if (el) el.value = ''
-  })
-  const typeEl = document.getElementById('al-type')
-  if (typeEl) typeEl.value = 'RENT'
-  const furEl = document.getElementById('al-furnished')
-  if (furEl) furEl.value = ''
-  const petEl = document.getElementById('al-pet')
-  if (petEl) petEl.value = ''
-
-  // Staff 목록 채우기
-  const agentEl = document.getElementById('al-agent')
-  if (agentEl) {
-    const staffOpts = (_staff||[]).map(s => '<option value="' + s.id + '">' + s.name + '</option>').join('')
-    agentEl.innerHTML = '<option value="">-- Select --</option>' + staffOpts
-    agentEl.value = me?.id || ''
-  }
-
-  // Contact 정보
-  const label = document.getElementById('al-contact-label')
-  if (label) label.textContent = contactName + '의 Lead 추가'
-
-  document.getElementById('al-contact-id').value   = contactId
-  document.getElementById('al-contact-name').value = contactName
-  document.getElementById('modal-add-lead').style.display = 'flex'
-}
-
-async function saveAddLead() {
-  const contactId  = document.getElementById('al-contact-id')?.value
-  const type       = document.getElementById('al-type')?.value
-  const budget     = parseFloat(document.getElementById('al-budget')?.value) || null
-  const minPrice   = parseFloat(document.getElementById('al-min-price')?.value) || null
-  const location   = document.getElementById('al-location')?.value.trim() || null
-  const remarks    = document.getElementById('al-remarks')?.value.trim() || null
-  const bedrooms   = parseInt(document.getElementById('al-bedrooms')?.value) || null
-  const bathrooms  = parseInt(document.getElementById('al-bathrooms')?.value) || null
-  const areaSqm    = parseFloat(document.getElementById('al-area-sqm')?.value) || null
-  const furnished  = document.getElementById('al-furnished')?.value || null
-  const petVal     = document.getElementById('al-pet')?.value
-  const pet        = petVal === 'true' ? true : petVal === 'false' ? false : null
-  const agentId    = document.getElementById('al-agent')?.value || me?.id
-
-  if (!contactId) { alert('Contact 정보가 없습니다'); return }
-  if (!type)      { alert('Lead Type을 선택해주세요'); return }
-
+async function addLeadForContact(contactId, contactName) {
+  const type=prompt(`${contactName}의 요청 Type:\nRENT (Rent)\nBUY (Sale)`)?.toUpperCase()
+  if (!['RENT','BUY'].includes(type)) return
+  const budget=parseFloat(prompt('예산 (PHP):'))
+  if (!budget) return
+  const location=prompt('선호 지역 (예: BGC, Makati):')
+  const remarks=prompt('요구사항 Notes:')
   try {
-    await api('POST', '/api/leads', {
-      contact_id:       contactId,
-      request_type:     type,
-      budget:           budget,
-      min_price:        minPrice,
-      location_pref:    location,
-      bedrooms:         bedrooms,
-      bathrooms:        bathrooms,
-      area_sqm:         areaSqm,
-      furnished_pref:   furnished,
-      pet_friendly:     pet,
-      remarks:          remarks,
-      assigned_user_id: agentId || me?.id,
-      status:           'NEW'
-    })
-    toast('✓ Lead 추가됨')
-    closeModal('modal-add-lead')
-    vContactDetail(contactId)
+    await api('POST','/api/leads',{contact_id:contactId,request_type:type,budget,location_pref:location||null,remarks:remarks||null,assigned_user_id:me?.id,status:'NEW'})
+    toast('리드가 Added'); vContactDetail(contactId)
   } catch(e) { alert(e.message) }
 }
+
 async function vCust() {
   try {
     // 본인 연락처만 표시 (admin은 전체)
@@ -2437,16 +2345,54 @@ function restoreScroll(view) {
 }
 
 // 브라우저 뒤로가기 처리
+// F5/Ctrl+R 새로고침 → 현재 탭 데이터만 재로드
+window.addEventListener('keydown', e => {
+  if (!token) return  // 로그인 전은 정상 새로고침
+  const isF5    = e.key === 'F5'
+  const isCtrlR = (e.ctrlKey || e.metaKey) && e.key === 'r'
+  if (isF5 || isCtrlR) {
+    e.preventDefault()
+    // 현재 활성 탭 재로드
+    const activeBtn = document.querySelector('.nav-it.active, .nav-it[style*="background"]')
+    const activeView = document.querySelector('#app [data-view]')
+    // URL hash 기반으로 현재 위치 파악
+    const hash = location.hash
+    if (hash.startsWith('#contact/')) {
+      const id = hash.replace('#contact/', '')
+      if (id) vContactDetail(id)
+    } else if (hash.startsWith('#listing/')) {
+      const id = hash.replace('#listing/', '')
+      if (id) vListingDetail(id)
+    } else if (hash.startsWith('#tenant/')) {
+      const id = hash.replace('#tenant/', '')
+      if (id) vTenantDetail(id)
+    } else {
+      // 현재 nav 상태로 재로드
+      const cur = Array.from(document.querySelectorAll('.nav-it')).find(b => b.classList.contains('active') || b.style.background)
+      const curView = cur?.dataset?.v || 'dashboard'
+      nav(curView)
+    }
+    toast('새로고침 완료')
+  }
+})
+
 window.addEventListener('popstate', e => {
   const v = e.state?.view
-  if (!v || !token) return
-  if (['dashboard','contacts','listings','deals','accounting','staff'].includes(v)) {
-    nav(v).then(() => restoreScroll(v))
-  } else if (v === 'contact-detail' && e.state?.id) {
-    vContactDetail(e.state.id)
-  } else if (v === 'tenant-detail' && e.state?.id) {
-    vTenantDetail(e.state.id)
+  if (!token) return
+  if (!v) {
+    // state 없으면 hash로 판단
+    const hash = location.hash
+    if (hash.startsWith('#contact/'))  { vContactDetail(hash.replace('#contact/', '')); return }
+    if (hash.startsWith('#listing/'))  { vListingDetail(hash.replace('#listing/', '')); return }
+    if (hash.startsWith('#tenant/'))   { vTenantDetail(hash.replace('#tenant/', '')); return }
+    nav('dashboard'); return
   }
+  if (['dashboard','contacts','listings','leads','deals','accounting','staff','tenants','documents'].includes(v)) {
+    nav(v).then(() => restoreScroll(v))
+  } else if (v === 'contact-detail'  && e.state?.id) { vContactDetail(e.state.id) }
+  else if   (v === 'listing-detail'  && e.state?.id) { vListingDetail(e.state.id) }
+  else if   (v === 'tenant-detail'   && e.state?.id) { vTenantDetail(e.state.id) }
+  else { nav('dashboard') }
 })
 
 
@@ -2897,6 +2843,43 @@ async function vList() {
     renderListView(allData)
   } catch(e) { err(e) }
 }
+
+let _listingSearchQ = ''
+
+function filterListings(q) {
+  _listingSearchQ = q.toLowerCase().trim()
+  let filtered = _listings
+  if (_listingSearchQ) {
+    filtered = _listings.filter(l =>
+      (l.name        || '').toLowerCase().includes(_listingSearchQ) ||
+      (l.address     || '').toLowerCase().includes(_listingSearchQ) ||
+      (l.unit_no     || '').toLowerCase().includes(_listingSearchQ) ||
+      (l.property_type||'').toLowerCase().includes(_listingSearchQ)
+    )
+  }
+  // 현재 탭 필터도 적용
+  const activeTab = document.querySelector('.tab.on')
+  if (activeTab) {
+    const tabText = activeTab.textContent.trim()
+    if (tabText === 'Rent')       filtered = filtered.filter(l => l.transaction_type === 'RENT')
+    else if (tabText === 'Sale')  filtered = filtered.filter(l => l.transaction_type === 'SALE')
+    else if (tabText === 'Active')     filtered = filtered.filter(l => l.status === 'ACTIVE')
+    else if (tabText === 'On Hold')    filtered = filtered.filter(l => l.status === 'ON-HOLD')
+    else if (tabText === 'Contracted') filtered = filtered.filter(l => l.status === 'CONTRACTED')
+  }
+  const cnt = document.getElementById('listing-search-count')
+  if (cnt) cnt.textContent = _listingSearchQ ? filtered.length + '개 결과' : ''
+  renderListView(filtered)
+}
+
+function clearListingSearch() {
+  const inp = document.getElementById('listing-search-input')
+  if (inp) inp.value = ''
+  _listingSearchQ = ''
+  const cnt = document.getElementById('listing-search-count')
+  if (cnt) cnt.textContent = ''
+  renderListView(_listings)
+}
 function renderListView(allData) {
   const total   = allData.length
   const pageData = allData.slice(_lPage * _lLimit, (_lPage + 1) * _lLimit)
@@ -2909,6 +2892,20 @@ function renderListView(allData) {
   </div>
 </div>
 <div class="pb">
+  <!-- 검색바 -->
+  <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+    <div style="position:relative;flex:1;max-width:320px">
+      <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--m);font-size:14px"></i>
+      <input type="text" id="listing-search-input" placeholder="매물명, 주소, 유닛번호 검색..."
+        style="width:100%;padding:8px 12px 8px 32px;border:1px solid var(--b);border-radius:8px;font-size:12px;outline:none;background:#fff"
+        oninput="filterListings(this.value)"
+        onfocus="this.style.borderColor='var(--A)'" onblur="this.style.borderColor='var(--b)'">
+    </div>
+    <button class="btn btn-o" style="font-size:11px;padding:6px 12px" onclick="clearListingSearch()">
+      <i class="ti ti-x"></i> Clear
+    </button>
+    <span id="listing-search-count" style="font-size:11px;color:var(--m)"></span>
+  </div>
   <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
     ${['ALL','RENT','SALE'].map((tp,i)=>`<button class="tab ${i===0?'on':''}" onclick="fLS('${tp}','type',this)">${tp==='ALL'?'All':tp==='RENT'?'Rent':'Sale'}</button>`).join('')}
     ${['ACTIVE','ON-HOLD','CONTRACTED'].map(s=>{const st=SLS[s];return`<button class="tab" onclick="fLS('${s}','status',this)">${st.l}</button>`}).join('')}
@@ -3185,19 +3182,8 @@ async function saveNewContract() {
       await api('POST', `/api/tenants/${deal.id}/info`, { deposit })
     }
 
-    toast('✓ Contract registered')
+    toast(`✓ Contract registered`)
     closeModal('modal-new-contract')
-
-    // Lead → Tenants 이동 후 Lead 삭제
-    if (_pendingDeleteLeadId) {
-      try {
-        await api('DELETE', '/api/leads/' + _pendingDeleteLeadId)
-        _pendingDeleteLeadId = null
-        toast('✓ Lead 삭제 완료 · Tenants로 이동됐습니다')
-      } catch(e2) {
-        console.warn('Lead 삭제 실패:', e2.message)
-      }
-    }
     vTenants()
   } catch(e) { alert('Error: ' + e.message) }
 }
@@ -3215,7 +3201,7 @@ document.addEventListener('click', e => {
 })
 
 // ═══════════ DOCUMENTS ═══════════
-const LOGO_URL = 'https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logos.jpg'
+const LOGO_URL = 'https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logo%20white-15.png'
 const COMPANY  = { name: 'Mr. Homes Philippines', web: 'rbs-homes.com', email: 'maymrhomes082023@gmail.com', phone: '+63 XXX XXX XXXX' }
 
 let _docListings = [], _docSelected = new Set(), _docClient = ''
@@ -3230,18 +3216,16 @@ async function vDocuments() {
   <div class="tabs" style="margin-bottom:14px">
     <button class="tab on" id="dt-report" onclick="switchDocTab('report',this)"><i class="ti ti-file-description"></i> Listing Report</button>
     <button class="tab" id="dt-loi"    onclick="switchDocTab('loi',this)"><i class="ti ti-signature"></i> LOI</button>
-    <button class="tab" id="dt-ack"    onclick="switchDocTab('ack',this)"><i class="ti ti-writing"></i> Acknowledgement</button>
   </div>
   <div id="doc-panel-report">${await buildReportPanel()}</div>
   <div id="doc-panel-loi" style="display:none">${await buildLOIPanel()}</div>
-  <div id="doc-panel-ack" style="display:none">${await buildAckPanel()}</div>
 </div>`)
 }
 
 function switchDocTab(tab, btn) {
   document.querySelectorAll('.tabs .tab').forEach(b => b.classList.remove('on'))
   btn.classList.add('on')
-  ;['report','loi','ack'].forEach(t => {
+  ;['report','loi'].forEach(t => {
     const el = document.getElementById('doc-panel-' + t)
     if (el) el.style.display = t === tab ? '' : 'none'
   })
@@ -4254,318 +4238,6 @@ function resetLOIForm() {
 
 // generateLOI: replaced by previewLOI() and getLOIHtml()
 
-// ═══════════ ACKNOWLEDGEMENT ═══════════
-let _ackDocs = []
-let _ackEditId = null
-
-async function buildAckPanel() {
-  _ackDocs = await api('GET', '/api/ack').catch(() => [])
-  return `
-<div style="display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:flex-start">
-  <!-- 왼쪽: 입력 폼 -->
-  <div>
-    <!-- 저장된 목록 -->
-    <div class="card" style="margin-bottom:10px">
-      <div class="card-h" style="justify-content:space-between">
-        <span><i class="ti ti-history"></i> Saved</span>
-        <button class="btn btn-o" style="font-size:10px;padding:3px 8px" onclick="resetAckForm()">
-          <i class="ti ti-plus"></i> New
-        </button>
-      </div>
-      <div id="ack-saved-list" style="max-height:160px;overflow-y:auto">
-        ${renderAckSavedList()}
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-h"><i class="ti ti-writing"></i> Acknowledgement Details</div>
-      <div class="card-b">
-        <div class="mf"><label>Date</label>
-          <input class="fi" id="ack-date" type="date" value="${tod()}"></div>
-
-        <div class="sep"></div>
-        <div style="font-size:11px;font-weight:600;color:var(--m);margin-bottom:8px">CLIENT / PAYOR</div>
-        <div class="mf"><label>Client / Payor *</label>
-          <div style="position:relative">
-            <input class="fi" id="ack-client-search" placeholder="Search contact name..."
-              oninput="searchAckClient(this.value)" autocomplete="off">
-            <div id="ack-client-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--b);border-radius:8px;max-height:180px;overflow-y:auto;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.12)"></div>
-          </div>
-          <input type="hidden" id="ack-client-id">
-          <div id="ack-client-info" style="font-size:10px;color:var(--m);margin-top:3px"></div>
-        </div>
-
-        <div class="sep"></div>
-        <div style="font-size:11px;font-weight:600;color:var(--m);margin-bottom:8px">CONFIRMER</div>
-        <div class="mf"><label>확인자 (Prepared by)</label>
-          <input class="fi" id="ack-confirmer" value="${me?.name||''}" readonly
-            style="background:var(--b2);cursor:not-allowed"></div>
-
-        <div class="sep"></div>
-        <div style="font-size:11px;font-weight:600;color:var(--m);margin-bottom:8px">CONTENT</div>
-        <div class="mf"><label>Category</label>
-          <select class="fi" id="ack-category">
-            <option value="General">General</option>
-            <option value="Payment">Payment Receipt</option>
-            <option value="Document">Document Receipt</option>
-            <option value="Agreement">Agreement</option>
-            <option value="Other">Other</option>
-          </select></div>
-        <div class="mf"><label>내용 *</label>
-          <textarea class="fi" id="ack-content" rows="6" style="resize:vertical"
-            placeholder="확인/수령 내용을 상세히 입력하세요..."></textarea></div>
-        <div class="mf"><label>Amount (PHP) <span style="font-weight:normal;color:var(--m)">(선택)</span></label>
-          <input class="fi" id="ack-amount" type="number" placeholder="e.g. 50000"></div>
-        <div class="mf"><label>Reference No. <span style="font-weight:normal;color:var(--m)">(선택)</span></label>
-          <input class="fi" id="ack-ref" placeholder="e.g. OR No., Check No."></div>
-      </div>
-    </div>
-    <div style="margin-top:10px;display:flex;gap:8px">
-      <button class="btn btn-g" style="flex:1;justify-content:center" onclick="previewAck()">
-        <i class="ti ti-eye"></i> Preview
-      </button>
-      <button class="btn btn-g" style="flex:1;justify-content:center;background:var(--G)" onclick="saveAck()">
-        <i class="ti ti-device-floppy"></i> Save
-      </button>
-    </div>
-  </div>
-
-  <!-- 오른쪽: 편집기 -->
-  <div>
-    <div class="card">
-      <div class="card-h" style="justify-content:space-between">
-        <span><i class="ti ti-file-certificate"></i> Acknowledgement Preview</span>
-        <div style="display:flex;gap:6px" id="ack-editor-btns" style="display:none">
-          <button class="btn btn-o" style="font-size:11px;padding:4px 10px" onclick="printAck()">
-            <i class="ti ti-printer"></i> Print
-          </button>
-          <button class="btn btn-g" style="font-size:11px;padding:4px 10px" onclick="saveAckContent()">
-            <i class="ti ti-device-floppy"></i> Save Changes
-          </button>
-        </div>
-      </div>
-      <div id="ack-editor-wrap" style="padding:16px">
-        <div style="text-align:center;color:var(--m);padding:40px 0">
-          <i class="ti ti-writing" style="font-size:40px;margin-bottom:10px;display:block"></i>
-          Fill in the details and click "Preview"
-        </div>
-      </div>
-    </div>
-  </div>
-</div>`
-}
-
-function renderAckSavedList() {
-  if (!_ackDocs.length) return '<div style="padding:12px;text-align:center;font-size:11px;color:var(--m)">No saved acknowledgements</div>'
-  return _ackDocs.map(d => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--b);cursor:pointer"
-      onclick="loadAck('${d.id}')"
-      onmouseover="this.style.background='#F8F5F0'" onmouseout="this.style.background=''">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-          ${d.client_name||'Unknown'} · ${d.category||''}
-        </div>
-        <div style="font-size:10px;color:var(--m)">${d.ack_date||''} · ${d.confirmer||''}</div>
-      </div>
-      <button onclick="event.stopPropagation();deleteAck('${d.id}')"
-        style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:4px">
-        <i class="ti ti-trash" style="font-size:13px"></i>
-      </button>
-    </div>`).join('')
-}
-
-// Client 검색
-let _ackClientTimer = null
-function searchAckClient(q) {
-  const res = document.getElementById('ack-client-results')
-  if (!q) { res.style.display='none'; return }
-  clearTimeout(_ackClientTimer)
-  _ackClientTimer = setTimeout(() => {
-    const filtered = (_contacts||[]).filter(c =>
-      c.name.toLowerCase().includes(q.toLowerCase())
-    ).slice(0, 8)
-    if (!filtered.length) { res.style.display='none'; return }
-    res.innerHTML = filtered.map(c => `
-      <div onclick="selectAckClient('${c.id}','${c.name.replace(/'/g,"\\'")}','${(c.mobile||'').replace(/'/g,"\\'")}','${(c.type||'')}')"
-        style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--b);font-size:12px"
-        onmouseover="this.style.background='#F8F5F0'" onmouseout="this.style.background=''">
-        <div style="font-weight:600">${c.name}</div>
-        <div style="font-size:10px;color:var(--m)">${c.type||''}${c.mobile?' · '+c.mobile:''}</div>
-      </div>`).join('')
-    res.style.display = 'block'
-  }, 150)
-}
-
-function selectAckClient(id, name, mobile, type) {
-  document.getElementById('ack-client-id').value = id
-  document.getElementById('ack-client-search').value = name
-  document.getElementById('ack-client-results').style.display = 'none'
-  const info = document.getElementById('ack-client-info')
-  if (info) info.textContent = type + (mobile ? ' · ' + mobile : '')
-}
-
-function getAckHtml() {
-  const g = id => document.getElementById(id)?.value || ''
-  const dateStr = new Date(g('ack-date')).toLocaleDateString('en-PH', { year:'numeric', month:'long', day:'numeric' })
-  const clientName = g('ack-client-search') || '___________________'
-  const amount = g('ack-amount') ? '\u20B1' + Number(g('ack-amount')).toLocaleString() : null
-  const ref = g('ack-ref')
-  const category = g('ack-category')
-
-  const categoryBadge = category !== 'General'
-    ? '<div style="font-size:13px;color:#888;margin-top:4px">' + category + '</div>'
-    : ''
-  const amountRow = amount
-    ? '<div style="margin-bottom:16px"><strong>Amount:</strong> ' + amount + '</div>'
-    : ''
-  const refRow = ref
-    ? '<div style="margin-bottom:16px"><strong>Reference No.:</strong> ' + ref + '</div>'
-    : ''
-
-  return '<div style="font-family:\'Times New Roman\',serif;max-width:760px;margin:0 auto;padding:50px 60px;color:#1A1A1A;font-size:13px;line-height:1.7">'
-    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;padding-bottom:16px;border-bottom:2px solid #7B6B5A">'
-    + '<img src="' + LOGO_URL + '" style="height:80px;object-fit:contain">'
-    + '<div style="text-align:right;font-family:Arial,sans-serif">'
-    + '<div style="font-size:11px;color:#666">' + COMPANY.web + '</div>'
-    + '<div style="font-size:11px;color:#666">' + COMPANY.email + '</div>'
-    + '</div></div>'
-    + '<div style="text-align:center;margin-bottom:28px">'
-    + '<div style="font-size:18px;font-weight:700;letter-spacing:2px;color:#7B6B5A">ACKNOWLEDGEMENT</div>'
-    + categoryBadge
-    + '<div style="font-size:12px;color:#888;margin-top:4px">' + dateStr + '</div>'
-    + '</div>'
-    + '<p style="margin-bottom:20px">This is to acknowledge and confirm that <strong>' + clientName + '</strong> has:</p>'
-    + '<div style="background:#FAF7F4;border-left:4px solid #7B6B5A;padding:16px 20px;margin-bottom:24px;white-space:pre-wrap;font-size:13px;line-height:1.8">'
-    + (g('ack-content') || '___________________')
-    + '</div>'
-    + amountRow
-    + refRow
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:50px">'
-    + '<div><div style="border-top:1px solid #333;padding-top:8px;margin-top:50px">'
-    + '<div style="font-weight:700;font-size:12px">' + clientName + '</div>'
-    + '<div style="font-size:11px;color:#666">Client / Payor</div>'
-    + '</div></div>'
-    + '<div><div style="border-top:1px solid #333;padding-top:8px;margin-top:50px">'
-    + '<div style="font-weight:700;font-size:12px">' + (g('ack-confirmer') || me?.name || '___________________') + '</div>'
-    + '<div style="font-size:11px;color:#666">Confirmed by</div>'
-    + '<div style="font-size:10px;color:#888;margin-top:2px">' + COMPANY.name + '</div>'
-    + '</div></div></div>'
-    + '<div style="margin-top:40px;padding-top:16px;border-top:1px solid #DDD;text-align:center;font-size:10px;color:#AAA">'
-    + COMPANY.name + ' &middot; ' + COMPANY.web + ' &middot; ' + COMPANY.email
-    + '</div></div>'
-}
-function previewAck() {
-  const html = getAckHtml()
-  const wrap = document.getElementById('ack-editor-wrap')
-  if (!wrap) return
-  wrap.innerHTML = '<div id="ack-editable" contenteditable="true" style="outline:none;min-height:400px;border:1px dashed var(--b);border-radius:8px;padding:8px">' + html + '</div>'
-  const btns = document.getElementById('ack-editor-btns')
-  if (btns) btns.style.display = 'flex'
-}
-
-function printAck() {
-  const el = document.getElementById('ack-editable')
-  if (!el) { alert('Please preview first'); return }
-  const pf = document.getElementById('print-frame')
-  pf.innerHTML = '<div style="width:210mm;min-height:297mm;padding:20mm;box-sizing:border-box">' + el.innerHTML + '</div>'
-  pf.style.display = 'block'
-  setTimeout(() => { window.print(); pf.style.display = 'none' }, 200)
-}
-
-async function saveAck() {
-  const g = id => document.getElementById(id)?.value || ''
-  const clientName = g('ack-client-search')
-  if (!clientName) { alert('Client/Payor를 입력해주세요'); return }
-  const el = document.getElementById('ack-editable')
-  const htmlContent = el ? el.innerHTML : getAckHtml()
-  const payload = {
-    ack_date:    g('ack-date'),
-    client_id:   g('ack-client-id') || null,
-    client_name: clientName,
-    confirmer:   g('ack-confirmer') || me?.name,
-    category:    g('ack-category'),
-    content:     g('ack-content'),
-    amount:      parseFloat(g('ack-amount')) || null,
-    ref_no:      g('ack-ref') || null,
-    html_content: htmlContent
-  }
-  try {
-    if (_ackEditId) {
-      await api('PATCH', '/api/ack/' + _ackEditId, payload)
-      toast('✓ Acknowledgement Updated')
-    } else {
-      await api('POST', '/api/ack', payload)
-      toast('✓ Acknowledgement Saved')
-    }
-    _ackDocs = await api('GET', '/api/ack').catch(() => [])
-    const listEl = document.getElementById('ack-saved-list')
-    if (listEl) listEl.innerHTML = renderAckSavedList()
-    _ackEditId = null
-  } catch(e) { alert('Save failed: ' + e.message) }
-}
-
-async function saveAckContent() {
-  if (!_ackEditId) { await saveAck(); return }
-  const el = document.getElementById('ack-editable')
-  if (!el) return
-  try {
-    await api('PATCH', '/api/ack/' + _ackEditId, { html_content: el.innerHTML })
-    toast('✓ Changes Saved')
-  } catch(e) { alert('Save failed: ' + e.message) }
-}
-
-async function loadAck(id) {
-  const d = _ackDocs.find(x => x.id === id)
-  if (!d) return
-  _ackEditId = id
-  const set = (elId, val) => { const el=document.getElementById(elId); if(el&&val!=null) el.value=val }
-  set('ack-date',          d.ack_date?.slice(0,10) || '')
-  set('ack-client-id',     d.client_id || '')
-  set('ack-client-search', d.client_name || '')
-  set('ack-confirmer',     d.confirmer || me?.name || '')
-  set('ack-category',      d.category || 'General')
-  set('ack-content',       d.content || '')
-  set('ack-amount',        d.amount || '')
-  set('ack-ref',           d.ref_no || '')
-  if (d.html_content) {
-    const wrap = document.getElementById('ack-editor-wrap')
-    if (wrap) {
-      wrap.innerHTML = '<div id="ack-editable" contenteditable="true" style="outline:none;min-height:400px;border:1px dashed var(--b);border-radius:8px;padding:8px">' + d.html_content + '</div>'
-      const btns = document.getElementById('ack-editor-btns')
-      if (btns) btns.style.display = 'flex'
-    }
-  }
-  toast('Acknowledgement loaded')
-}
-
-async function deleteAck(id) {
-  if (!confirm('Delete this acknowledgement?')) return
-  await api('DELETE', '/api/ack/' + id)
-  _ackDocs = _ackDocs.filter(d => d.id !== id)
-  const listEl = document.getElementById('ack-saved-list')
-  if (listEl) listEl.innerHTML = renderAckSavedList()
-  if (_ackEditId === id) resetAckForm()
-  toast('Deleted')
-}
-
-function resetAckForm() {
-  _ackEditId = null
-  ;['ack-client-id','ack-client-search','ack-content','ack-amount','ack-ref'].forEach(id => {
-    const el = document.getElementById(id)
-    if (el) el.value = ''
-  })
-  const dateEl = document.getElementById('ack-date')
-  if (dateEl) dateEl.value = tod()
-  const catEl = document.getElementById('ack-category')
-  if (catEl) catEl.value = 'General'
-  const cfEl = document.getElementById('ack-confirmer')
-  if (cfEl) cfEl.value = me?.name || ''
-  const wrap = document.getElementById('ack-editor-wrap')
-  if (wrap) wrap.innerHTML = '<div style="text-align:center;color:var(--m);padding:40px 0"><i class="ti ti-writing" style="font-size:40px;margin-bottom:10px;display:block"></i>Fill in the details and click "Preview"</div>'
-  const btns = document.getElementById('ack-editor-btns')
-  if (btns) btns.style.display = 'none'
-}
-
 // ═══════════ LEADS KANBAN ═══════════
 const LEAD_STATUSES = [
   { key:'NEW',          l:'New Inquiry',   bg:'#E6F1FB', c:'#185FA5' },
@@ -4729,6 +4401,7 @@ async function openNewContractFromLead(lead) {
 
   // 모달 오픈
   document.getElementById('modal-new-contract').style.display = 'flex'
+  vLeads()
 }
 
 function openAddLead() { openAddLeadInStatus('NEW') }
@@ -6496,107 +6169,5 @@ async function vStaff() {
   </div>
 </div>
 
-
-<!-- Add Lead Modal -->
-<div class="modal-overlay" id="modal-add-lead" style="display:none" onclick="if(event.target===this)closeModal('modal-add-lead')">
-  <div class="modal" style="max-width:520px">
-    <div class="modal-hd">
-      <div>
-        <h2><i class="ti ti-user-plus"></i> Add Lead</h2>
-        <p id="al-contact-label" style="font-size:12px;color:var(--m);margin-top:2px"></p>
-      </div>
-      <button class="modal-close" onclick="closeModal('modal-add-lead')"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="al-contact-id">
-      <input type="hidden" id="al-contact-name">
-      <div class="mf-row">
-        <div class="mf">
-          <label>Lead Type *</label>
-          <select class="fi" id="al-type">
-            <option value="RENT">Rent (임대)</option>
-            <option value="BUY">Buy (매매)</option>
-          </select>
-        </div>
-        <div class="mf">
-          <label>담당 직원</label>
-          <select class="fi" id="al-agent">
-            <option value="">-- Select --</option>
-          </select>
-        </div>
-      </div>
-      <div class="mf-row">
-        <div class="mf">
-          <label>최소 예산 (PHP)</label>
-          <input class="fi" id="al-min-price" type="number" placeholder="e.g. 20,000">
-        </div>
-        <div class="mf">
-          <label>최대 예산 (PHP)</label>
-          <input class="fi" id="al-budget" type="number" placeholder="e.g. 50,000">
-        </div>
-      </div>
-      <div class="mf">
-        <label>선호 지역</label>
-        <input class="fi" id="al-location" placeholder="e.g. BGC, Makati, Ortigas...">
-      </div>
-      <div class="mf-row">
-        <div class="mf">
-          <label>침실 수</label>
-          <select class="fi" id="al-bedrooms">
-            <option value="">Any</option>
-            <option value="0">Studio</option>
-            <option value="1">1 BR</option>
-            <option value="2">2 BR</option>
-            <option value="3">3 BR</option>
-            <option value="4">4+ BR</option>
-          </select>
-        </div>
-        <div class="mf">
-          <label>욕실 수</label>
-          <select class="fi" id="al-bathrooms">
-            <option value="">Any</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3+</option>
-          </select>
-        </div>
-      </div>
-      <div class="mf-row">
-        <div class="mf">
-          <label>최소 면적 (sqm)</label>
-          <input class="fi" id="al-area-sqm" type="number" placeholder="e.g. 30">
-        </div>
-        <div class="mf">
-          <label>가구 여부</label>
-          <select class="fi" id="al-furnished">
-            <option value="">Any</option>
-            <option value="Fully Furnished">Fully Furnished</option>
-            <option value="Semi Furnished">Semi Furnished</option>
-            <option value="Unfurnished">Unfurnished</option>
-          </select>
-        </div>
-      </div>
-      <div class="mf">
-        <label>반려동물</label>
-        <select class="fi" id="al-pet">
-          <option value="">Any</option>
-          <option value="true">허용</option>
-          <option value="false">불가</option>
-        </select>
-      </div>
-      <div class="mf">
-        <label>요구사항 / Notes</label>
-        <textarea class="fi" id="al-remarks" rows="3" style="resize:vertical"
-          placeholder="특별 요구사항, 선호 조건 등..."></textarea>
-      </div>
-    </div>
-    <div class="modal-ft">
-      <button class="btn btn-o" onclick="closeModal('modal-add-lead')">Cancel</button>
-      <button class="btn btn-g" onclick="saveAddLead()">
-        <i class="ti ti-plus"></i> Add Lead
-      </button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
