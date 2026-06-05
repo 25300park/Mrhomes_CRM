@@ -1023,7 +1023,7 @@ function vc(html) { document.getElementById('vc').innerHTML = html }
 function err(e) { vc(`<div class="loading" style="color:var(--R)"><i class="ti ti-alert-circle"></i> Error: ${e.message}</div>`) }
 
 // ═══════════ AUTH ═══════════
-// 아이디/비번 저장 기능
+// Remember login credentials
 function toggleRememberMe(checked) {
   if (checked) {
     const email = document.getElementById('lem').value
@@ -1038,7 +1038,7 @@ function toggleRememberMe(checked) {
   localStorage.setItem('crm_remember', checked ? '1' : '0')
 }
 
-// 저장된 계정 자동채움
+// Auto-fill saved credentials
 ;(function() {
   const rem = localStorage.getItem('crm_remember') === '1'
   const chk = document.getElementById('remember-me')
@@ -1055,7 +1055,7 @@ function toggleRememberMe(checked) {
 
 document.getElementById('lf').addEventListener('submit', async e => {
   e.preventDefault()
-  // 저장 체크 시 현재 입력값 업데이트
+  // Update saved values on login
   if (localStorage.getItem('crm_remember') === '1') {
     localStorage.setItem('crm_saved_email', document.getElementById('lem').value)
     localStorage.setItem('crm_saved_pw',    document.getElementById('lpw').value)
@@ -1189,7 +1189,7 @@ document.addEventListener('click', e => {
 function nav(v) {
   document.querySelectorAll('.nav-it').forEach(e => e.classList.toggle('active', e.dataset.v === v))
   vc('<div class="loading">Loading...</div>')
-  // 뒤로가기 지원 — history 기록
+  // Support browser back button
   const newHash = '#' + v
   if (location.hash !== newHash) history.pushState({ view: v }, '', newHash)
   const views = { dashboard: vDash, contacts: vCust, listings: vList, leads: vLeads, deals: vDeals, accounting: vAcct, staff: vStaff, tenants: vTenants, documents: vDocuments, 'pms-payments': vPmsPayments, 'pms-care': vPmsCare }
@@ -1202,7 +1202,7 @@ async function vDash() {
   me.role === 'admin' ? await vDashAdmin() : await vDashAgent()
 }
 
-// 관리자 대시보드 (회계 중심)
+// Admin dashboard
 async function vDashAdmin() {
   try {
     const d = await api('GET', '/api/dashboard')
@@ -1266,11 +1266,57 @@ async function vDashAdmin() {
       </div>`).join('')}
     </div>
   </div>
+
+  <!-- Activity History -->
+  <div style="margin-top:14px">
+    <div class="card">
+      <div class="card-h" style="justify-content:space-between">
+        <span><i class="ti ti-history"></i> Activity History</span>
+        <span id="dash-act-count" style="font-size:11px;color:var(--m)"></span>
+      </div>
+      <div id="dash-act-list"><div style="padding:16px;text-align:center;color:var(--m)">Loading...</div></div>
+    </div>
+  </div>
 </div></div>`)
+  loadDashActivity()
   } catch(e) { err(e) }
 }
 
-// 직원 대시보드 (Contact·Listing 중심)
+// ── Dashboard Activity History ─────────────────────────────
+async function loadDashActivity() {
+  try {
+    const acts = await api('GET', '/api/activities?limit=20')
+    const wrap = document.getElementById('dash-act-list')
+    const cnt  = document.getElementById('dash-act-count')
+    if (!wrap) return
+    if (!acts || !acts.length) {
+      wrap.innerHTML = '<div style="padding:16px;text-align:center;color:var(--m)">No activity history yet</div>'
+      return
+    }
+    if (cnt) cnt.textContent = acts.length + ' recent'
+    const typeMap = { CALL:'📞', MESSAGE:'💬', VISIT:'🏠', OFFER:'📋', LOI:'✍️', CONTRACT:'📄', OTHER:'📌' }
+    wrap.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">'
+      + acts.map(function(a) {
+          const icon = typeMap[a.activity_type] || '📌'
+          const t = ACT_TYPE[a.activity_type] || { l: a.activity_type||'Activity', bg:'#F1EFE8', c:'#5F5E5A' }
+          return '<div style="display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid var(--b);align-items:flex-start">'
+            + '<div style="font-size:16px;flex-shrink:0">' + icon + '</div>'
+            + '<div style="flex:1;min-width:0">'
+            + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">'
+            + '<span style="font-size:12px;font-weight:600">' + (a.contact?.name||'-') + '</span>'
+            + '<span style="font-size:10px;background:' + t.bg + ';color:' + t.c + ';padding:1px 6px;border-radius:10px">' + t.l + '</span>'
+            + (a.listing?.name ? '<span style="font-size:10px;color:var(--m)">· ' + a.listing.name + '</span>' : '')
+            + '</div>'
+            + (a.notes ? '<div style="font-size:11px;color:var(--m);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + a.notes + '</div>' : '')
+            + '<div style="font-size:10px;color:var(--m);margin-top:2px">'
+            + (a.agent?.name||'') + ' · ' + (a.created_at||'').slice(0,10) + '</div>'
+            + '</div></div>'
+        }).join('')
+      + '</div>'
+  } catch(e) { console.warn('Activity load error:', e.message) }
+}
+
+// Agent dashboard
 async function vDashAgent() {
   try {
     const [leads, listings] = await Promise.all([
@@ -1662,7 +1708,7 @@ function clearCActListing() {
   if (res) res.style.display = 'none'
 }
 
-// 외부 클릭 시 결과 닫기
+// Close results on outside click
 document.addEventListener('click', e => {
   if (!e.target.closest('#cact-listing-search') && !e.target.closest('#cact-listing-results')) {
     const r = document.getElementById('cact-listing-results')
@@ -1788,7 +1834,7 @@ async function saveContactActivity(contactId) {
     vContactDetail(contactId)
   } catch(e) { alert('Save Error: '+e.message) }
 }
-// Lead 액션 버튼 렌더링 (백틱 중첩 방지용 별도 함수)
+// Lead action button renderer
 function renderLeadAction(l, contactId) {
   const safeId  = l.id.replace(/'/g, "")
   const safeCId = (contactId||'').replace(/'/g, "")
@@ -2051,25 +2097,67 @@ function renderContacts() {
     <td style="color:var(--m);font-size:11px">${(c.created_at||'').slice(0,10)}</td>
     <td style="color:var(--m);font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.remarks||''}</td>
     <td><button onclick="deleteContact('${c.id}','${c.name.replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:4px;border-radius:6px" title="Delete"><i class="ti ti-trash" style="font-size:14px"></i></button></td>
-  </tr>`}).join('')}
-</table></div></div>
+  </tr>`}).join('')}</table></div></div>
 ${pgBar(total, _cPage, _cLimit, '_cPage=arguments[0];document.getElementById(\'cc\').innerHTML=renderContacts()', '_cLimit=arguments[0];_cPage=0;document.getElementById(\'cc\').innerHTML=renderContacts()')}`
 }
+let _pipelineShowInactive = false
+
 function renderPipeline() {
-  const stages = ['NEW','SEARCHING','OFFER_SENT','NEGOTIATING','CLOSED_WON','CLOSED_LOST']
-  return `<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">
-    ${stages.map(s=>{const st=SL[s];const sl=_leads.filter(l=>l.status===s);return`
-    <div>
-      <div class="pipe-h" style="background:${st.bg};color:${st.c}">${st.l}<span style="font-weight:800">${sl.length}</span></div>
-      <div class="pipe-b">${sl.map(l=>`<div class="pc">
-        <div style="font-weight:600;margin-bottom:2px">${l.contact?.name||'-'}</div>
-        <div style="color:var(--m);font-size:10px">${l.property_type||''} · ${fmt(l.budget)}${l.request_type==='RENT'?'/Month':''}</div>
-        ${l.next_followup_at?`<div style="font-size:9px;color:var(--m);margin-top:2px">${l.next_followup_at}</div>`:''}
-      </div>`).join('')}</div>
-    </div>`}).join('')}
-  </div>`
+  const activeStages   = ['NEW','SEARCHING','OFFER_SENT','NEGOTIATING','CLOSED_WON']
+  const inactiveStages = ['CLOSED_LOST']
+  const stages = _pipelineShowInactive ? inactiveStages : activeStages
+  const inactiveCnt = _leads.filter(l => l.status === 'CLOSED_LOST').length
+
+  const switchBtn = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'
+    + '<button onclick="togglePipelineView(false)" style="padding:5px 16px;border-radius:20px;border:1.5px solid '
+    + (!_pipelineShowInactive ? 'var(--A);background:var(--A);color:#fff' : 'var(--b);background:#fff;color:var(--m)')
+    + ';font-size:11px;font-weight:600;cursor:pointer">Active</button>'
+    + '<button onclick="togglePipelineView(true)" style="padding:5px 16px;border-radius:20px;border:1.5px solid '
+    + (_pipelineShowInactive ? 'var(--A);background:var(--A);color:#fff' : 'var(--b);background:#fff;color:var(--m)')
+    + ';font-size:11px;font-weight:600;cursor:pointer">Inactive (' + inactiveCnt + ')</button>'
+    + '</div>'
+
+  const grid = '<div style="display:grid;grid-template-columns:repeat(' + stages.length + ',1fr);gap:6px">'
+    + stages.map(function(s) {
+        const st = SL[s]
+        const sl = _leads.filter(function(l) { return l.status === s })
+        const cards = sl.map(function(l) {
+          const restore = _pipelineShowInactive
+            ? '<button onclick="restoreLead(' + JSON.stringify(l.id) + ')" style="margin-top:6px;width:100%;padding:3px 0;border:none;background:#E0F3ED;color:#0F6E56;border-radius:5px;font-size:10px;cursor:pointer;font-weight:600">&#x21A9; Restore to Active</button>'
+            : ''
+          return '<div class="pc">'
+            + '<div style="font-weight:600;margin-bottom:2px">' + (l.contact?.name||'-') + '</div>'
+            + '<div style="color:var(--m);font-size:10px">' + (l.property_type||'') + ' &middot; ' + fmt(l.budget) + (l.request_type==='RENT'?'/Month':'') + '</div>'
+            + (l.next_followup_at ? '<div style="font-size:9px;color:var(--m);margin-top:2px">' + l.next_followup_at + '</div>' : '')
+            + restore + '</div>'
+        }).join('')
+        return '<div>'
+          + '<div class="pipe-h" style="background:' + st.bg + ';color:' + st.c + '">' + st.l + '<span style="font-weight:800">' + sl.length + '</span></div>'
+          + '<div class="pipe-b">' + cards + '</div></div>'
+      }).join('') + '</div>'
+
+  return switchBtn + (stages.length === 0 ? '' : grid)
 }
+
+function togglePipelineView(showInactive) {
+  _pipelineShowInactive = showInactive
+  const el = document.getElementById('cc')
+  if (el) el.innerHTML = renderPipeline()
+}
+
+async function restoreLead(leadId) {
+  try {
+    await api('PATCH', '/api/leads/' + leadId, { status: 'NEW' })
+    toast('Lead restored to Active')
+    const idx = _leads.findIndex(function(l) { return l.id === leadId })
+    if (idx >= 0) _leads[idx].status = 'NEW'
+    const el = document.getElementById('cc')
+    if (el) el.innerHTML = renderPipeline()
+  } catch(e) { alert('Error: ' + e.message) }
+}
+
 function custTab(t,btn) {
+
   document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.remove('on')); btn.classList.add('on')
   if(t==='c') refreshContacts()
   else if(t==='p') document.getElementById('cc').innerHTML=renderPipeline()
@@ -3287,7 +3375,7 @@ function selectCondo(condo) {
   setTimeout(() => document.getElementById('ml-unit')?.focus(), 50)
 }
 
-// 외부 클릭 시 드롭다운 닫기
+// Close dropdown on outside click
 document.addEventListener('click', e => {
   if (!e.target.closest('#ml-name') && !e.target.closest('#ml-name-results')) {
     const r = document.getElementById('ml-name-results')
@@ -3472,7 +3560,7 @@ async function saveNewContract() {
   } catch(e) { alert('Error: ' + e.message) }
 }
 
-// 외부 클릭 시 드롭다운 닫기
+// Close dropdown on outside click
 document.addEventListener('click', e => {
   if (!e.target.closest('#nc-listing-search') && !e.target.closest('#nc-listing-results'))
     document.getElementById('nc-listing-results')?.style && (document.getElementById('nc-listing-results').style.display='none')
@@ -3775,7 +3863,7 @@ function searchRpListing(q) {
 }
 
 function toggleRpListing(id) {
-  // 자신의 매물만 토글 가능
+  // Only toggle own listings
   const listing = _docListings.find(l => l.id === id)
   if (listing && listing.assigned_user_id !== me?.id && me?.role !== 'admin') {
     toast('본인이 등록한 매물만 추가/삭제할 수 있습니다')
@@ -4447,7 +4535,7 @@ function selectLOITenant(name, nat, mobile) {
   document.getElementById('loi-tenant-results').style.display = 'none'
 }
 
-// 외부 클릭 시 드롭다운 닫기
+// Close dropdown on outside click
 document.addEventListener('click', e => {
   if (!e.target.closest('#loi-listing-search') && !e.target.closest('#loi-listing-results')) {
     const el = document.getElementById('loi-listing-results')
