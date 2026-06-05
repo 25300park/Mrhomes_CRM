@@ -1760,7 +1760,7 @@ function refreshContacts() {
   if (el) el.innerHTML = renderContacts()
   const cnt = document.getElementById('c-search-count')
   if (cnt) {
-    const q = _cQ.toLowerCase()
+    const q = _cQ.toLowerCase()  // 공백 포함 검색
     const n = _contacts.filter(c =>
       (!q || c.name.toLowerCase().includes(q) || (c.mobile||'').includes(q) || (c.email||'').toLowerCase().includes(q)) &&
       (!_cf.agent  || c.assigned_user_id === _cf.agent) &&
@@ -2886,7 +2886,7 @@ async function vList() {
 let _listingSearchQ = ''
 
 function filterListings(q) {
-  _listingSearchQ = q.toLowerCase().trim()
+  _listingSearchQ = q.toLowerCase()  // trim() 제거 — 공백 포함 검색
   let filtered = _listings
   if (_listingSearchQ) {
     filtered = _listings.filter(l =>
@@ -3255,6 +3255,7 @@ const LOGO_URL = 'https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/pub
 const COMPANY  = { name: 'Mr. Homes Philippines', web: 'rbs-homes.com', email: 'maymrhomes082023@gmail.com', phone: '+63 XXX XXX XXXX' }
 
 let _docListings = [], _docSelected = new Set(), _docClient = ''
+let _allContributions = {}  // { userId: [listingId, ...] } — 전체 담당자별 선택
 
 async function vDocuments() {
   vc(`
@@ -3422,21 +3423,44 @@ function renderReportSavedList() {
 }
 
 function renderSelectedListings() {
-  const selected = _docListings.filter(l => _docSelected.has(l.id))
-  if (!selected.length) return '<div style="padding:16px;text-align:center;font-size:11px;color:var(--m)">No listings selected yet</div>'
-  return selected.map(l => `
-    <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--b)">
+  // 전체 contributions에서 모든 선택된 리스팅 수집
+  const allSelectedIds = new Set([
+    ...Array.from(_docSelected),
+    ...Object.values(_allContributions).flat()
+  ])
+  const allSelected = _docListings.filter(l => allSelectedIds.has(l.id))
+  if (!allSelected.length) return '<div style="padding:16px;text-align:center;font-size:11px;color:var(--m)">No listings selected yet</div>'
+
+  return allSelected.map(l => {
+    const isMine = _docSelected.has(l.id)
+    // 다른 담당자 이름 찾기
+    let ownerName = ''
+    if (!isMine) {
+      for (const [uid, ids] of Object.entries(_allContributions)) {
+        if (ids.includes(l.id)) {
+          const staff = _staff.find(s => s.id === uid)
+          ownerName = staff?.name || 'Other'
+          break
+        }
+      }
+    }
+    return `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--b);${isMine?'':'background:#FAFAF8'}">
       ${l.photo_url ? `<img src="${l.photo_url}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0">` :
         `<div style="width:40px;height:40px;border-radius:6px;background:var(--b);flex-shrink:0"></div>`}
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.name}</div>
         <div style="font-size:10px;color:var(--m)">${fmt(l.price)}${l.transaction_type==='RENT'?' /mo':''} · ${l.bedrooms!=null?l.bedrooms+'BR ':''} ${l.area_sqm?l.area_sqm+'㎡':''}</div>
+        ${!isMine ? `<div style="font-size:9px;color:#185FA5;margin-top:1px">📌 ${ownerName}</div>` : ''}
       </div>
+      ${isMine ? `
       <button onclick="_docSelected.delete('${l.id}');renderSelectedListings();searchRpListing(document.getElementById('rp-listing-search')?.value||'');updateRpCount()"
         style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:4px;flex-shrink:0">
         <i class="ti ti-x" style="font-size:13px"></i>
-      </button>
-    </div>`).join('')
+      </button>` : `
+      <span style="font-size:9px;color:var(--m);padding:4px">🔒</span>`}
+    </div>`
+  }).join('')
 }
 
 let _rpListingTimer = null
@@ -3444,9 +3468,15 @@ function searchRpListing(q) {
   _rpListingSearch = q
   const res = document.getElementById('rp-listing-results')
   if (!res) return
-  const filtered = _docListings.filter(l =>
-    !q || l.name.toLowerCase().includes(q.toLowerCase()) ||
-    (l.address && l.address.toLowerCase().includes(q.toLowerCase()))
+  // 자신의 매물만 표시 (me.id 기준)
+  const myListings = _docListings.filter(l =>
+    l.assigned_user_id === me?.id || me?.role === 'admin'
+  )
+  const qLow = q.toLowerCase()  // trim() 없이 공백 포함 검색
+  const filtered = myListings.filter(l =>
+    !q || l.name.toLowerCase().includes(qLow) ||
+    (l.address && l.address.toLowerCase().includes(qLow)) ||
+    (l.unit_no && l.unit_no.toLowerCase().includes(qLow))
   ).slice(0, 20)
   res.innerHTML = filtered.map(l => {
     const checked = _docSelected.has(l.id)
@@ -3468,6 +3498,12 @@ function searchRpListing(q) {
 }
 
 function toggleRpListing(id) {
+  // 자신의 매물만 토글 가능
+  const listing = _docListings.find(l => l.id === id)
+  if (listing && listing.assigned_user_id !== me?.id && me?.role !== 'admin') {
+    toast('본인이 등록한 매물만 추가/삭제할 수 있습니다')
+    return
+  }
   if (_docSelected.has(id)) _docSelected.delete(id)
   else _docSelected.add(id)
   searchRpListing(_rpListingSearch)
@@ -3549,7 +3585,12 @@ function _buildReportFooter(forPrint) {
 }
 
 function getReportPreviewHtml() {
-  const selected    = _docListings.filter(l => _docSelected.has(l.id))
+  // 전체 contributions 합산
+  const allPreviewIds = new Set([
+    ...Array.from(_docSelected),
+    ...Object.values(_allContributions).flat()
+  ])
+  const selected    = _docListings.filter(l => allPreviewIds.has(l.id))
   const client      = document.getElementById('rp-client')?.value || ''
   const date        = document.getElementById('rp-date')?.value || tod()
   const agent       = me?.name || ''
@@ -3600,7 +3641,13 @@ function getReportPrintHtml() {
 }
 
 function previewReport() {
-  if (!_docSelected.size) { alert('Please select at least one listing'); return }
+  // 전체 contributions 합산
+  const allIds = new Set([
+    ...Array.from(_docSelected),
+    ...Object.values(_allContributions).flat()
+  ])
+  if (!allIds.size) { alert('Please select at least one listing'); return }
+  // 미리보기용으로 allIds 기반 selected 임시 설정
   const html = getReportPreviewHtml()
   const card = document.getElementById('rp-preview-card')
   const wrap = document.getElementById('rp-preview-wrap')
@@ -3632,17 +3679,28 @@ function printReport() {
 let _reportContactId = null  // 리포트 전송 대상 contact
 
 async function saveReport() {
-  if (!_docSelected.size) { alert('Please select at least one listing'); return }
-  const client     = document.getElementById('rp-client')?.value || ''
-  const date       = document.getElementById('rp-date')?.value || tod()
-  const agent      = me?.name || ''
-  const contactId  = _reportContactId || null
+  const client    = document.getElementById('rp-client')?.value || ''
+  const date      = document.getElementById('rp-date')?.value || tod()
+  const agent     = me?.name || ''
+  const contactId = _reportContactId || null
+  const myId      = me?.id || 'unknown'
+
+  // contributions: 내 선택만 저장 (기존 다른 담당자 것은 유지)
+  const newContributions = Object.assign({}, _allContributions, {
+    [myId]: Array.from(_docSelected)
+  })
+  // listing_ids: 모든 contributions 합산
+  const allIds = [...new Set(Object.values(newContributions).flat())]
+
+  if (!allIds.length) { alert('Please select at least one listing'); return }
+
   const payload = {
-    client_name:  client,
-    report_date:  date,
-    agent_name:   agent,
-    listing_ids:  Array.from(_docSelected),
-    contact_id:   contactId,
+    client_name:    client,
+    report_date:    date,
+    agent_name:     agent,
+    listing_ids:    allIds,
+    contributions:  newContributions,
+    contact_id:     contactId,
   }
   try {
     if (_reportEditId) {
@@ -3650,26 +3708,24 @@ async function saveReport() {
       toast('✓ Report Updated')
     } else {
       const report = await api('POST', '/api/listing-reports', payload)
+      _reportEditId = report?.id || null
       toast('✓ Report Saved')
 
-      // 고객 연결 시 각 listing마다 OFFER activity 자동 기록
+      // 고객 연결 시 Offer activity 자동 기록
       if (contactId && _docSelected.size > 0) {
-        const listingIds = Array.from(_docSelected)
-        for (const lid of listingIds) {
+        for (const lid of _docSelected) {
           await api('POST', '/api/activities', {
-            type:       'OFFER',
-            contact_id: contactId,
-            listing_id: lid,
-            notes:      'Listing Report 전송 (' + client + ')',
-            created_by: me?.id,
+            type: 'OFFER', contact_id: contactId, listing_id: lid,
+            notes: 'Listing Report 전송 (' + client + ')', created_by: me?.id,
           }).catch(() => {})
         }
-        toast('✓ ' + listingIds.length + '개 매물 Listing Offer 기록 완료')
       }
     }
+    _allContributions = newContributions
     _reportDocs = await api('GET', '/api/listing-reports?include_shared=1').catch(()=>[])
     const listEl = document.getElementById('rp-saved-list')
     if (listEl) listEl.innerHTML = renderReportSavedList()
+    renderSelectedListings()
   } catch(e) { alert('Save failed: ' + e.message) }
 }
 
@@ -3689,12 +3745,15 @@ async function loadReport(id) {
   clientEl.style.background = isOwner ? '' : 'var(--b2)'
   dateEl.style.background   = isOwner ? '' : 'var(--b2)'
 
-  // 선택된 리스팅 복원
-  _docSelected = new Set(d.listing_ids || [])
+  // contributions 복원
+  _allContributions = d.contributions || {}
+  const myId = me?.id || 'unknown'
+  // 내 선택만 _docSelected에
+  _docSelected = new Set(_allContributions[myId] || [])
   renderSelectedListings()
   updateRpCount()
   searchRpListing('')
-  toast(isOwner ? 'Report loaded' : 'Shared report loaded — add your listings and save')
+  toast(isOwner ? 'Report loaded' : '공유 Report 로드 — 자신의 매물을 추가하고 Save하세요')
 }
 
 async function toggleShareReport(id, currentShared) {
@@ -3720,6 +3779,7 @@ async function deleteReport(id) {
 function resetReportForm() {
   _reportEditId = null
   _docSelected = new Set()
+  _allContributions = {}
   document.getElementById('rp-client').value = ''
   document.getElementById('rp-date').value   = tod()
   renderSelectedListings()
