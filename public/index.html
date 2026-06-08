@@ -3268,6 +3268,13 @@ async function vListingDetail(id) {
       ${Object.entries(SLS).map(([k,v])=>`<option value="${k}" ${listing.status===k?'selected':''}>${v.l}</option>`).join('')}
     </select>
     <button onclick="toggleListingEdit('${id}')" class="btn btn-o"><i class="ti ti-edit" aria-hidden="true"></i> Edit</button>
+    ${me?.role === 'admin' ? `
+    <button onclick="confirmDeleteListing('${id}','${listing.name.replace(/'/g,"\'")}')"
+      class="btn"
+      style="background:#FDEAEA;color:#DC4A4A;border:1px solid #DC4A4A;gap:5px"
+      title="Delete this listing (Admin only)">
+      <i class="ti ti-trash" style="font-size:13px"></i> Delete
+    </button>` : ''}
   </div>
 </div>
 <div class="pb">
@@ -3921,6 +3928,17 @@ async function deleteListing(id, name) {
   } catch(e) { alert('Error: ' + e.message) }
 }
 
+// 상세 페이지에서 삭제 (Admin only) — 삭제 후 목록으로 이동
+async function confirmDeleteListing(id, name) {
+  if (me?.role !== 'admin') { alert('Admin only'); return }
+  if (!confirm(`Delete "${name}"?\n\n⚠️ This will permanently remove this listing.\nThis cannot be undone.`)) return
+  try {
+    await api('DELETE', `/api/listings/${id}`)
+    toast(`✓ "${name}" deleted`)
+    nav('listings')
+  } catch(e) { alert('Delete failed: ' + e.message) }
+}
+
 // ═══════════ NEW CONTRACT (Tenants) ═══════════
 let _ncListingId = null, _ncTenantId = null, _ncLessorId = null
 
@@ -4065,6 +4083,8 @@ let _docListings = [], _docSelected = new Set(), _docClient = ''
 let _allContributions = {}  // { userId: [listingId, ...] } — Total: Assigned별 선택
 
 async function vDocuments() {
+  // 탭 열 때 listings 캐시 초기화 → buildReportPanel/buildLOIPanel에서 새로 조회
+  _docListings = []
   vc(`
 <div class="ph">
   <div><div class="ph-title">Documents</div>
@@ -4096,10 +4116,9 @@ let _reportEditId = null
 let _rpListingSearch = ''
 
 async function buildReportPanel() {
-  if (!_docListings.length) {
-    const data = await api('GET', '/api/listings?limit=200').catch(() => [])
-    _docListings = data
-  }
+  // 항상 최신 listings 조회 (삭제/변경 즉시 반영)
+  const data = await api('GET', '/api/listings?limit=200').catch(() => [])
+  _docListings = data
   _reportDocs = await api('GET', '/api/listing-reports?include_shared=1').catch(()=>[])
   return `
 <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:flex-start">
@@ -4218,7 +4237,7 @@ function renderReportSavedList() {
         <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
           ${d.client_name||'Unknown Client'}${sharedBadge}
         </div>
-        <div style="font-size:10px;color:var(--m)">${d.report_date||''} · ${d.agent_name||''} · ${(d.listing_ids||[]).length} listings</div>
+        <div style="font-size:10px;color:var(--m)">${d.report_date||''} · ${((_staff||[]).find(s=>s.id===d.created_by)?.name) || d.agent_name||''} · ${(d.listing_ids||[]).length} listings</div>
       </div>
       ${isMine ? `
       <button onclick="event.stopPropagation();toggleShareReport('${d.id}',${shared})"
@@ -4774,6 +4793,11 @@ let _loiEditId = null
 
 async function buildLOIPanel() {
   const contacts = _contacts.length ? _contacts : await api('GET', '/api/contacts?limit=300').then(d => d.data||d).catch(()=>[])
+  // _docListings는 vDocuments에서 이미 초기화됨 → buildReportPanel이 먼저 호출되면 최신 데이터 있음
+  // LOI 탭만 열리는 경우 대비해 listings 조회
+  if (!_docListings.length) {
+    _docListings = await api('GET', '/api/listings?limit=200').catch(() => [])
+  }
   _loiDocs = await api('GET', '/api/loi').catch(()=>[])
   return `
 <div style="display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:flex-start">
@@ -4931,7 +4955,7 @@ function renderLOISavedList() {
         <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
           ${d.tenant_name||'Unknown'} · ${d.property_name||''}
         </div>
-        <div style="font-size:10px;color:var(--m)">${d.loi_date||''} · ${d.agent_name||''}</div>
+        <div style="font-size:10px;color:var(--m)">${d.loi_date||''} · ${((_staff||[]).find(s=>s.id===d.created_by)?.name) || d.agent_name||''}</div>
       </div>
       <button onclick="event.stopPropagation();deleteLOI('${d.id}')"
         style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:4px">
