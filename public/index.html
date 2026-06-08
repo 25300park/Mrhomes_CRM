@@ -951,6 +951,60 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 </div>
 
 <script>
+// ── Image Compression (1단계 최적화) ──────────────────────
+// 업로드 전 자동 압축: 최대 1200px, JPEG quality 80%
+async function compressImage(file, maxWidth=1200, maxHeight=1200, quality=0.80) {
+  return new Promise((resolve) => {
+    // GIF는 압축 스킵
+    if (file.type === 'image/gif') { resolve(file); return }
+
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      let w = img.naturalWidth
+      let h = img.naturalHeight
+
+      // 이미 충분히 작으면 그냥 사용
+      if (w <= maxWidth && h <= maxHeight && file.size < 500 * 1024) {
+        resolve(file); return
+      }
+
+      // 비율 유지하며 리사이즈
+      if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth }
+      if (h > maxHeight) { w = Math.round(w * maxHeight / h); h = maxHeight }
+
+      const canvas = document.createElement('canvas')
+      canvas.width  = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, w, h)
+
+      canvas.toBlob(blob => {
+        if (!blob) { resolve(file); return }
+        // 압축 결과가 원본보다 크면 원본 사용
+        if (blob.size >= file.size) { resolve(file); return }
+        const compressed = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() })
+        const ratio = Math.round((1 - blob.size / file.size) * 100)
+        console.log(`[Image] ${file.name}: ${(file.size/1024).toFixed(0)}KB → ${(blob.size/1024).toFixed(0)}KB (${ratio}% 절감)`)
+        resolve(compressed)
+      }, 'image/jpeg', quality)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+    img.src = url
+  })
+}
+
+// 여러 파일 일괄 압축
+async function compressImages(files, maxWidth=1200, maxHeight=1200, quality=0.80) {
+  const results = []
+  for (const file of files) {
+    const compressed = await compressImage(file, maxWidth, maxHeight, quality)
+    results.push(compressed)
+  }
+  return results
+}
+
 // ═══════════ STATE ═══════════
 let token = null, me = null, _dType = 'RENT', _dPrice = 0
 let _contacts = [], _leads = [], _listings = [], _staff = []
@@ -2811,7 +2865,10 @@ async function saveListingFromAI() {
       toast(`Uploading ${_qlPhotos.length} photo(s)...`)
       let mainUrl  = null
       const extras = []
-      for (const p of _qlPhotos) {
+      // 일괄 압축
+      const qlCompressed = await compressImages(_qlPhotos.map(p => p.file))
+      const qlPhotosToUpload = _qlPhotos.map((p, i) => ({ ...p, file: qlCompressed[i] }))
+      for (const p of qlPhotosToUpload) {
         try {
           const fd = new FormData()
           fd.append('photo', p.file)
@@ -3595,7 +3652,10 @@ async function onPhotoSelected(input) {
     const oversize = files.filter(f => f.size > 10*1024*1024)
     if (oversize.length) { alert(`10MB 초과 파일이 있습니다: ${oversize.map(f=>f.name).join(', ')}`); input.value=''; return }
 
-    toast(`사진 ${files.length}장 업로드 중...`)
+    toast(`사진 ${files.length}장 압축 및 업로드 중...`)
+
+    // 업로드 전 일괄 압축
+    const compressed = await compressImages(files)
 
     // 기존 photos 배열 조회
     let listing = await api('GET', `/api/listings/${_galleryListingId}`)
@@ -3603,7 +3663,7 @@ async function onPhotoSelected(input) {
     let mainUrl = listing.photo_url || null
 
     let success = 0
-    for (const file of files) {
+    for (const file of compressed) {
       try {
         const formData = new FormData()
         formData.append('photo', file)
@@ -3626,12 +3686,13 @@ async function onPhotoSelected(input) {
   } else {
     // ── Listing Back에서 Main 사진 1장 교체 ─────────────────
     if (!input.files[0] || !_photoListingId) return
-    const file = input.files[0]
-    if (file.size > 10*1024*1024) { alert('10MB 초과'); input.value=''; return }
+    const rawFile = input.files[0]
+    if (rawFile.size > 10*1024*1024) { alert('10MB 초과'); input.value=''; return }
+    toast('사진 압축 및 업로드 중...')
+    const file = await compressImage(rawFile)
     const formData = new FormData()
     formData.append('photo', file)
     formData.append('folder', 'listings')
-    toast('사진 업로드 중...')
     try {
       const res = await fetch('/api/upload/photo', { method:'POST', headers:{'Authorization':'Bearer '+token}, body:formData })
       const d = await res.json()
