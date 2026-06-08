@@ -629,12 +629,27 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <!-- 날짜 / 기간 -->
       <div class="mf-row">
         <div class="mf">
-          <label>Move-in Date *</label>
-          <input type="date" id="nc-movein" class="fi">
+          <label>Contract Date *</label>
+          <input type="date" id="nc-contract-date" class="fi">
         </div>
+        <div class="mf">
+          <label>Move-in Date *
+            <span style="font-size:10px;font-weight:400;color:var(--m)">(보통 계약일 +7일)</span>
+          </label>
+          <input type="date" id="nc-movein" class="fi"
+            oninput="syncContractDate(this)">
+        </div>
+      </div>
+      <div class="mf-row">
         <div class="mf">
           <label>Duration (months) *</label>
           <input type="number" id="nc-months" class="fi" placeholder="e.g. 12" min="1">
+        </div>
+        <div class="mf" style="display:flex;align-items:flex-end">
+          <button type="button" class="btn btn-o" style="font-size:11px;padding:7px 12px;width:100%"
+            onclick="suggestMoveInDate()">
+            <i class="ti ti-calendar-plus"></i> Contract Date +7일 자동입력
+          </button>
         </div>
       </div>
       <!-- 금액 -->
@@ -2379,32 +2394,19 @@ function renderLeadAction(l, contactId) {
 
 
 // Lead → Tenants 이동 (계약 생성 모달 자동 오픈)
+let _pendingLeadDeleteId = null  // Go to Tenants 후 삭제할 Lead ID
+
 async function goToTenantsFromLead(leadId, contactId) {
-  if (!confirm('이 Lead를 Tenants로 이동하시겠습니까? 계약 등록 창이 열리며 Lead 정보가 자동으로 채워집니다. 등록 완료 후 이 Lead는 삭제됩니다.')) return
+  if (!confirm('Move this Lead to Tenants?\nThe contract form will open with lead info pre-filled.')) return
   try {
     const lead = await api('GET', '/api/leads/' + leadId)
     if (!_contacts.length) {
-      _contacts = await api('GET', '/api/contacts').catch(function() { return [] })
+      _contacts = await api('GET', '/api/contacts').catch(() => [])
     }
+    _pendingLeadDeleteId = leadId
     await openNewContractFromLead(lead)
-    window._pendingDeleteLeadId = leadId
-    const _origSave = window.saveNewContract
-    window.saveNewContract = async function() {
-      await _origSave()
-      if (window._pendingDeleteLeadId) {
-        try {
-          await api('DELETE', '/api/leads/' + window._pendingDeleteLeadId)
-          window._pendingDeleteLeadId = null
-          toast('Lead가 삭제되고 Tenants로 이동되었습니다')
-        } catch(e2) {
-          console.warn('Lead 삭제 실패:', e2.message)
-        }
-      }
-      window.saveNewContract = _origSave
-      setTimeout(function() { nav('tenants') }, 500)
-    }
   } catch(e) {
-    alert('오류: ' + e.message)
+    alert('Error: ' + e.message)
   }
 }
 
@@ -4015,7 +4017,7 @@ async function openNewContract() {
     document.getElementById('nc-tenant-agent').value = me.id
   }
   // 폼 초기화
-  ;['nc-listing-search','nc-tenant-search','nc-lessor-search','nc-movein','nc-months','nc-rent','nc-deposit','nc-notes']
+  ;['nc-listing-search','nc-tenant-search','nc-lessor-search','nc-contract-date','nc-movein','nc-months','nc-rent','nc-deposit','nc-notes']
     .forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
   ;['nc-listing-selected','nc-tenant-selected','nc-lessor-selected'].forEach(id => {
     document.getElementById(id).style.display='none'
@@ -4085,23 +4087,25 @@ function selectNcContact(id, name, role, type) {
 }
 
 async function saveNewContract() {
-  const movein  = document.getElementById('nc-movein').value
-  const months  = parseInt(document.getElementById('nc-months').value)
-  const rent    = parseFloat(document.getElementById('nc-rent').value)
-  const deposit = parseFloat(document.getElementById('nc-deposit').value) || null
+  const contractDate = document.getElementById('nc-contract-date')?.value || ''
+  const movein       = document.getElementById('nc-movein').value
+  const months       = parseInt(document.getElementById('nc-months').value)
+  const rent         = parseFloat(document.getElementById('nc-rent').value)
+  const deposit      = parseFloat(document.getElementById('nc-deposit').value) || null
 
-  if (!_ncListingId) { alert('Please select a listing'); return }
-  if (!_ncTenantId)  { alert('Please select a tenant contact'); return }
-  if (!movein)       { alert('Move-in date is required'); return }
-  if (!months)       { alert('Contract duration is required'); return }
-  if (!rent)         { alert('Monthly rent is required'); return }
+  if (!_ncListingId)           { alert('Please select a listing'); return }
+  if (!_ncTenantId)            { alert('Please select a tenant contact'); return }
+  if (!contractDate && !movein){ alert('Contract date is required'); return }
+  if (!movein)                 { alert('Move-in date is required'); return }
+  if (!months)                 { alert('Contract duration is required'); return }
+  if (!rent)                   { alert('Monthly rent is required'); return }
 
   try {
     // 1. Deal 생성 (커미션은 0으로 초기화, 나중에 Admin이 설정)
     const deal = await api('POST', '/api/deals', {
       listing_id:           _ncListingId,
       contract_type:        'RENT',
-      contract_date:        movein,
+      contract_date:        contractDate || movein,
       move_in_date:         movein,
       contract_months:      months,
       monthly_rent:         rent,
@@ -4118,10 +4122,41 @@ async function saveNewContract() {
       await api('POST', `/api/tenants/${deal.id}/info`, { deposit })
     }
 
-    toast(`✓ Contract registered`)
+    toast('✓ Contract registered')
     closeModal('modal-new-contract')
-    vTenants()
+
+    // Go to Tenants에서 왔으면 원본 Lead 삭제
+    if (_pendingLeadDeleteId) {
+      try {
+        await api('PATCH', '/api/leads/' + _pendingLeadDeleteId, { status: 'CLOSED_WON' })
+        toast('✓ Lead marked as Closed Won')
+      } catch(e2) { console.warn('Lead update failed:', e2.message) }
+      _pendingLeadDeleteId = null
+    }
+
+    nav('tenants')
   } catch(e) { alert('Error: ' + e.message) }
+}
+
+// Contract Date ↔ Move-in Date 자동 계산
+function suggestMoveInDate() {
+  const cdEl = document.getElementById('nc-contract-date')
+  const miEl = document.getElementById('nc-movein')
+  if (!cdEl || !miEl) return
+  if (!cdEl.value) { alert('Please enter Contract Date first'); cdEl.focus(); return }
+  const d = new Date(cdEl.value)
+  d.setDate(d.getDate() + 7)
+  miEl.value = d.toISOString().slice(0,10)
+  toast('Move-in date set to 7 days after contract date')
+}
+
+function syncContractDate(miEl) {
+  // Move-in date 직접 입력 시 Contract date가 비어있으면 7일 앞으로 자동 제안
+  const cdEl = document.getElementById('nc-contract-date')
+  if (!cdEl || cdEl.value || !miEl.value) return
+  const d = new Date(miEl.value)
+  d.setDate(d.getDate() - 7)
+  cdEl.value = d.toISOString().slice(0,10)
 }
 
 // Close dropdown on outside click
@@ -5901,7 +5936,7 @@ async function openNewContractFromLead(lead) {
   document.getElementById('nc-owner-agent').innerHTML  = '<option value="">Unassigned</option>' + staffOpts
 
   // 폼 초기화
-  ;['nc-listing-search','nc-tenant-search','nc-lessor-search','nc-movein','nc-months','nc-rent','nc-deposit','nc-notes']
+  ;['nc-listing-search','nc-tenant-search','nc-lessor-search','nc-contract-date','nc-movein','nc-months','nc-rent','nc-deposit','nc-notes']
     .forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
   ;['nc-listing-selected','nc-tenant-selected','nc-lessor-selected'].forEach(id => {
     document.getElementById(id).style.display='none'
@@ -5932,8 +5967,15 @@ async function openNewContractFromLead(lead) {
   }
 
   // 입주일 자동 채움
+  // 입주일 자동 채움 + Contract Date 제안 (Move-in 7일 전)
   if (lead.move_in_date) {
     document.getElementById('nc-movein').value = lead.move_in_date
+    const cdEl = document.getElementById('nc-contract-date')
+    if (cdEl && lead.move_in_date) {
+      const cd = new Date(lead.move_in_date)
+      cd.setDate(cd.getDate() - 7)
+      cdEl.value = cd.toISOString().slice(0,10)
+    }
   } else if (lead.target_move_in) {
     document.getElementById('nc-movein').value = lead.target_move_in
   }
@@ -5955,9 +5997,8 @@ async function openNewContractFromLead(lead) {
     || document.querySelector('#modal-new-contract .modal')
   if (modalBody) modalBody.prepend(banner)
 
-  // 모달 오픈
+  // 모달 오픈 (페이지 이동 없음)
   document.getElementById('modal-new-contract').style.display = 'flex'
-  vLeads()
 }
 
 function openAddLead() { openAddLeadInStatus('NEW') }
@@ -6441,7 +6482,7 @@ async function vTenants() {
           <div style="font-size:12px">${d.lessor_contact?.name||'-'}</div>
         </td>
         <td style="font-size:11px;color:var(--m)">
-          ${d.move_in_date||'-'}<br>
+          📋 Contract: ${d.contract_date||'-'} &nbsp;|&nbsp; 🏠 Move-in: ${d.move_in_date||'-'}<br>
           <span style="font-size:10px">${d.contract_months?d.contract_months+'mo':''} ${endRaw?'→ '+endRaw.toISOString().slice(0,10):''}</span>
         </td>
         <td><span style="background:${ddayBg};color:${ddayC};padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600">
@@ -6504,11 +6545,14 @@ async function vTenantDetail(dealId) {
       <div class="card-h"><i class="ti ti-pencil"></i> Edit Contract</div>
       <div class="card-b">
         <div class="fg2">
+          <div class="ff"><label class="fl">Contract Date</label>
+            <input class="fi" id="tc-contract-date" type="date" value="${deal.contract_date||''}"></div>
           <div class="ff"><label class="fl">Move-in Date</label>
             <input class="fi" id="tc-movein" type="date" value="${deal.move_in_date||''}"></div>
+        </div>
+        <div class="fg2">
           <div class="ff"><label class="fl">Contract Duration (months)</label>
             <input class="fi" id="tc-months" type="number" min="1" max="120" value="${deal.contract_months||''}" placeholder="e.g. 12"></div>
-        </div>
         <div class="fg2">
           <div class="ff"><label class="fl">Monthly Rent (PHP)</label>
             <input class="fi" id="tc-rent" type="number" value="${deal.monthly_rent||''}"></div>
@@ -6639,12 +6683,13 @@ async function vTenantDetail(dealId) {
 }
 
 async function saveContractEdit(dealId) {
+  const contract_date   = document.getElementById('tc-contract-date')?.value || null
   const move_in_date    = document.getElementById('tc-movein').value   || null
   const contract_months = parseInt(document.getElementById('tc-months').value) || null
   const monthly_rent    = parseFloat(document.getElementById('tc-rent').value) || null
   const remarks         = document.getElementById('tc-remarks').value   || null
   try {
-    await api('PATCH', `/api/deals/${dealId}`, { move_in_date, contract_months, monthly_rent, remarks })
+    await api('PATCH', `/api/deals/${dealId}`, { contract_date, move_in_date, contract_months, monthly_rent, remarks })
     toast('✓ Contract info saved')
     vTenantDetail(dealId)
   } catch(e) { alert('Error: ' + e.message) }
