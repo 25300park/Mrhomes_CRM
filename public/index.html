@@ -3217,11 +3217,14 @@ async function vListingDetail(id) {
   history.pushState({ view:'listing-detail', id }, '', '#listing/' + id)
   vc(`<div class="loading">Loading listing...</div>`)
   try {
-    const [listing, activities, deals] = await Promise.all([
+    const [listing, activities, deals, staffList] = await Promise.all([
       api('GET', `/api/listings/${id}`),
       api('GET', `/api/activities?listing_id=${id}&limit=10`),
-      api('GET', '/api/deals')
+      api('GET', '/api/deals'),
+      me?.role === 'admin' ? api('GET', '/api/staff').catch(()=>[]) : Promise.resolve([])
     ])
+    // Admin용 staff 캐시 갱신
+    if (me?.role === 'admin' && staffList.length) _staff = staffList
     const relDeals = deals.filter(d => d.listing_id === id)
     const photos   = Array.isArray(listing.photos) ? listing.photos : []
     const allPhotos = listing.photo_url ? [listing.photo_url, ...photos.filter(p=>p!==listing.photo_url)] : photos
