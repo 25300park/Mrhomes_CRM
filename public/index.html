@@ -4488,7 +4488,12 @@ function getReportPreviewHtml() {
 }
 
 function getReportPrintHtml() {
-  const selected    = _docListings.filter(l => _docSelected.has(l.id))
+  // 전체 contributions 합산 (내 선택 + 다른 직원 선택)
+  const allPrintIds = new Set([
+    ...Array.from(_docSelected),
+    ...Object.values(_allContributions).flat()
+  ])
+  const selected    = _docListings.filter(l => allPrintIds.has(l.id))
   const client      = document.getElementById('rp-client')?.value || ''
   const date        = document.getElementById('rp-date')?.value || tod()
   const agent       = me?.name || ''
@@ -4543,21 +4548,36 @@ function printReport() {
     ...Object.values(_allContributions).flat()
   ])
   if (!allPrintIds.size) { alert('Please load a shared report or add listings first'); return }
+
   const printHtml = getReportPrintHtml()
-  // iframe으로 인쇄 (페이지 나누기 완벽 지원)
-  let iframe = document.getElementById('report-print-iframe')
-  if (!iframe) {
-    iframe = document.createElement('iframe')
-    iframe.id = 'report-print-iframe'
-    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none'
-    document.body.appendChild(iframe)
-  }
-  iframe.srcdoc = printHtml
-  iframe.onload = () => {
-    setTimeout(() => {
-      iframe.contentWindow.focus()
-      iframe.contentWindow.print()
-    }, 500)
+
+  // window.open 방식 — 이미지 CORS 문제 없음, 다중 페이지 완벽 지원
+  const printWin = window.open('', '_blank', 'width=900,height=700')
+  if (!printWin) { alert('팝업이 차단됐습니다. 팝업을 허용해주세요.'); return }
+
+  printWin.document.open()
+  printWin.document.write(printHtml)
+  printWin.document.close()
+
+  // 모든 이미지 로드 완료 후 인쇄
+  printWin.onload = function() {
+    const imgs = printWin.document.querySelectorAll('img')
+    if (!imgs.length) {
+      setTimeout(() => { printWin.focus(); printWin.print() }, 300)
+      return
+    }
+    let loaded = 0
+    const total = imgs.length
+    const tryPrint = () => {
+      loaded++
+      if (loaded >= total) {
+        setTimeout(() => { printWin.focus(); printWin.print() }, 300)
+      }
+    }
+    imgs.forEach(img => {
+      if (img.complete) { tryPrint() }
+      else { img.onload = tryPrint; img.onerror = tryPrint }
+    })
   }
 }
 
