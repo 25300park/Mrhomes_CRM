@@ -235,7 +235,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <button class="nav-it" onclick="nav('documents')" data-v="documents"><i class="ti ti-file-certificate"></i><span>Documents</span></button>
       <div class="nav-sec">PMS</div>
       <button class="nav-it" onclick="nav('pms-payments')" data-v="pms-payments"><i class="ti ti-receipt-2"></i><span>납부 검토</span></button>
-      <button class="nav-it" onclick="nav('pms-care')" data-v="pms-care"><i class="ti ti-tool"></i><span>홈케어 관리</span></button>
+      <button class="nav-it" onclick="nav('pms-care')" data-v="pms-care"><i class="ti ti-tool"></i><span>Home Care</span></button>
       <div class="nav-sec admin-only">Management</div>
       <button class="nav-it admin-only" onclick="nav('accounting')" data-v="accounting"><i class="ti ti-coin"></i><span>Accounting</span></button>
       <button class="nav-it admin-only" onclick="nav('staff')" data-v="staff"><i class="ti ti-chart-bar"></i><span>Staff Performance</span></button>
@@ -285,7 +285,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-profile" style="display:none" onclick="if(event.target===this)closeModal('modal-profile')">
+<div class="modal-overlay" id="modal-profile" style="display:none">
   <div class="modal" style="max-width:420px">
     <div class="modal-hd">
       <div>
@@ -353,7 +353,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
   </div>
 </div>
 <!-- ── AI Quick Input 모달 (고객) ── -->
-<div class="modal-overlay" id="modal-quick-contact" style="display:none" onclick="if(event.target===this)closeModal('modal-quick-contact')">
+<div class="modal-overlay" id="modal-quick-contact" style="display:none">
   <div class="modal" style="max-width:520px">
     <div class="modal-hd">
       <div><h2>✨ Quick Input — Contact</h2><p>Paste KakaoTalk message → AI auto-fills the form</p></div>
@@ -459,7 +459,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 </div>
 
 <!-- ── AI Quick Input 모달 (매물) ── -->
-<div class="modal-overlay" id="modal-quick-listing" style="display:none" onclick="if(event.target===this)closeModal('modal-quick-listing')">
+<div class="modal-overlay" id="modal-quick-listing" style="display:none">
   <div class="modal" style="max-width:540px">
     <div class="modal-hd">
       <div><h2>✨ Quick Input — Listing</h2><p>Paste property message → AI auto-fills the form</p></div>
@@ -570,7 +570,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 </div>
 
 <!-- ── New Contract 모달 (Tenants 탭) ── -->
-<div class="modal-overlay" id="modal-new-contract" style="display:none" onclick="if(event.target===this)closeModal('modal-new-contract')">
+<div class="modal-overlay" id="modal-new-contract" style="display:none">
   <div class="modal" style="max-width:520px">
     <div class="modal-hd">
       <div><h2>Register New Contract</h2><p>Create a rental contract record</p></div>
@@ -681,7 +681,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 <div id="print-frame"></div>
 
 <!-- ── Contact Add 모달 ── -->
-<div class="modal-overlay" id="modal-contact" style="display:none" onclick="if(event.target===this)closeModal('modal-contact')">
+<div class="modal-overlay" id="modal-contact" style="display:none">
   <div class="modal">
     <div class="modal-hd">
       <div>
@@ -780,7 +780,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 </div>
 
 <!-- ── Listing Add 모달 ── -->
-<div class="modal-overlay" id="modal-listing" style="display:none" onclick="if(event.target===this)closeModal('modal-listing')">
+<div class="modal-overlay" id="modal-listing" style="display:none">
   <div class="modal">
     <div class="modal-hd">
       <div>
@@ -2265,7 +2265,7 @@ function setCActType(type) {
     return
   }
 
-  // LOI → LOI 페이지 이동 + 임차인 자동채움
+  // LOI → LOI 페이지 이동 + Tenant 자동채움
   if (type === 'LOI') {
     const hash = location.hash
     const contactId = hash.startsWith('#contact/') ? hash.replace('#contact/','') : null
@@ -2279,7 +2279,7 @@ function setCActType(type) {
     setTimeout(() => {
       switchDocTab('loi', document.getElementById('dt-loi'))
       setTimeout(() => {
-        // 임차인 자동채움
+        // Tenant 자동채움
         if (contactName) {
           const ts = document.getElementById('loi-tenant-search')
           const th = document.getElementById('loi-tenant')
@@ -2394,7 +2394,7 @@ function renderLeadAction(l, contactId) {
 
 
 // Lead → Tenants 이동 (계약 생성 모달 자동 오픈)
-let _pendingLeadDeleteId = null  // Go to Tenants 후 삭제할 Lead ID
+let _pendingLeadDeleteId = null  // Go to Tenants 후 Delete할 Lead ID
 
 async function goToTenantsFromLead(leadId, contactId) {
   if (!confirm('Move this Lead to Tenants?\nThe contract form will open with lead info pre-filled.')) return
@@ -2404,11 +2404,11 @@ async function goToTenantsFromLead(leadId, contactId) {
       _contacts = await api('GET', '/api/contacts').catch(() => [])
     }
     _pendingLeadDeleteId = leadId
-    // tenants 탭으로 먼저 이동 후 모달 오픈
+    // tenants 탭으로 이동 — vTenants 완료 대기 후 모달 오픈
     await nav('tenants')
-    setTimeout(async () => {
-      await openNewContractFromLead(lead)
-    }, 400)
+    // vTenants 렌더링 완료 후 충분한 시간 대기
+    await new Promise(r => setTimeout(r, 800))
+    await openNewContractFromLead(lead)
   } catch(e) {
     alert('Error: ' + e.message)
   }
@@ -3840,6 +3840,7 @@ function renderListView(allData) {
   <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
     ${['ALL','RENT','SALE'].map((tp,i)=>`<button class="tab ${i===0?'on':''}" onclick="fLS('${tp}','type',this)">${tp==='ALL'?'All':tp==='RENT'?'Rent':'Sale'}</button>`).join('')}
     ${['ACTIVE','ON-HOLD','CONTRACTED'].map(s=>{const st=SLS[s];return`<button class="tab" onclick="fLS('${s}','status',this)">${st.l}</button>`}).join('')}
+    <button class="tab" onclick="fLS('MINE','mine',this)" style="margin-left:6px;border-left:1px solid var(--b);padding-left:10px">My Listings</button>
   </div>
   <div class="card"><div class="scroll-x"><table class="tbl" id="ltbl">
     <tr><th>No.</th><th>Photo</th><th>Property Name</th><th>Trade</th><th>Type</th><th>Bed</th><th>Area</th><th>Price</th><th>Contact</th><th>Member</th><th>Status</th><th></th></tr>
@@ -3877,9 +3878,14 @@ function renderListView(allData) {
 }
 function fLS(val,field,btn) {
   document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.remove('on')); btn.classList.add('on')
-  document.querySelectorAll('#ltbl tr[data-ltype]').forEach(tr=>{
-    tr.style.display=(val==='ALL'||tr.dataset[field==='type'?'ltype':'lstatus']===val)?'':'none'
-  })
+  if (field === 'mine') {
+    renderListView(_listings.filter(l => l.assigned_user_id === me?.id))
+    return
+  }
+  let filtered = _listings
+  if (field === 'type'   && val !== 'ALL') filtered = _listings.filter(l => l.transaction_type === val)
+  if (field === 'status')                  filtered = _listings.filter(l => l.status === val)
+  renderListView(filtered)
 }
 // addListing → 모달로 처리 (아래 MODAL 섹션 참고)
 // ── Condo Name Autocomplete ─────────────────────────────────
@@ -3995,7 +4001,7 @@ async function deleteListing(id, name) {
   } catch(e) { alert('Error: ' + e.message) }
 }
 
-// 상세 페이지에서 삭제 (Admin only) — 삭제 후 목록으로 이동
+// 상세 페이지에서 Delete (Admin only) — Delete 후 목록으로 이동
 async function confirmDeleteListing(id, name) {
   if (me?.role !== 'admin') { alert('Admin only'); return }
   if (!confirm(`Delete "${name}"?\n\n⚠️ This will permanently remove this listing.\nThis cannot be undone.`)) return
@@ -4129,7 +4135,7 @@ async function saveNewContract() {
     toast('✓ Contract registered')
     closeModal('modal-new-contract')
 
-    // Go to Tenants에서 왔으면 원본 Lead 삭제
+    // Go to Tenants에서 왔으면 원본 Lead Delete
     if (_pendingLeadDeleteId) {
       try {
         await api('PATCH', '/api/leads/' + _pendingLeadDeleteId, { status: 'CLOSED_WON' })
@@ -4180,7 +4186,8 @@ const LOGO_URL = 'https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/pub
 const COMPANY  = { name: 'Mr. Homes Philippines', web: 'rbs-homes.com', email: 'maymrhomes082023@gmail.com', phone: '+63 XXX XXX XXXX' }
 
 let _docListings = [], _docSelected = new Set(), _docClient = ''
-let _allContributions = {}  // { userId: [listingId, ...] } — Total: Assigned별 선택
+let _allContributions = {}
+let _reportArchiveMode = false  // false=Active, true=Archived  // { userId: [listingId, ...] } — Total: Assigned별 선택
 
 async function vDocuments() {
   // 탭 열 때 listings 캐시 초기화 → buildReportPanel/buildLOIPanel에서 새로 조회
@@ -4216,7 +4223,7 @@ let _reportEditId = null
 let _rpListingSearch = ''
 
 async function buildReportPanel() {
-  // 항상 최신 listings 조회 (삭제/변경 즉시 반영)
+  // 항상 최신 listings 조회 (Delete/변경 즉시 반영)
   const data = await api('GET', '/api/listings?limit=200').catch(() => [])
   _docListings = data
   _reportDocs = await api('GET', '/api/listing-reports?include_shared=1').catch(()=>[])
@@ -4319,16 +4326,22 @@ function renderReportSavedList() {
   if (!_reportDocs.length) return '<div style="padding:12px;text-align:center;font-size:11px;color:var(--m)">No saved reports</div>'
   const myId = me?.id
   const isAdmin = me?.role === 'admin'
-  // Mine: 것 + 공유된 것 필터
-  const visible = _reportDocs.filter(d => d.created_by === myId || d.is_shared || isAdmin)
-  if (!visible.length) return '<div style="padding:12px;text-align:center;font-size:11px;color:var(--m)">No reports yet. Shared reports will appear here.</div>'
-  return visible.map(d => {
+  const toggleBar = '<div style="display:flex;gap:4px;padding:8px 12px 4px">'
+    + '<button onclick="_reportArchiveMode=false;refreshReportSavedList()" style="padding:3px 12px;border-radius:14px;border:1.5px solid;font-size:10px;cursor:pointer;transition:all .1s;background:'+(!_reportArchiveMode?'var(--N)':'transparent')+';color:'+(!_reportArchiveMode?'#fff':'var(--m)')+';border-color:'+(!_reportArchiveMode?'var(--N)':'var(--b)')+'">Active</button>'
+    + '<button onclick="_reportArchiveMode=true;refreshReportSavedList()" style="padding:3px 12px;border-radius:14px;border:1.5px solid;font-size:10px;cursor:pointer;transition:all .1s;background:'+(_reportArchiveMode?'#888':'transparent')+';color:'+(_reportArchiveMode?'#fff':'var(--m)')+';border-color:'+(_reportArchiveMode?'#888':'var(--b)')+'">Archived</button>'
+    + '</div>'
+  // 내 것 + 공유된 것 필터
+  const all = _reportDocs.filter(d => d.created_by === myId || d.is_shared || isAdmin)
+  const visible = all.filter(d => _reportArchiveMode ? d.is_archived : !d.is_archived)
+  if (!visible.length) return toggleBar + '<div style="padding:12px;text-align:center;font-size:11px;color:var(--m)">'
+    + (_reportArchiveMode ? 'No archived reports' : 'No active reports') + '</div>'
+
     const isOwner  = d.created_by === myId || isAdmin
     const isMine   = d.created_by === myId
     const shared   = d.is_shared
     const sharedBadge = shared
-      ? '<span style="font-size:9px;background:#E0F3ED;color:#19846B;padding:1px 5px;border-radius:4px;margin-left:4px">공유됨</span>'
-      : (isMine ? '<span style="font-size:9px;background:#F1EFE8;color:#5F5E5A;padding:1px 5px;border-radius:4px;margin-left:4px">비공개</span>' : '')
+      ? '<span style="font-size:9px;background:#E0F3ED;color:#19846B;padding:1px 5px;border-radius:4px;margin-left:4px">Shared</span>'
+      : (isMine ? '<span style="font-size:9px;background:#F1EFE8;color:#5F5E5A;padding:1px 5px;border-radius:4px;margin-left:4px">Private</span>' : '')
     return `
     <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--b);cursor:pointer"
       onclick="loadReport('${d.id}')"
@@ -4344,6 +4357,12 @@ function renderReportSavedList() {
         title="${shared?'Unshare':'Share with team'}"
         style="background:none;border:none;cursor:pointer;color:${shared?'#19846B':'var(--m)'};padding:3px">
         <i class="ti ti-share" style="font-size:13px"></i>
+      </button>` : ''}
+      ${isOwner && !_reportArchiveMode ? `
+      <button onclick="archiveReport('${d.id}',event)"
+        title="Archive"
+        style="background:none;border:none;cursor:pointer;color:#854F0B;padding:3px">
+        <i class="ti ti-archive" style="font-size:13px"></i>
       </button>` : ''}
       ${isOwner ? `
       <button onclick="event.stopPropagation();deleteReport('${d.id}')"
@@ -4470,7 +4489,7 @@ function toggleRpListing(id) {
   // Only toggle own listings
   const listing = _docListings.find(l => l.id === id)
   if (listing && listing.assigned_user_id !== me?.id && me?.role !== 'admin') {
-    toast('본인이 등록한 매물만 추가/삭제할 수 있습니다')
+    toast('본인이 등록한 매물만 추가/Delete할 수 있습니다')
     return
   }
   if (_docSelected.has(id)) _docSelected.delete(id)
@@ -5949,7 +5968,7 @@ async function openNewContractFromLead(lead) {
   // Lead 정보 자동 채움
   const contact = lead.contact || {}
 
-  // 임차인 자동 설정
+  // Tenant 자동 설정
   if (lead.contact_id && contact.name) {
     _ncTenantId = lead.contact_id
     document.getElementById('nc-tenant-search').value = contact.name
@@ -6085,7 +6104,7 @@ async function vPmsPayments() {
     vc(`
 <div class="ph">
   <div><div class="ph-title"><i class="ti ti-receipt-2" style="margin-right:6px"></i>PMS 납부 검토</div>
-  <div class="ph-sub">임차인 영수증 확인 및 승인 (admin만 승인 가능)</div></div>
+  <div class="ph-sub">Tenant 영수증 확인 및 승인 (admin만 승인 가능)</div></div>
   <button onclick="nav('pms-payments')" style="background:var(--bg);border:1px solid var(--b);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer"><i class="ti ti-refresh"></i> 새로고침</button>
 </div>
 <div class="pb">
@@ -6101,7 +6120,7 @@ async function vPmsPayments() {
       ${stats.awaiting>0&&isAdmin?`<span style="background:#FDF0DC;color:#7A4F00;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700">⚠️ ${stats.awaiting}건 승인 대기</span>`:''}
     </div>
     <div class="scroll-x"><table class="tbl">
-      <tr><th>No.</th><th>유닛</th><th>임차인</th><th>납부월</th><th>금액</th><th>상태</th><th>영수증</th><th>액션</th></tr>
+      <tr><th>No.</th><th>유닛</th><th>Tenant</th><th>납부월</th><th>금액</th><th>상태</th><th>영수증</th><th>액션</th></tr>
       ${rows}
     </table></div>
   </div>
@@ -6113,25 +6132,25 @@ async function vPmsPayments() {
 }
 
 async function pmsApprove(id) {
-  if (!confirm('이 영수증을 승인하시겠습니까?\n납부 완료로 처리되며 임차인에게 알림이 전송됩니다.')) return
+  if (!confirm('이 영수증을 승인하시겠습니까?\n납부 완료로 처리되며 Tenant에게 알림이 전송됩니다.')) return
   try {
     await api('PATCH', `/api/pms-payments/${id}/approve`)
-    alert('승인 완료! 임차인에게 알림이 전송되었습니다.')
+    alert('승인 완료! Tenant에게 알림이 전송되었습니다.')
     nav('pms-payments')
   } catch(e) { alert('오류: ' + e.message) }
 }
 
 async function pmsReject(id) {
-  const reason = prompt('반려 사유를 입력해주세요 (임차인에게 전달됩니다):')
+  const reason = prompt('반려 사유를 입력해주세요 (Tenant에게 전달됩니다):')
   if (reason === null) return
   try {
     await api('PATCH', `/api/pms-payments/${id}/reject`, { reason })
-    alert('반려 처리되었습니다. 임차인이 다시 업로드해야 합니다.')
+    alert('반려 처리되었습니다. Tenant이 다시 업로드해야 합니다.')
     nav('pms-payments')
   } catch(e) { alert('오류: ' + e.message) }
 }
 
-// ═══════════ PMS 홈케어 관리 ═══════════
+// ═══════════ PMS Home Care ═══════════
 async function vPmsCare() {
   if (!window._careFilter) window._careFilter = 'ALL'
   try {
@@ -6202,8 +6221,8 @@ async function vPmsCare() {
 
     vc(`
 <div class="ph">
-  <div><div class="ph-title"><i class="ti ti-tool" style="margin-right:6px"></i>PMS 홈케어 관리</div>
-  <div class="ph-sub">임차인 홈케어 신청 일정 관리</div></div>
+  <div><div class="ph-title"><i class="ti ti-tool" style="margin-right:6px"></i>PMS Home Care</div>
+  <div class="ph-sub">Tenant 홈케어 신청 일정 관리</div></div>
   <button onclick="nav('pms-care')" style="background:var(--bg);border:1px solid var(--b);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer"><i class="ti ti-refresh"></i> 새로고침</button>
 </div>
 <div class="pb">
@@ -6219,7 +6238,7 @@ async function vPmsCare() {
       ${stats.pending>0?`<span style="background:#E6F1FB;color:#185FA5;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700">📋 ${stats.pending}건 처리 대기</span>`:''}
     </div>
     <div class="scroll-x"><table class="tbl">
-      <tr><th>No.</th><th>유닛</th><th>임차인</th><th>서비스</th><th>희망일시</th><th>확정일시</th><th>상태</th><th>액션</th></tr>
+      <tr><th>No.</th><th>유닛</th><th>Tenant</th><th>서비스</th><th>희망일시</th><th>확정일시</th><th>상태</th><th>액션</th></tr>
       ${rows}
     </table></div>
   </div>
@@ -6268,7 +6287,7 @@ async function careDetail(id) {
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
         <div class="kpi" style="padding:10px">
-          <div class="kpi-l">임차인</div>
+          <div class="kpi-l">Tenant</div>
           <div style="font-weight:700;font-size:13px">${r.deal?.tenant_contact?.name||'-'}</div>
           <div style="font-size:11px;color:var(--m)">${r.deal?.tenant_contact?.mobile||''}</div>
         </div>
@@ -6288,7 +6307,7 @@ async function careDetail(id) {
 
       ${r.description?`
       <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px">
-        <div style="font-size:10px;font-weight:700;color:var(--m);margin-bottom:4px">임차인 요청사항</div>
+        <div style="font-size:10px;font-weight:700;color:var(--m);margin-bottom:4px">Tenant 요청사항</div>
         <div style="font-size:13px">${r.description}</div>
       </div>`:''}
 
@@ -6323,7 +6342,7 @@ function careSchedule(id) {
       <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <span style="font-size:11px;font-weight:700;color:var(--m)">작업자 ${i+1}</span>
-          ${i>0?`<button onclick="removeWorker(${i})" style="background:none;border:none;color:var(--R);cursor:pointer;font-size:11px">✕ 삭제</button>`:''}
+          ${i>0?`<button onclick="removeWorker(${i})" style="background:none;border:none;color:var(--R);cursor:pointer;font-size:11px">✕ Delete</button>`:''}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div>
@@ -6350,7 +6369,7 @@ function careSchedule(id) {
 
   window.addWorker = () => { workerCount++; renderWorkers() }
   window.removeWorker = (i) => {
-    // 삭제 시 앞 데이터 보존
+    // Delete 시 앞 데이터 보존
     const saved = []
     for (let j = 0; j < workerCount; j++) {
       if (j !== i) saved.push({
@@ -6393,7 +6412,7 @@ function careSchedule(id) {
         gatepass_notes,
       })
       closeDynModal()
-      alert('일정이 확정되었습니다. 임차인에게 알림이 전송됩니다.')
+      alert('일정이 확정되었습니다. Tenant에게 알림이 전송됩니다.')
       nav('pms-care')
     } catch(e) { alert('오류: ' + e.message) }
   }
@@ -6444,17 +6463,36 @@ async function careCancel(id) {
   } catch(e) { alert('오류: ' + e.message) }
 }
 
+let _tenantShowInactive = false
+
 async function vTenants() {
   try {
     const data = await api('GET', '/api/tenants')
     const today = new Date()
+    const tenants = _tenantShowInactive
+      ? data.filter(d => d.is_inactive)
+      : data.filter(d => !d.is_inactive)
     vc(`
 <div class="ph">
-  <div><div class="ph-title">Tenants</div>
-  <div class="ph-sub">${data.length} active contracts</div></div>
-  <button class="btn btn-g" onclick="openNewContract()">
-    <i class="ti ti-plus"></i> New Contract
-  </button>
+  <div>
+    <div class="ph-title">Tenants</div>
+    <div class="ph-sub">${data.length} total contracts</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div style="display:flex;gap:2px;background:var(--b2);border-radius:20px;padding:3px">
+      <button onclick="setTenantView(false)"
+        style="padding:4px 14px;border-radius:16px;border:none;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:${!_tenantShowInactive?'#fff':'transparent'};color:${!_tenantShowInactive?'var(--N)':'var(--m)'};box-shadow:${!_tenantShowInactive?'0 1px 4px rgba(0,0,0,.12)':'none'}">
+        Active
+      </button>
+      <button onclick="setTenantView(true)"
+        style="padding:4px 14px;border-radius:16px;border:none;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;background:${_tenantShowInactive?'#fff':'transparent'};color:${_tenantShowInactive?'var(--m)':'var(--m)'};box-shadow:${_tenantShowInactive?'0 1px 4px rgba(0,0,0,.12)':'none'}">
+        Inactive
+      </button>
+    </div>
+    <button class="btn btn-n" onclick="openNewContract()">
+      <i class="ti ti-plus"></i> New Contract
+    </button>
+  </div>
 </div>
 <div class="pb">
   <div class="card"><div class="scroll-x"><table class="tbl">
@@ -6497,12 +6535,33 @@ async function vTenants() {
         <td style="font-size:12px;text-align:center">${info.utility_payment_day?info.utility_payment_day+'th':'-'}</td>
         <td style="font-size:11px">${info.ac_next_cleaning||'-'}</td>
         <td>${[d.owner_agent,d.tenant_agent].filter(a=>a?.id).map(a=>agBdg(a)).join('<br>')}</td>
-        <td><button onclick="vTenantDetail('${d.id}')" style="background:var(--A);color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px">Detail</button></td>
+        <td style="display:flex;gap:4px;align-items:center">
+        <button onclick="vTenantDetail('${d.id}')" style="background:var(--A);color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px">Detail</button>
+        <button onclick="toggleTenantActive('${d.id}',${!d.is_inactive})" title="${d.is_inactive?'Restore to Active':'Set Inactive'}"
+          style="background:none;border:1px solid #ddd;border-radius:6px;padding:4px 6px;cursor:pointer;color:${d.is_inactive?'#0F6E56':'#888'}">
+          <i class="ti ti-${d.is_inactive?'player-play':'player-pause'}" style="font-size:11px"></i>
+        </button>
+      </td>
       </tr>`
     }).join('')}
   </table></div></div>
 </div>`)
   } catch(e) { err(e) }
+}
+
+function setTenantView(showInactive) {
+  _tenantShowInactive = showInactive
+  vTenants()
+}
+
+async function toggleTenantActive(dealId, makeInactive) {
+  const msg = makeInactive ? 'Set this tenant as Inactive?' : 'Restore this tenant to Active?'
+  if (!confirm(msg)) return
+  try {
+    await api('PATCH', `/api/deals/${dealId}`, { is_inactive: makeInactive })
+    toast(makeInactive ? 'Tenant set as Inactive' : 'Tenant restored to Active')
+    vTenants()
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 async function vTenantDetail(dealId) {
@@ -6536,11 +6595,11 @@ async function vTenantDetail(dealId) {
     <!-- PMS 계정 연결 카드 -->
     <div class="card" style="margin-bottom:12px" id="pms-account-card-${dealId}">
       <div class="card-h" style="justify-content:space-between">
-        <span><i class="ti ti-device-mobile"></i> PMS 앱 계정 연결</span>
+        <span><i class="ti ti-device-mobile"></i> PMS Account Connection</span>
         <button onclick="loadPmsAccounts('${dealId}')" style="background:none;border:none;color:var(--m);cursor:pointer;font-size:11px"><i class="ti ti-refresh"></i></button>
       </div>
       <div id="pms-accounts-area-${dealId}" style="padding:12px">
-        <div style="text-align:center;color:var(--m);font-size:12px;padding:8px">불러오는 중...</div>
+        <div style="text-align:center;color:var(--m);font-size:12px;padding:8px">Loading...</div>
       </div>
     </div>
 
@@ -6656,12 +6715,12 @@ async function vTenantDetail(dealId) {
         <span><i class="ti ti-calendar-dollar"></i> 납부 일정 (Payment Schedule)</span>
         <div style="display:flex;gap:6px">
           <button class="btn btn-n" style="font-size:11px;padding:4px 10px"
-            onclick="generatePayments('${dealId}')">⚡ 자동 생성</button>
-          <button onclick="deletePayments('${dealId}')" style="display:${me.role==='admin'?'block':'none'};background:none;border:1px solid var(--R);color:var(--R);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">🗑 삭제</button>
+            onclick="generatePayments('${dealId}')">⚡ Auto Generate</button>
+          <button onclick="deletePayments('${dealId}')" style="display:${me.role==='admin'?'block':'none'};background:none;border:1px solid var(--R);color:var(--R);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">🗑 Delete</button>
         </div>
       </div>
       <div id="payment-schedule-area" style="padding:8px">
-        <div style="text-align:center;color:var(--m);font-size:12px;padding:16px">불러오는 중...</div>
+        <div style="text-align:center;color:var(--m);font-size:12px;padding:16px">Loading...</div>
       </div>
     </div>
 
@@ -6719,14 +6778,16 @@ async function saveContractEdit(dealId) {
   const advance_payment  = parseFloat(document.getElementById('tc-advance')?.value) || null
   const remarks          = document.getElementById('tc-remarks')?.value        || null
 
-  const payload = {}
-  if (contract_date   !== null) payload.contract_date    = contract_date
-  if (move_in_date    !== null) payload.move_in_date     = move_in_date
-  if (contract_months)          payload.contract_months  = contract_months
-  if (monthly_rent)             payload.monthly_rent     = monthly_rent
-  if (security_deposit)         payload.security_deposit = security_deposit
-  if (advance_payment)          payload.advance_payment  = advance_payment
-  if (remarks !== null)         payload.remarks          = remarks
+  // 모든 필드를 payload에 포함 (빈 값도 null로 명시적 전송)
+  const payload = {
+    contract_date:    contract_date    || null,
+    move_in_date:     move_in_date     || null,
+    contract_months:  contract_months  || null,
+    monthly_rent:     monthly_rent     || null,
+    security_deposit: security_deposit || null,
+    advance_payment:  advance_payment  || null,
+    remarks:          remarks          || null,
+  }
 
   try {
     await api('PATCH', `/api/deals/${dealId}`, payload)
@@ -6774,7 +6835,7 @@ async function loadPmsAccounts(dealId) {
     const isAdmin = me.role === 'admin'
 
     function renderAccount(type, acc) {
-      const label   = type === 'tenant' ? '임차인' : '임대인'
+      const label   = type === 'tenant' ? 'Tenant' : '임대인'
       const icon    = type === 'tenant' ? 'ti-user' : 'ti-building'
       const roleVal = type === 'tenant' ? 'tenant' : 'landlord'
       if (!acc.contact) return ''
@@ -6832,7 +6893,7 @@ async function loadPmsAccounts(dealId) {
 }
 
 async function pmsCreateAccount(contactId, role, dealId) {
-  const label = role === 'tenant' ? '임차인' : '임대인'
+  const label = role === 'tenant' ? 'Tenant' : '임대인'
   if (!confirm(label + ' PMS 계정을 생성하시겠습니까?\n임시 비밀번호가 발급됩니다.')) return
   try {
     const res = await api('POST', '/api/pms-accounts/create', { contact_id: contactId, role: role })
@@ -6842,7 +6903,7 @@ async function pmsCreateAccount(contactId, role, dealId) {
       + '<div><span style="color:var(--m);font-size:11px">Name</span><br><strong>' + res.name + '</strong></div>'
       + '<div><span style="color:var(--m);font-size:11px">이메일 (로그인 ID)</span><br><strong>' + res.email + '</strong></div>'
       + '<div><span style="color:var(--m);font-size:11px">임시 비밀번호</span><br><strong style="font-size:18px;letter-spacing:2px;color:var(--N)">' + res.temp_password + '</strong></div>'
-      + '<div><span style="color:var(--m);font-size:11px">역할</span><br><strong>' + (res.role === 'tenant' ? '임차인' : '임대인') + '</strong></div>'
+      + '<div><span style="color:var(--m);font-size:11px">역할</span><br><strong>' + (res.role === 'tenant' ? 'Tenant' : '임대인') + '</strong></div>'
       + '</div></div>'
       + '<div style="background:#FDF0DC;border-radius:8px;padding:10px;font-size:11px;color:#7A4F00;margin-bottom:16px">'
       + '⚠️ 이 임시 비밀번호를 ' + res.name + '님께 전달해주세요.<br>PMS 앱 접속 후 비밀번호를 변경하도록 안내하세요.'
@@ -6862,7 +6923,7 @@ async function pmsResetPassword(authUid) {
       + '<div style="font-size:22px;font-weight:800;letter-spacing:3px;color:var(--N)">' + res.temp_password + '</div>'
       + '</div>'
       + '<div style="background:#FDF0DC;border-radius:8px;padding:10px;font-size:11px;color:#7A4F00;margin-bottom:16px">'
-      + '⚠️ 임차인/임대인에게 이 비밀번호를 전달해주세요.'
+      + '⚠️ Tenant/임대인에게 이 비밀번호를 전달해주세요.'
       + '</div>'
       + '<div style="text-align:right"><button onclick="closeDynModal()" class="btn btn-g">확인</button></div>'
     showModal(html)
@@ -6870,7 +6931,7 @@ async function pmsResetPassword(authUid) {
 }
 
 async function pmsDisconnect(contactId, dealId) {
-  if (!confirm('PMS 계정 연결을 해제하시겠습니까?\n(Supabase Auth 계정은 유지됩니다)')) return
+  if (!confirm('PMS 계정 연결을 해제하시겠습니까?\n(Supabase Auth account will be retained)')) return
   try {
     await api('DELETE', '/api/pms-accounts/' + contactId)
     toast('✓ PMS 계정 연결이 해제되었습니다')
@@ -6886,7 +6947,7 @@ async function loadPaymentSchedule(dealId) {
     if (data.length === 0) {
       area.innerHTML = `<div style="text-align:center;color:var(--m);font-size:12px;padding:20px">
         납부 스케줄이 없습니다.<br>
-        <span style="font-size:11px">Move-in date와 Contract months 저장 후 ⚡ 자동 생성 버튼을 눌러주세요.</span>
+        <span style="font-size:11px">Save Move-in Date & Contract Duration first, then click ⚡ Auto Generate.</span>
       </div>`
       return
     }
@@ -6952,7 +7013,7 @@ async function loadPaymentSchedule(dealId) {
 }
 
 async function generatePayments(dealId) {
-  if (!confirm('계약 기간 전체의 납부 스케줄을 자동 생성하시겠습니까?\n(납부일은 Utility Payment Day 기준)')) return
+  if (!confirm('계약 기간 전체의 납부 스케줄을 Auto Generate하시겠습니까?\n(납부일은 Utility Payment Day 기준)')) return
   try {
     const res = await api('POST', `/api/pms-payments/generate/${dealId}`)
     toast(`✓ ${res.created}건의 납부 스케줄이 생성되었습니다`)
@@ -6961,10 +7022,10 @@ async function generatePayments(dealId) {
 }
 
 async function deletePayments(dealId) {
-  if (!confirm('PENDING/OVERDUE 상태의 납부 스케줄을 모두 삭제하시겠습니까?')) return
+  if (!confirm('PENDING/OVERDUE 상태의 납부 스케줄을 모두 Delete하시겠습니까?')) return
   try {
     await api('DELETE', `/api/pms-payments/deal/${dealId}`)
-    toast('✓ 삭제 완료')
+    toast('✓ Delete 완료')
     loadPaymentSchedule(dealId)
   } catch(e) { alert('오류: ' + e.message) }
 }
@@ -7189,7 +7250,7 @@ async function loadDealFromContract(dealId) {
       const grossEl = document.getElementById('d-gross')
       if (grossEl) { grossEl.value = d.monthly_rent; calcD() }
     }
-    // 임대인/임차인 Contact 설정
+    // 임대인/Tenant Contact 설정
     const ownC = document.getElementById('d-own-c')
     const tenC = document.getElementById('d-ten-c')
     if (ownC && d.owner_contact_id) ownC.value = d.owner_contact_id
@@ -7433,8 +7494,8 @@ function renderActList(acts) {
   acts.forEach(a => {
     const d = new Date(a.created_at)
     let label
-    if (d.toDateString() === today)          label = '오늘'
-    else if (d.toDateString() === yesterday) label = '어제'
+    if (d.toDateString() === today)          label = 'Today'
+    else if (d.toDateString() === yesterday) label = 'Yesterday'
     else {
       const diff = Math.floor((Date.now()-d)/86400000)
       label = diff < 7
@@ -7793,7 +7854,7 @@ async function vStaff() {
 }
 </script>
 <!-- Create User Modal (Admin Only) -->
-<div class="modal-overlay" id="modal-create-user" style="display:none" onclick="if(event.target===this)closeModal('modal-create-user')">
+<div class="modal-overlay" id="modal-create-user" style="display:none">
   <div class="modal" style="max-width:420px">
     <div class="modal-hd">
       <div><h2><i class="ti ti-user-plus"></i> Create New User</h2></div>
