@@ -2404,7 +2404,11 @@ async function goToTenantsFromLead(leadId, contactId) {
       _contacts = await api('GET', '/api/contacts').catch(() => [])
     }
     _pendingLeadDeleteId = leadId
-    await openNewContractFromLead(lead)
+    // tenants 탭으로 먼저 이동 후 모달 오픈
+    await nav('tenants')
+    setTimeout(async () => {
+      await openNewContractFromLead(lead)
+    }, 400)
   } catch(e) {
     alert('Error: ' + e.message)
   }
@@ -6540,34 +6544,57 @@ async function vTenantDetail(dealId) {
       </div>
     </div>
 
-    <!-- 계약 정보 수정 (Deal 직접 수정) -->
+    <!-- 계약 정보 수정 -->
     <div class="card" style="margin-bottom:12px">
       <div class="card-h"><i class="ti ti-pencil"></i> Edit Contract</div>
       <div class="card-b">
+
+        <div style="font-size:10px;font-weight:700;color:var(--m);margin-bottom:6px">CONTRACT DATES</div>
         <div class="fg2">
           <div class="ff"><label class="fl">Contract Date</label>
-            <input class="fi" id="tc-contract-date" type="date" value="${deal.contract_date||''}"></div>
+            <input class="fi" id="tc-contract-date" type="date" value="${deal.contract_date||''}"
+              oninput="calcTcEndDate()"></div>
           <div class="ff"><label class="fl">Move-in Date</label>
             <input class="fi" id="tc-movein" type="date" value="${deal.move_in_date||''}"></div>
         </div>
         <div class="fg2">
-          <div class="ff"><label class="fl">Contract Duration (months)</label>
-            <input class="fi" id="tc-months" type="number" min="1" max="120" value="${deal.contract_months||''}" placeholder="e.g. 12"></div>
+          <div class="ff"><label class="fl">Duration (months)</label>
+            <select class="fi" id="tc-months" onchange="calcTcEndDate()">
+              ${[1,2,3,6,9,12,18,24,36,48,60].map(m =>
+                '<option value="'+m+'"'+(deal.contract_months==m?' selected':'')+'>'+m+' month'+(m>1?'s':'')+'</option>'
+              ).join('')}
+            </select></div>
+          <div class="ff"><label class="fl">End of Contract <span style="font-size:9px;color:var(--m)">(auto)</span></label>
+            <input class="fi" id="tc-end-date" type="date" readonly style="background:var(--b2);cursor:not-allowed"
+              value="${deal.move_in_date && deal.contract_months
+                ? new Date(new Date(deal.move_in_date).setMonth(new Date(deal.move_in_date).getMonth()+parseInt(deal.contract_months))).toISOString().slice(0,10)
+                : ''}"></div>
+        </div>
+
+        <div style="font-size:10px;font-weight:700;color:var(--m);margin:10px 0 6px">FINANCIALS</div>
         <div class="fg2">
           <div class="ff"><label class="fl">Monthly Rent (PHP)</label>
             <input class="fi" id="tc-rent" type="number" value="${deal.monthly_rent||''}"></div>
-          <div class="ff"><label class="fl">Remarks</label>
-            <input class="fi" id="tc-remarks" value="${deal.remarks||''}"></div>
+          <div class="ff"><label class="fl">Security Deposit (PHP)</label>
+            <input class="fi" id="tc-deposit" type="number" value="${deal.security_deposit||deal.deposit||''}"></div>
         </div>
-        <button class="btn btn-g" style="margin-top:8px;width:100%;justify-content:center"
+        <div class="fg2">
+          <div class="ff"><label class="fl">Advances (PHP)</label>
+            <input class="fi" id="tc-advance" type="number" value="${deal.advance_payment||''}" placeholder="e.g. 1 month advance"></div>
+          <div class="ff"></div>
+        </div>
+
+        <div style="font-size:10px;font-weight:700;color:var(--m);margin:10px 0 6px">OTHER</div>
+        <div class="ff"><label class="fl">Other Requests / Remarks</label>
+          <textarea class="fi" id="tc-remarks" rows="2" style="resize:vertical">${deal.remarks||''}</textarea></div>
+
+        <button class="btn btn-g" style="margin-top:10px;width:100%;justify-content:center"
           onclick="saveContractEdit('${dealId}')">
           <i class="ti ti-device-floppy"></i> Save Contract Info
         </button>
-        <div style="font-size:10px;color:var(--m);margin-top:6px;text-align:center">
-          Tenant · Lessor contact changes → Deals & Commission tab
-        </div>
       </div>
     </div>
+
 
     <div class="card" style="margin-bottom:12px">
       <div class="card-h"><i class="ti ti-file-text"></i> Contract Info</div>
@@ -6576,7 +6603,8 @@ async function vTenantDetail(dealId) {
           ${[
             ['Tenant',   deal.tenant_contact?.name + (deal.tenant_contact?.mobile?' · '+deal.tenant_contact.mobile:'')],
             ['Lessor',   deal.lessor_contact?.name || '-'],
-            ['Start',    deal.move_in_date||'-'],
+            ['Contract Date', deal.contract_date||'-'],
+            ['Move-in Date', deal.move_in_date||'-'],
             ['End',      endDate?endDate.toISOString().slice(0,10):'-'],
             ['D-Day',    dday===null?'-':dday<=0?'⚠️ EXPIRED':'D-'+dday],
             ['Monthly Rent', fmt(deal.monthly_rent)],
@@ -6683,16 +6711,41 @@ async function vTenantDetail(dealId) {
 }
 
 async function saveContractEdit(dealId) {
-  const contract_date   = document.getElementById('tc-contract-date')?.value || null
-  const move_in_date    = document.getElementById('tc-movein').value   || null
-  const contract_months = parseInt(document.getElementById('tc-months').value) || null
-  const monthly_rent    = parseFloat(document.getElementById('tc-rent').value) || null
-  const remarks         = document.getElementById('tc-remarks').value   || null
+  const contract_date    = document.getElementById('tc-contract-date')?.value || null
+  const move_in_date     = document.getElementById('tc-movein')?.value        || null
+  const contract_months  = parseInt(document.getElementById('tc-months')?.value) || null
+  const monthly_rent     = parseFloat(document.getElementById('tc-rent')?.value) || null
+  const security_deposit = parseFloat(document.getElementById('tc-deposit')?.value) || null
+  const advance_payment  = parseFloat(document.getElementById('tc-advance')?.value) || null
+  const remarks          = document.getElementById('tc-remarks')?.value        || null
+
+  const payload = {}
+  if (contract_date   !== null) payload.contract_date    = contract_date
+  if (move_in_date    !== null) payload.move_in_date     = move_in_date
+  if (contract_months)          payload.contract_months  = contract_months
+  if (monthly_rent)             payload.monthly_rent     = monthly_rent
+  if (security_deposit)         payload.security_deposit = security_deposit
+  if (advance_payment)          payload.advance_payment  = advance_payment
+  if (remarks !== null)         payload.remarks          = remarks
+
   try {
-    await api('PATCH', `/api/deals/${dealId}`, { contract_date, move_in_date, contract_months, monthly_rent, remarks })
+    await api('PATCH', `/api/deals/${dealId}`, payload)
     toast('✓ Contract info saved')
-    vTenantDetail(dealId)
+    vTenantDetail(dealId)  // 상세 페이지 전체 새로고침 → Contract Info 즉시 반영
   } catch(e) { alert('Error: ' + e.message) }
+}
+
+// End Date 자동계산 (Edit Contract 폼)
+function calcTcEndDate() {
+  const cdEl  = document.getElementById('tc-contract-date')
+  const moEl  = document.getElementById('tc-months')
+  const endEl = document.getElementById('tc-end-date')
+  if (!cdEl || !moEl || !endEl) return
+  const base = cdEl.value || document.getElementById('tc-movein')?.value
+  if (!base || !moEl.value) { endEl.value = ''; return }
+  const d = new Date(base)
+  d.setMonth(d.getMonth() + parseInt(moEl.value))
+  endEl.value = d.toISOString().slice(0, 10)
 }
 
 async function saveTenantInfo(dealId) {
