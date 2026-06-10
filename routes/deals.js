@@ -158,10 +158,6 @@ router.patch('/:id', auth, async (req, res) => {
           const endDate = new Date(startDate)
           endDate.setMonth(endDate.getMonth() + (data.contract_months || 12))
 
-          console.log('RBS_SYNC_SECRET 값:', process.env.RBS_SYNC_SECRET ? '존재함(길이:' + process.env.RBS_SYNC_SECRET.length + ')' : '없음')
-          console.log('Authorization 헤더:', `Bearer ${process.env.RBS_SYNC_SECRET}`)
-          console.log('요청 URL:', `${RBS_API_URL}/api/pms/leases`)
-
           const leaseResponse = await fetch(`http://54.254.24.249:3000/api/pms/leases`, {
             method: 'POST',
             headers: {
