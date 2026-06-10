@@ -162,11 +162,12 @@ router.patch('/:id', auth, async (req, res) => {
           console.log('Authorization 헤더:', `Bearer ${process.env.RBS_SYNC_SECRET}`)
           console.log('요청 URL:', `${RBS_API_URL}/api/pms/leases`)
 
-          const leaseResponse = await fetch(`${RBS_API_URL}/api/pms/leases`, {
+          const leaseResponse = await fetch(`http://54.254.24.249:3000/api/pms/leases`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${RBS_API_SECRET}`
+              'Authorization': `Bearer ${RBS_API_SECRET}`,
+              'Host': 'rbs-homes.com'
             },
             body: JSON.stringify({
               unitId: listing.rbs_unit_id,
