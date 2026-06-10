@@ -127,53 +127,6 @@ router.patch('/:id', auth, async (req, res) => {
       listingStatus = 'ACTIVE'   // 계약 취소 → 매물 다시 활성화
     } else if (status === 'COMPLETED') {
       listingStatus = 'CLOSED'   // 계약 완료 → 매물 종료
-
-      // 계약 완료(렌트) → rbs-homes에 LeaseContract 자동 생성
-      try {
-        const { data: listing } = await req.supabase
-          .from('listings')
-          .select('rbs_unit_id, transaction_type')
-          .eq('id', data.listing_id)
-          .single()
-
-        if (listing?.rbs_unit_id && listing.transaction_type === 'RENT') {
-          const RBS_API_URL    = process.env.RBS_HOMES_URL
-          const RBS_API_SECRET = process.env.RBS_SYNC_SECRET
-
-          const startDate = data.move_in_date || new Date().toISOString()
-          const endDate   = new Date(startDate)
-          endDate.setMonth(endDate.getMonth() + (data.contract_months || 12))
-
-          const response = await fetch(`${RBS_API_URL}/api/pms/leases`, {
-            method:  'POST',
-            headers: {
-              'Content-Type':  'application/json',
-              'Authorization': `Bearer ${RBS_API_SECRET}`
-            },
-            body: JSON.stringify({
-              unitId:      listing.rbs_unit_id,
-              landlordId:  null,   // rbs에서 오너 ID 모르므로 null
-              tenantId:    null,   // rbs에서 테넌트 ID 모르므로 null
-              startDate,
-              endDate:     endDate.toISOString(),
-              monthlyRent: data.monthly_rent || 0,
-              paymentType: 'MONTHLY_TRANSFER',
-              crmDealId:   data.id,
-              notes:       `CRM Deal 자동 연동 - ${data.remarks || ''}`
-            })
-          })
-
-          const result = await response.json()
-          if (response.ok && result.leaseId) {
-            await req.supabase
-              .from('deals')
-              .update({ rbs_lease_id: result.leaseId })
-              .eq('id', data.id)
-          }
-        }
-      } catch (err) {
-        console.error('RBS LeaseContract 자동 생성 실패:', err.message)
-      }
     }
     if (listingStatus) {
       await req.supabase
@@ -182,6 +135,68 @@ router.patch('/:id', auth, async (req, res) => {
         .eq('id', data.listing_id)
     }
   }
+
+  // RENT 계약 완료 시 rbs-homes LeaseContract 자동 생성
+  if (status === 'COMPLETED' && data.listing_id) {
+    try {
+      const RBS_API_URL    = process.env.RBS_HOMES_URL
+      const RBS_API_SECRET = process.env.RBS_SYNC_SECRET
+
+      if (RBS_API_URL && RBS_API_SECRET) {
+        // listing 조회해서 rbs_unit_id와 transaction_type 확인
+        const { data: listing } = await req.supabase
+          .from('listings')
+          .select('rbs_unit_id, transaction_type')
+          .eq('id', data.listing_id)
+          .single()
+
+        if (listing?.rbs_unit_id && listing?.transaction_type === 'RENT') {
+          // move_in_date + contract_months로 endDate 계산
+          const startDate = data.move_in_date
+            ? new Date(data.move_in_date)
+            : new Date()
+          const endDate = new Date(startDate)
+          endDate.setMonth(endDate.getMonth() + (data.contract_months || 12))
+
+          const leaseResponse = await fetch(`${RBS_API_URL}/api/pms/leases`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${RBS_API_SECRET}`
+            },
+            body: JSON.stringify({
+              unitId: listing.rbs_unit_id,
+              landlordId: null,
+              tenantId: null,
+              startDate: startDate.toISOString(),
+              endDate: endDate.toISOString(),
+              monthlyRent: data.monthly_rent || 0,
+              paymentType: 'MONTHLY_TRANSFER',
+              crmDealId: data.id,
+              notes: `CRM Deal 자동 연동 - ${data.remarks || ''}`
+            })
+          })
+
+          if (leaseResponse.ok) {
+            const leaseResult = await leaseResponse.json()
+            // deals 테이블에 rbs_lease_id 저장 시도 (컬럼 없으면 무시)
+            await req.supabase
+              .from('deals')
+              .update({ rbs_lease_id: leaseResult.leaseId })
+              .eq('id', data.id)
+              .then(() => {})
+              .catch(() => {})
+            console.log(`✅ LeaseContract 생성 완료: leaseId=${leaseResult.leaseId}`)
+          } else {
+            console.error('❌ LeaseContract 생성 실패:', await leaseResponse.text())
+          }
+        }
+      }
+    } catch (leaseErr) {
+      console.error('❌ rbs-homes 연동 오류:', leaseErr.message)
+    }
+  }
+
   res.json(data)
 })
 
