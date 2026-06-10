@@ -953,7 +953,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 <script>
 // ═══════════ STATE ═══════════
 let token = null, me = null, _dType = 'RENT', _dPrice = 0
-let _contacts = [], _leads = [], _listings = [], _staff = []
+let _contacts = [], _leads = [], _listings = [], _staff = [], _deals = []
 let _cQ = '', _cTypeF = 'ALL', _cf = { agent: '', status: '', type: '' }
 let _cPage = 0, _cLimit = 30, _lPage = 0, _lLimit = 30
 
@@ -1005,6 +1005,11 @@ const CT = {
 const SLS = {
   ACTIVE:{l:'Active',bg:'#E0F3ED',c:'#19846B'}, 'ON-HOLD':{l:'On Hold',bg:'#FDF0DC',c:'#854F0B'},
   CONTRACTED:{l:'Contracted',bg:'#E6F1FB',c:'#185FA5'}, CLOSED:{l:'Closed',bg:'#F1EFE8',c:'#5F5E5A'}
+}
+const DEAL_STATUS = {
+  IN_PROGRESS:{l:'In Progress',bg:'#E6F1FB',c:'#185FA5'}, ACTIVE:{l:'In Progress',bg:'#E6F1FB',c:'#185FA5'},
+  COMPLETED:{l:'Completed',bg:'#E0F3ED',c:'#19846B'}, CANCELLED:{l:'Cancelled',bg:'#F1EFE8',c:'#5F5E5A'},
+  CLOSED_LOST:{l:'Closed Lost',bg:'#FDEAEA',c:'#DC4A4A'}
 }
 const bdg = (l, bg, c) => `<span class="bdg" style="background:${bg};color:${c}">${l}</span>`
 function agBdg(ag) {
@@ -6885,7 +6890,7 @@ async function vDeals() {
       api('GET','/api/deals'), api('GET','/api/listings'),
       api('GET','/api/contacts?limit=200'), api('GET','/api/staff')
     ])
-    _listings=listings; _staff=staff
+    _listings=listings; _staff=staff; _deals=deals
     const cl = contacts.data||contacts
     const total = deals.reduce((s,d)=>s+Number(d.gross_commission||0),0)
     vc(`
@@ -6994,16 +6999,17 @@ async function vDeals() {
 <div class="card">
   <div class="card-h"><i class="ti ti-receipt"></i> Deal History</div>
   <div class="scroll-x"><table class="tbl">
-    <tr><th>Date</th><th>Listing</th><th>Listing Status</th><th>Type</th><th>Commission</th><th>Lessor Side</th><th>Lessee Side</th><th>Net Income</th><th></th></tr>
-    ${deals.map(d=>`<tr>
+    <tr><th>Date</th><th>Listing</th><th>Listing Status</th><th>Type</th><th>Commission</th><th>Status</th><th>Lessor Side</th><th>Lessee Side</th><th>Net Income</th><th></th></tr>
+    ${deals.map(d=>`<tr style="cursor:pointer" onclick="openDealDetail('${d.id}')">
       <td style="color:var(--m);font-size:11px">${d.contract_date}</td>
       <td style="font-weight:600">${d.listing?.name||'-'}</td>
       <td>${d.listing?.status?bdg(SLS[d.listing.status]?.l||d.listing.status,SLS[d.listing.status]?.bg||'#eee',SLS[d.listing.status]?.c||'#666'):'-'}</td>
       <td>${bdg(d.contract_type==='RENT'?'Rent':'Sale',d.contract_type==='RENT'?'#E6F1FB':'#FDF0DC',d.contract_type==='RENT'?'#185FA5':'#854F0B')}</td>
       <td style="font-weight:600">${fmt(d.gross_commission)}</td>
+      <td>${bdg(DEAL_STATUS[d.status]?.l||d.status||'In Progress',DEAL_STATUS[d.status]?.bg||'#E6F1FB',DEAL_STATUS[d.status]?.c||'#185FA5')}</td>
       <td>${agBdg(d.owner_agent)}</td><td>${agBdg(d.tenant_agent)}</td>
       <td style="font-weight:700;color:var(--G)">${fmt(d.net_company_income)}</td>
-      <td><button onclick="deleteDeal('${d.id}','${(d.listing?.name||'this deal').replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:4px;border-radius:6px" title="Delete deal"><i class="ti ti-trash" style="font-size:13px"></i></button></td>
+      <td><button onclick="event.stopPropagation();deleteDeal('${d.id}','${(d.listing?.name||'this deal').replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:4px;border-radius:6px" title="Delete deal"><i class="ti ti-trash" style="font-size:13px"></i></button></td>
     </tr>`).join('')}
   </table></div>
 </div></div>`)
@@ -7048,6 +7054,88 @@ async function deleteDeal(id, name) {
   try {
     await api('DELETE', `/api/deals/${id}`)
     toast(`Deal deleted · Listing reverted to Active`)
+    vDeals()
+  } catch(e) { alert('Error: ' + e.message) }
+}
+function openDealDetail(id) {
+  const d = _deals.find(x => x.id === id)
+  if (!d) return
+  const statusOptions = ['IN_PROGRESS','COMPLETED','CANCELLED','CLOSED_LOST']
+  const curStatus = (d.status === 'ACTIVE' || !d.status) ? 'IN_PROGRESS' : d.status
+  const amountLabel = d.contract_type === 'RENT' ? '거래금액 (Monthly Rent)' : '거래금액 (Sale Price)'
+  const amount = d.contract_type === 'RENT' ? d.monthly_rent : d.sale_price
+  showModal(`
+    <div style="font-size:16px;font-weight:700;margin-bottom:16px">${d.listing?.name||'Deal'} 상세</div>
+    <div class="g2" style="gap:8px;margin-bottom:14px">
+      <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
+        <div style="font-size:10px;color:var(--m);margin-bottom:3px">매물명</div>
+        <div style="font-size:13px;font-weight:600">${d.listing?.name||'-'}</div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
+        <div style="font-size:10px;color:var(--m);margin-bottom:3px">계약 타입</div>
+        <div style="font-size:13px;font-weight:600">${bdg(d.contract_type==='RENT'?'Rent':'Sale',d.contract_type==='RENT'?'#E6F1FB':'#FDF0DC',d.contract_type==='RENT'?'#185FA5':'#854F0B')}</div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
+        <div style="font-size:10px;color:var(--m);margin-bottom:3px">${amountLabel}</div>
+        <div style="font-size:13px;font-weight:600">${fmt(amount)}</div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
+        <div style="font-size:10px;color:var(--m);margin-bottom:3px">수수료</div>
+        <div style="font-size:13px;font-weight:600">${fmt(d.gross_commission)}</div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
+        <div style="font-size:10px;color:var(--m);margin-bottom:3px">Lessor 담당</div>
+        <div style="font-size:13px;font-weight:600">${agBdg(d.owner_agent)||'-'}</div>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
+        <div style="font-size:10px;color:var(--m);margin-bottom:3px">Lessee 담당</div>
+        <div style="font-size:13px;font-weight:600">${agBdg(d.tenant_agent)||'-'}</div>
+      </div>
+    </div>
+    <div class="ff"><label class="fl">상태</label>
+      <select class="fs" id="dd-status" data-prev="${curStatus}" onchange="onDealStatusChange(this)">
+        ${statusOptions.map(s=>`<option value="${s}" ${s===curStatus?'selected':''}>${DEAL_STATUS[s].l}</option>`).join('')}
+      </select>
+    </div>
+    <div class="fg2">
+      <div class="ff"><label class="fl">이사 날짜</label>
+        <input class="fi" id="dd-movein" type="date" value="${d.move_in_date||''}"></div>
+      <div class="ff"><label class="fl">계약기간 (개월)</label>
+        <input class="fi" id="dd-months" type="number" min="1" max="120" value="${d.contract_months||''}" placeholder="e.g. 12"></div>
+    </div>
+    <div class="ff"><label class="fl">월세 (Monthly Rent)</label>
+      <input class="fi" id="dd-rent" type="number" value="${d.monthly_rent||''}"></div>
+    <div class="ff"><label class="fl">비고</label>
+      <textarea class="fi" id="dd-remarks" rows="3" style="resize:vertical">${d.remarks||''}</textarea></div>
+    <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
+      <button onclick="closeDynModal()" class="btn btn-o">취소</button>
+      <button onclick="saveDealDetail('${id}')" class="btn btn-g"><i class="ti ti-device-floppy"></i> 저장</button>
+    </div>
+  `)
+}
+function onDealStatusChange(sel) {
+  if (sel.value === 'COMPLETED') {
+    if (!confirm('계약 완료 처리 시 rbs-homes에 임대차 계약이 자동 생성됩니다. 계속하시겠습니까?')) {
+      sel.value = sel.dataset.prev
+      return
+    }
+  }
+  sel.dataset.prev = sel.value
+}
+async function saveDealDetail(id) {
+  const status          = document.getElementById('dd-status').value
+  const move_in_date    = document.getElementById('dd-movein').value   || null
+  const contract_months = parseInt(document.getElementById('dd-months').value) || null
+  const monthly_rent    = parseFloat(document.getElementById('dd-rent').value)  || null
+  const remarks         = document.getElementById('dd-remarks').value  || null
+  try {
+    await api('PATCH', `/api/deals/${id}`, { status, move_in_date, contract_months, monthly_rent, remarks })
+    closeDynModal()
+    if (status === 'COMPLETED') {
+      toast('계약 완료 처리됐습니다. rbs-homes 임대차 계약이 생성됐습니다.')
+    } else {
+      toast('✓ Deal updated')
+    }
     vDeals()
   } catch(e) { alert('Error: ' + e.message) }
 }
