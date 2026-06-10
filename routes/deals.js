@@ -198,7 +198,7 @@ router.patch('/:id', auth, async (req, res) => {
         }
       }
     } catch (leaseErr) {
-      console.error('❌ rbs-homes 연동 오류:', leaseErr.message)
+      console.error('❌ rbs-homes 연동 오류:', leaseErr.message, leaseErr.cause?.message, leaseErr.cause?.code)
     }
   }
 
