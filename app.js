@@ -2,24 +2,42 @@ const express = require('express')
 const cors = require('cors')
 const morgan = require('morgan')
 const path = require('path')
+const cookieParser = require('cookie-parser')
+const { requireCsrf } = require('./middleware/csrf')
 
 const pmsPayments = require('./routes/pms-payments')
 const pmsCare = require('./routes/pms-care')
 const pmsAccounts = require('./routes/pms-accounts')
 const pmsDocuments = require('./routes/pms-documents')
 
-function createApp({ supabase, schedulerEnabled = true } = {}) {
+function parseAllowedOrigins(value = process.env.ALLOWED_ORIGINS || '') {
+  if (Array.isArray(value)) return value
+  return value.split(',').map(origin => origin.trim()).filter(Boolean)
+}
+
+function createApp({ supabase, schedulerEnabled = true, allowedOrigins } = {}) {
   const app = express()
   app.locals.schedulerEnabled = schedulerEnabled
 
-  app.use(cors({ origin: '*' }))
+  const origins = new Set(parseAllowedOrigins(allowedOrigins))
+  app.use(cors({
+    credentials: true,
+    origin(origin, callback) {
+      if (!origin || origins.has(origin)) return callback(null, true)
+      const error = new Error('Origin is not allowed')
+      error.status = 403
+      callback(error)
+    }
+  }))
   app.use(express.json())
+  app.use(cookieParser())
   app.use(morgan('combined'))
   app.use(express.static(path.join(__dirname, 'public')))
   app.use((req, _res, next) => {
     req.supabase = supabase
     next()
   })
+  app.use(requireCsrf)
 
   app.use('/api/auth', require('./routes/auth'))
   app.use('/api/contacts', require('./routes/contacts'))
