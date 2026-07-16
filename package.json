@@ -6,11 +6,19 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "db:migrate": "node database/migrate.js"
+    "db:migrate": "node database/migrate.js",
+    "test": "vitest",
+    "test:unit": "vitest run tests/unit --passWithNoTests",
+    "test:integration": "vitest run tests/integration --passWithNoTests",
+    "test:regression": "vitest run tests/regression --passWithNoTests",
+    "test:e2e": "playwright test",
+    "build:time": "node -e \"const fs=require('node:fs');const cp=require('node:child_process');if(fs.existsSync('time-management-ui/package.json')){const result=cp.spawnSync(process.platform==='win32'?'npm.cmd':'npm',['--prefix','time-management-ui','run','build'],{stdio:'inherit'});process.exit(result.status??1)}\"",
+    "check": "npm test -- --run && npm run build:time"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
     "express": "^4.18.2",
@@ -19,12 +27,15 @@
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
-    "nodemailer": "^6.9.8"
+    "nodemailer": "^6.9.8",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "nodemon": "^3.0.3"
+    "nodemon": "^3.0.3",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.10"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.12.0"
   }
 }
