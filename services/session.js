@@ -1,9 +1,10 @@
 const jwt = require('jsonwebtoken')
+const { isProductionRuntime } = require('./runtime-config')
 
 const SESSION_COOKIE = 'crm_session'
 const SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000
 
-function cookieOptions({ production = process.env.NODE_ENV === 'production' } = {}) {
+function cookieOptions({ production = isProductionRuntime(process.env) } = {}) {
   return {
     httpOnly: true,
     sameSite: 'lax',

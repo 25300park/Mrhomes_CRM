@@ -34,7 +34,7 @@ router.get('/csrf', auth, (req, res) => {
   res.json({ csrfToken: createCsrfToken(req.auth.token) })
 })
 
-router.post('/logout', auth, (req, res) => {
+router.post('/logout', (req, res) => {
   clearSessionCookie(res)
   res.json({ message: '로그아웃되었습니다' })
 })

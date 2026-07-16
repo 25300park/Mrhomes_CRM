@@ -38,3 +38,18 @@ test('tokens issued before the configured forced re-login cutoff are rejected', 
     else process.env.AUTH_INVALID_BEFORE = previous
   }
 })
+
+test('a newly issued login token after the forced re-login cutoff is accepted', async () => {
+  const previous = process.env.AUTH_INVALID_BEFORE
+  process.env.AUTH_INVALID_BEFORE = new Date(Date.now() - 2_000).toISOString()
+  try {
+    const user = { id: 'user-1', name: 'Agent', email: 'a@example.com', role: 'agent', is_active: true }
+    const app = createTestApp({ supabase: { from: () => userQuery(user) } })
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET)
+    const response = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`)
+    expect(response.status).toBe(200)
+  } finally {
+    if (previous === undefined) delete process.env.AUTH_INVALID_BEFORE
+    else process.env.AUTH_INVALID_BEFORE = previous
+  }
+})

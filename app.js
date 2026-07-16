@@ -4,24 +4,21 @@ const morgan = require('morgan')
 const path = require('path')
 const cookieParser = require('cookie-parser')
 const { requireCsrf } = require('./middleware/csrf')
+const { parseOrigins } = require('./services/runtime-config')
 
 const pmsPayments = require('./routes/pms-payments')
 const pmsCare = require('./routes/pms-care')
 const pmsAccounts = require('./routes/pms-accounts')
 const pmsDocuments = require('./routes/pms-documents')
 
-function parseAllowedOrigins(value = process.env.ALLOWED_ORIGINS || '') {
-  if (Array.isArray(value)) return value
-  return value.split(',').map(origin => origin.trim()).filter(Boolean)
-}
-
 function createApp({ supabase, schedulerEnabled = true, allowedOrigins } = {}) {
   const app = express()
   app.locals.schedulerEnabled = schedulerEnabled
 
-  const origins = new Set(parseAllowedOrigins(allowedOrigins))
+  const origins = new Set(parseOrigins(allowedOrigins ?? process.env.ALLOWED_ORIGINS ?? process.env.FRONTEND_URL))
   app.use(cors({
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
     origin(origin, callback) {
       if (!origin || origins.has(origin)) return callback(null, true)
       const error = new Error('Origin is not allowed')

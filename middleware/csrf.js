@@ -1,5 +1,6 @@
 const crypto = require('node:crypto')
 const { SESSION_COOKIE } = require('../services/session')
+const { authenticateRequest } = require('./auth')
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
@@ -14,10 +15,15 @@ function tokensMatch(actual, expected) {
   return left.length === right.length && crypto.timingSafeEqual(left, right)
 }
 
-function requireCsrf(req, res, next) {
+async function requireCsrf(req, res, next) {
   if (SAFE_METHODS.has(req.method) || req.path === '/api/auth/login') return next()
   const sessionToken = req.cookies?.[SESSION_COOKIE]
   if (!sessionToken) return next()
+
+  // A stale session must always be removable. Valid active sessions still require CSRF.
+  if (req.path === '/api/auth/logout') {
+    try { await authenticateRequest(req) } catch { return next() }
+  }
 
   const supplied = req.get('X-CSRF-Token')
   if (!tokensMatch(supplied, createCsrfToken(sessionToken))) {
