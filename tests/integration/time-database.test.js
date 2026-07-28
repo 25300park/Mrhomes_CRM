@@ -143,15 +143,15 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
         password_hash TEXT NOT NULL, role TEXT NOT NULL,
         is_active BOOLEAN NOT NULL DEFAULT true
       );
-      CREATE TABLE contacts (id UUID PRIMARY KEY);
-      CREATE TABLE listings (id UUID PRIMARY KEY);
-      CREATE TABLE leads (id UUID PRIMARY KEY);
-      CREATE TABLE deals (id UUID PRIMARY KEY);
+      CREATE TABLE contacts (id UUID PRIMARY KEY, name TEXT NOT NULL);
+      CREATE TABLE listings (id UUID PRIMARY KEY, name TEXT NOT NULL);
+      CREATE TABLE leads (id UUID PRIMARY KEY, contact_id UUID REFERENCES contacts(id));
+      CREATE TABLE deals (id UUID PRIMARY KEY, listing_id UUID REFERENCES listings(id), contract_date DATE NOT NULL);
       INSERT INTO users (id, name, email, password_hash, role) VALUES
         ('${USER_A}', 'Agent A', 'agent-a@example.test', 'fixture', 'agent'),
         ('${USER_B}', 'Agent B', 'agent-b@example.test', 'fixture', 'agent');
-      INSERT INTO contacts (id) VALUES ('${CONTACT_A}');
-      INSERT INTO listings (id) VALUES ('${LISTING_A}');
+      INSERT INTO contacts (id, name) VALUES ('${CONTACT_A}', 'Fixture contact');
+      INSERT INTO listings (id, name) VALUES ('${LISTING_A}', 'Fixture listing');
     `)
     if (base.status !== 0) throw new Error('Could not create isolated fixture tables.')
 
@@ -196,6 +196,28 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
     expect(runSql(`SELECT has_table_privilege('service_role', '${schemaName}.time_entries', 'SELECT');`)).toBe('t')
     expect(runSql(`SELECT has_function_privilege('service_role', '${schemaName}.time_start_timer(uuid,text,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,timestamptz,text)', 'EXECUTE');`)).toBe('t')
     expect(runSql(`SELECT has_function_privilege('anon', '${schemaName}.time_start_timer(uuid,text,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,timestamptz,text)', 'EXECUTE');`)).toBe('f')
+  })
+
+  test('returns exact CRM link top-N in the database when an earlier label belongs to the 21st parent', () => {
+    runSql(`
+      INSERT INTO contacts (id, name)
+      SELECT pg_catalog.md5('link-contact-' || value)::uuid,
+        CASE WHEN value = 21 THEN 'Alpha' ELSE 'Zulu' END
+      FROM pg_catalog.generate_series(1, 21) AS value;
+      INSERT INTO leads (id, contact_id)
+      SELECT pg_catalog.md5('link-lead-' || value)::uuid,
+        pg_catalog.md5('link-contact-' || value)::uuid
+      FROM pg_catalog.generate_series(1, 21) AS value;
+      INSERT INTO listings (id, name) VALUES
+        ('80000000-0000-0000-0000-000000000001', 'Alpha');
+      INSERT INTO deals (id, listing_id, contract_date) VALUES
+        ('90000000-0000-0000-0000-000000000001', '80000000-0000-0000-0000-000000000001', '2026-07-01');
+    `)
+
+    expect(runSql(`SELECT string_agg(type || ':' || label, '|' ORDER BY label, type, id)
+      FROM time_search_crm_links('', ARRAY['LEAD', 'DEAL']::text[], 2);`)).toBe('LEAD:Alpha|DEAL:Alpha — 2026-07-01')
+    expect(runSql(`SELECT has_function_privilege('service_role', '${schemaName}.time_search_crm_links(text,text[],integer)', 'EXECUTE');`)).toBe('t')
+    expect(runSql(`SELECT has_function_privilege('anon', '${schemaName}.time_search_crm_links(text,text[],integer)', 'EXECUTE');`)).toBe('f')
   })
 
   test('enforces plan/personal ownership and NULL-safe allocation uniqueness', () => {

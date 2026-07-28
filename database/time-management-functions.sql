@@ -450,6 +450,63 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.time_search_crm_links(
+  p_query TEXT DEFAULT '',
+  p_types TEXT[] DEFAULT ARRAY['CONTACT', 'LISTING', 'LEAD', 'DEAL'],
+  p_limit INTEGER DEFAULT 20
+)
+RETURNS TABLE (id UUID, type TEXT, label TEXT)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, pg_temp
+AS $$
+  WITH args AS (
+    SELECT
+      LEAST(GREATEST(COALESCE(p_limit, 20), 1), 50) AS result_limit,
+      ARRAY(
+        SELECT pg_catalog.upper(candidate)
+        FROM pg_catalog.unnest(COALESCE(p_types, ARRAY['CONTACT', 'LISTING', 'LEAD', 'DEAL'])) AS candidate
+        WHERE pg_catalog.upper(candidate) IN ('CONTACT', 'LISTING', 'LEAD', 'DEAL')
+      ) AS selected_types,
+      pg_catalog.replace(
+        pg_catalog.replace(
+          pg_catalog.replace(COALESCE(p_query, ''), E'\\', E'\\\\'),
+          '%', E'\\%'
+        ),
+        '_', E'\\_'
+      ) AS escaped_query
+  ), candidates AS (
+    SELECT contact.id, 'CONTACT'::TEXT AS type, contact.name::TEXT AS label
+    FROM public.contacts AS contact CROSS JOIN args
+    WHERE 'CONTACT' = ANY(args.selected_types)
+      AND (args.escaped_query = '' OR contact.name ILIKE '%' || args.escaped_query || '%' ESCAPE E'\\')
+    UNION ALL
+    SELECT listing.id, 'LISTING'::TEXT, listing.name::TEXT
+    FROM public.listings AS listing CROSS JOIN args
+    WHERE 'LISTING' = ANY(args.selected_types)
+      AND (args.escaped_query = '' OR listing.name ILIKE '%' || args.escaped_query || '%' ESCAPE E'\\')
+    UNION ALL
+    SELECT lead.id, 'LEAD'::TEXT, contact.name::TEXT
+    FROM public.leads AS lead
+    JOIN public.contacts AS contact ON contact.id = lead.contact_id
+    CROSS JOIN args
+    WHERE 'LEAD' = ANY(args.selected_types)
+      AND (args.escaped_query = '' OR contact.name ILIKE '%' || args.escaped_query || '%' ESCAPE E'\\')
+    UNION ALL
+    SELECT deal.id, 'DEAL'::TEXT, listing.name::TEXT || ' — ' || deal.contract_date::TEXT
+    FROM public.deals AS deal
+    JOIN public.listings AS listing ON listing.id = deal.listing_id
+    CROSS JOIN args
+    WHERE 'DEAL' = ANY(args.selected_types)
+      AND (args.escaped_query = '' OR listing.name ILIKE '%' || args.escaped_query || '%' ESCAPE E'\\')
+  )
+  SELECT candidates.id, candidates.type, candidates.label
+  FROM candidates
+  ORDER BY candidates.label, candidates.type, candidates.id
+  LIMIT (SELECT result_limit FROM args);
+$$;
+
 REVOKE ALL ON FUNCTION public.time_apply_timer_command(
   UUID, TEXT, TEXT, UUID, UUID, UUID, UUID, UUID, UUID, UUID, TEXT, TIMESTAMPTZ, TEXT
 ) FROM PUBLIC;
@@ -465,6 +522,7 @@ REVOKE ALL ON FUNCTION public.time_track_push_owner_change() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.time_claim_jobs(INTEGER, TEXT, INTEGER) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.time_fail_job(UUID, TEXT, UUID, TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.time_complete_job(UUID, TEXT, UUID, JSONB) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.time_search_crm_links(TEXT, TEXT[], INTEGER) FROM PUBLIC;
 
 DO $$
 DECLARE
@@ -474,7 +532,8 @@ DECLARE
     'public.time_stop_timer(UUID, TEXT, TIMESTAMPTZ, TEXT), '
     'public.time_claim_jobs(INTEGER, TEXT, INTEGER), '
     'public.time_fail_job(UUID, TEXT, UUID, TEXT), '
-    'public.time_complete_job(UUID, TEXT, UUID, JSONB)';
+    'public.time_complete_job(UUID, TEXT, UUID, JSONB), '
+    'public.time_search_crm_links(TEXT, TEXT[], INTEGER)';
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'anon') THEN
     EXECUTE 'REVOKE ALL ON FUNCTION ' || v_functions || ' FROM anon';

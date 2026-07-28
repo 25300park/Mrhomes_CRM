@@ -7,11 +7,15 @@ function literalLikeMatch(value, pattern) {
   return value.toLocaleLowerCase().includes(needle.toLocaleLowerCase())
 }
 
-function crmFake(actor, { rows = {}, errors = {} } = {}) {
+function crmFake(actor, { rows = {}, errors = {}, rpcData = [] } = {}) {
   const calls = []
   return {
     calls,
     supabase: {
+      rpc(name, args) {
+        calls.push({ operation: 'rpc', name, args })
+        return Promise.resolve({ data: rpcData, error: errors.rpc || null })
+      },
       from(table) {
         const state = { offset: 0, limit: undefined, ilike: null }
         const query = {
@@ -44,12 +48,10 @@ function bearer(actor) {
 
 test('CRM link search applies one deterministic limit across all selected types', async () => {
   const actor = { id: 'agent-1', role: 'agent', is_active: true }
-  const fixture = crmFake(actor, { rows: {
-    contacts: [{ id: 'contact-z', name: 'Zulu' }],
-    listings: [{ id: 'listing-a', name: 'Alpha' }],
-    leads: [{ id: 'lead-b', contact: { name: 'Bravo' } }],
-    deals: [{ id: 'deal-c', contract_date: '2026-07-01', listing: { name: 'Charlie' } }]
-  } })
+  const fixture = crmFake(actor, { rpcData: [
+    { id: 'listing-a', type: 'LISTING', label: 'Alpha' },
+    { id: 'lead-b', type: 'LEAD', label: 'Bravo' }
+  ] })
   const response = await request(createTestApp({ supabase: fixture.supabase }))
     .get('/api/time-management/crm-links?types=contact,listing,lead,deal&limit=2')
     .set('Authorization', bearer(actor))
@@ -63,42 +65,59 @@ test('CRM link search applies one deterministic limit across all selected types'
 
 test('CRM link search finds a lead match beyond the first client page before applying the final limit', async () => {
   const actor = { id: 'agent-1', role: 'agent', is_active: true }
-  const leads = Array.from({ length: 21 }, (_value, index) => ({
-    id: `lead-${index + 1}`,
-    contact: { name: index === 20 ? 'Needle client' : `Other ${index + 1}` }
-  }))
-  const fixture = crmFake(actor, { rows: { leads } })
+  const fixture = crmFake(actor, { rpcData: [{ id: 'lead-21', type: 'LEAD', label: 'Needle client' }] })
   const response = await request(createTestApp({ supabase: fixture.supabase }))
     .get('/api/time-management/crm-links?q=needle&types=lead&limit=1')
     .set('Authorization', bearer(actor))
 
   expect(response.status).toBe(200)
   expect(response.body.data).toEqual([{ id: 'lead-21', type: 'LEAD', label: 'Needle client' }])
-  expect(fixture.calls).toContainEqual({ table: 'leads', operation: 'ilike', column: 'contact.name', pattern: '%needle%' })
+  expect(fixture.calls).toContainEqual({ operation: 'rpc', name: 'time_search_crm_links', args: { p_query: 'needle', p_types: ['LEAD'], p_limit: 1 } })
 })
 
 test('CRM link search treats ILIKE wildcard characters as literal search text', async () => {
   const actor = { id: 'agent-1', role: 'agent', is_active: true }
-  const fixture = crmFake(actor, { rows: { contacts: [{ id: 'percent', name: '100% complete' }] } })
+  const fixture = crmFake(actor, { rpcData: [{ id: 'percent', type: 'CONTACT', label: '100% complete' }] })
   const response = await request(createTestApp({ supabase: fixture.supabase }))
     .get('/api/time-management/crm-links?q=%25&types=contact')
     .set('Authorization', bearer(actor))
 
   expect(response.status).toBe(200)
   expect(response.body.data).toEqual([{ id: 'percent', type: 'CONTACT', label: '100% complete' }])
-  expect(fixture.calls).toContainEqual({ table: 'contacts', operation: 'ilike', column: 'name', pattern: '%\\%%' })
-  for (const call of fixture.calls.filter(call => call.operation === 'select' && call.table !== 'users')) {
-    expect(call.columns).not.toMatch(/mobile|address|remarks|gross_commission/i)
-  }
+  expect(fixture.calls).toContainEqual({ operation: 'rpc', name: 'time_search_crm_links', args: { p_query: '%', p_types: ['CONTACT'], p_limit: 20 } })
+  expect(fixture.calls.filter(call => ['contacts', 'listings', 'leads', 'deals'].includes(call.table))).toEqual([])
 })
 
 test('CRM link search maps CRM query failures to a stable database error', async () => {
   const actor = { id: 'agent-1', role: 'agent', is_active: true }
-  const fixture = crmFake(actor, { errors: { contacts: { code: '42501', message: 'denied' } } })
+  const fixture = crmFake(actor, { errors: { rpc: { code: '42501', message: 'denied' } } })
   const response = await request(createTestApp({ supabase: fixture.supabase }))
     .get('/api/time-management/crm-links?types=contact')
     .set('Authorization', bearer(actor))
 
   expect(response.status).toBe(500)
   expect(response.body.error.code).toBe('DATABASE_ERROR')
+})
+
+test('CRM link search delegates exact global top-N ordering to the bounded database RPC', async () => {
+  const actor = { id: 'agent-1', role: 'agent', is_active: true }
+  const fixture = crmFake(actor, {
+    rpcData: [{ id: 'lead-alpha', type: 'LEAD', label: 'Alpha' }],
+    rows: { leads: Array.from({ length: 21 }, (_value, index) => ({
+      id: `lead-${index + 1}`,
+      contact: { name: index === 20 ? 'Alpha' : 'Zulu' }
+    })) }
+  })
+  const response = await request(createTestApp({ supabase: fixture.supabase }))
+    .get('/api/time-management/crm-links?types=lead&limit=1')
+    .set('Authorization', bearer(actor))
+
+  expect(response.status).toBe(200)
+  expect(response.body.data).toEqual([{ id: 'lead-alpha', type: 'LEAD', label: 'Alpha' }])
+  expect(fixture.calls).toContainEqual({
+    operation: 'rpc',
+    name: 'time_search_crm_links',
+    args: { p_query: '', p_types: ['LEAD'], p_limit: 1 }
+  })
+  expect(fixture.calls.filter(call => ['leads', 'deals'].includes(call.table))).toEqual([])
 })

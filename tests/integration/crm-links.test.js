@@ -11,6 +11,16 @@ function createCrmLinkSupabase(actor) {
   }
 
   return {
+    rpc() {
+      return Promise.resolve({
+        data: [
+          { id: 'contact-1', type: 'CONTACT', label: 'Jane Client' },
+          { id: 'lead-1', type: 'LEAD', label: 'Jane Client' },
+          { id: 'listing-1', type: 'LISTING', label: 'Riverside Tower' },
+          { id: 'deal-1', type: 'DEAL', label: 'Riverside Tower — 2026-07-01' }
+        ], error: null
+      })
+    },
     from(table) {
       const state = { filters: [] }
       const query = {
