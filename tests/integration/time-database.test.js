@@ -92,7 +92,7 @@ function runSql(sql) {
 function expectSqlFailure(sql, { sqlState, constraint }) {
   const result = psql(`SET search_path TO ${schemaName}, public;\n${sql}`)
   expect(result.status).not.toBe(0)
-  expect(result.stderr).toContain(`ERROR:  ${sqlState}:`)
+  expect(result.stderr).toContain(`${sqlState}:`)
   if (constraint) expect(result.stderr).toContain(constraint)
 }
 
@@ -177,7 +177,8 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
 
   afterAll(() => {
     runGuardedSchemaCleanup(ddlSafety, () => {
-      psql(`DROP SCHEMA IF EXISTS ${schemaName} CASCADE;`)
+      const dropped = psql(`DROP SCHEMA IF EXISTS ${schemaName} CASCADE;`)
+      if (dropped.status !== 0) throw new Error('Could not clean up isolated fixture schema.')
     })
   })
 
@@ -237,6 +238,13 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
       VALUES ('${USER_A}', '2026-07-16', '${STANDARD_A}', 'MANUAL',
        now() - interval '1 hour', now(), 3600, 'CONTACT', '${CONTACT_A}',
        'orphan snapshot');`,
+    { sqlState: '23514', constraint: 'time_entries_crm_snapshot_ck' })
+    expectSqlFailure(`INSERT INTO time_entries
+      (user_id, business_date, standard_category_id, entry_type, started_at,
+       ended_at, duration_seconds, contact_id, linked_entity_label)
+      VALUES ('${USER_A}', '2026-07-16', '${STANDARD_A}', 'MANUAL',
+       now() - interval '1 hour', now(), 3600, '${CONTACT_A}',
+       'missing snapshot identity');`,
     { sqlState: '23514', constraint: 'time_entries_crm_snapshot_ck' })
 
     runSql(`INSERT INTO time_entries
@@ -301,7 +309,68 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
     expect(runSql(`SELECT id FROM time_entries WHERE user_id = '${USER_A}' AND ended_at IS NULL;`)).toBe(activeBefore)
   })
 
-  test('claims disjoint batches, reclaims stale leases, and applies retry backoff', async () => {
+  test('rejects inactive users and another user personal category', () => {
+    runSql(`DELETE FROM time_commands WHERE user_id IN ('${USER_A}', '${USER_B}');
+      DELETE FROM time_entries WHERE user_id IN ('${USER_A}', '${USER_B}');
+      UPDATE users SET is_active = false WHERE id = '${USER_B}';`)
+    expectSqlFailure(`SELECT * FROM time_start_timer(
+      '${USER_B}', 'inactive-user', '${STANDARD_A}',
+      p_started_at => '2026-07-15T18:00:00Z');`, { sqlState: '42501' })
+    runSql(`UPDATE users SET is_active = true WHERE id = '${USER_B}';`)
+    expectSqlFailure(`SELECT * FROM time_start_timer(
+      '${USER_A}', 'other-personal-category', '${STANDARD_A}',
+      p_personal_category_id => '${PERSONAL_B}',
+      p_started_at => '2026-07-15T18:00:00Z');`, { sqlState: '42501' })
+  })
+
+  test('replays omitted timestamps and rejects reused request IDs with different semantics', async () => {
+    runSql(`DELETE FROM time_commands WHERE user_id = '${USER_A}';
+      DELETE FROM time_entries WHERE user_id = '${USER_A}';`)
+
+    const first = runSql(`SELECT started_entry_id FROM time_start_timer(
+      '${USER_A}', 'omitted-sequential', '${STANDARD_A}');`)
+    const replay = runSql(`SELECT started_entry_id FROM time_start_timer(
+      '${USER_A}', 'omitted-sequential', '${STANDARD_A}');`)
+    expect(replay).toBe(first)
+    expect(runSql(`SELECT
+      ((response_payload ->> 'effectiveCommandAt')::timestamptz = entry.started_at)
+      FROM time_commands command
+      JOIN time_entries entry ON entry.id = (command.response_payload ->> 'startedEntryId')::uuid
+      WHERE command.user_id = '${USER_A}' AND command.request_id = 'omitted-sequential';`)).toBe('t')
+    expectSqlFailure(`SELECT * FROM time_stop_timer(
+      '${USER_A}', 'omitted-sequential');`,
+    { sqlState: '23505', constraint: 'time_commands_user_id_request_id_key' })
+    expectSqlFailure(`SELECT * FROM time_start_timer(
+      '${USER_A}', 'omitted-sequential', '${STANDARD_A}',
+      p_contact_id => '${CONTACT_A}', p_linked_entity_label => 'different');`,
+    { sqlState: '23505', constraint: 'time_commands_user_id_request_id_key' })
+    runSql(`SELECT * FROM time_stop_timer('${USER_A}', 'omitted-cleanup');`)
+
+    runSql(`DELETE FROM time_commands WHERE user_id = '${USER_A}';
+      DELETE FROM time_entries WHERE user_id = '${USER_A}';`)
+    const omittedConcurrent = () => runSqlAsync(`SELECT started_entry_id FROM time_start_timer(
+      '${USER_A}', 'omitted-concurrent', '${STANDARD_A}');`)
+    const concurrent = await Promise.all([omittedConcurrent(), omittedConcurrent()])
+    expect(new Set(concurrent).size).toBe(1)
+    expect(runSql(`SELECT count(*) FROM time_entries
+      WHERE user_id = '${USER_A}' AND request_id = 'omitted-concurrent';`)).toBe('1')
+    runSql(`SELECT * FROM time_stop_timer('${USER_A}', 'omitted-concurrent-cleanup');`)
+
+    runSql(`DELETE FROM time_commands WHERE user_id = '${USER_A}';
+      DELETE FROM time_entries WHERE user_id = '${USER_A}';`)
+    const explicit = runSql(`SELECT started_entry_id FROM time_start_timer(
+      '${USER_A}', 'explicit-time', '${STANDARD_A}',
+      p_started_at => '2026-07-15T19:00:00Z');`)
+    expect(runSql(`SELECT started_entry_id FROM time_start_timer(
+      '${USER_A}', 'explicit-time', '${STANDARD_A}',
+      p_started_at => '2026-07-15T19:00:00Z');`)).toBe(explicit)
+    expectSqlFailure(`SELECT * FROM time_start_timer(
+      '${USER_A}', 'explicit-time', '${STANDARD_A}',
+      p_started_at => '2026-07-15T19:00:01Z');`,
+    { sqlState: '23505', constraint: 'time_commands_user_id_request_id_key' })
+  })
+
+  test('claims disjoint batches and rejects same-worker stale lease ABA', async () => {
     runSql(`DELETE FROM time_jobs; INSERT INTO time_jobs (user_id, job_type, dedupe_key)
       SELECT '${USER_A}', 'DAILY_METRICS', 'claim-' || number FROM generate_series(1, 6) number;`)
     expectSqlFailure(`SELECT * FROM time_claim_jobs(1, '   ', 60);`, { sqlState: '22023' })
@@ -312,24 +381,71 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
     expect(ids).toHaveLength(6)
     expect(new Set(ids).size).toBe(6)
 
+    const oldLeaseToken = '60000000-0000-0000-0000-000000000001'
     const staleId = runSql(`INSERT INTO time_jobs
-      (user_id, job_type, dedupe_key, status, attempts, ready_at, locked_at, locked_by, lease_until)
+      (user_id, job_type, dedupe_key, status, attempts, ready_at, locked_at,
+       locked_by, lease_until, lease_token)
       VALUES ('${USER_A}', 'AI_REVIEW', 'stale', 'PROCESSING', 1, NULL,
-        now() - interval '2 minutes', 'dead-worker', now() - interval '1 minute') RETURNING id;`)
+        now() - interval '2 minutes', 'same-worker', now() - interval '1 minute',
+        '${oldLeaseToken}') RETURNING id;`)
     const [reclaimResult, expiredWorkerResult] = await Promise.allSettled([
-      runSqlAsync(`SELECT id FROM time_claim_jobs(1, 'reclaimer', 60)
+      runSqlAsync(`SELECT lease_token FROM time_claim_jobs(1, 'same-worker', 60)
         WHERE id = '${staleId}';`),
-      runSqlAsync(`SELECT id FROM time_complete_job('${staleId}', 'dead-worker', '{}');`)
+      runSqlAsync(`SELECT id FROM time_complete_job(
+        '${staleId}', 'same-worker', '${oldLeaseToken}', '{}');`)
     ])
-    expect(reclaimResult).toMatchObject({ status: 'fulfilled', value: staleId })
+    expect(reclaimResult.status).toBe('fulfilled')
     expect(expiredWorkerResult.status).toBe('rejected')
+    const newLeaseToken = reclaimResult.value
+    expect(newLeaseToken).not.toBe(oldLeaseToken)
     expect(runSql(`SELECT attempts FROM time_jobs WHERE id = '${staleId}';`)).toBe('2')
-    expectSqlFailure(`SELECT * FROM time_fail_job('${staleId}', 'dead-worker', 'LATE_RESULT');`,
+    expectSqlFailure(`SELECT * FROM time_fail_job(
+      '${staleId}', 'same-worker', '${oldLeaseToken}', 'LATE_RESULT');`,
     { sqlState: '42501' })
-    const retrySeconds = Number(runSql(`SELECT EXTRACT(epoch FROM (ready_at - now()))::integer
-      FROM time_fail_job('${staleId}', 'reclaimer', 'PROVIDER_TIMEOUT');`))
-    expect(retrySeconds).toBeGreaterThanOrEqual(295)
-    expect(retrySeconds).toBeLessThanOrEqual(300)
+    expect(runSql(`SELECT status FROM time_complete_job(
+      '${staleId}', 'same-worker', '${newLeaseToken}', '{}');`)).toBe('COMPLETED')
+  })
+
+  test('applies 1/5/30 minute retries before the fourth final failure', () => {
+    runSql(`DELETE FROM time_jobs;`)
+    const jobId = runSql(`INSERT INTO time_jobs (user_id, job_type, dedupe_key)
+      VALUES ('${USER_A}', 'AI_REVIEW', 'retry-sequence') RETURNING id;`)
+    expect(runSql(`SELECT max_attempts FROM time_jobs WHERE id = '${jobId}';`)).toBe('4')
+
+    const expectedBackoffs = [60, 300, 1800]
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const leaseToken = runSql(`SELECT lease_token FROM time_claim_jobs(
+        1, 'retry-worker', 60) WHERE id = '${jobId}';`)
+      const retrySeconds = Number(runSql(`SELECT EXTRACT(epoch FROM (ready_at - now()))::integer
+        FROM time_fail_job('${jobId}', 'retry-worker', '${leaseToken}', 'FAIL_${attempt}');`))
+      expect(retrySeconds).toBeGreaterThanOrEqual(expectedBackoffs[attempt - 1] - 5)
+      expect(retrySeconds).toBeLessThanOrEqual(expectedBackoffs[attempt - 1])
+      runSql(`UPDATE time_jobs SET ready_at = now() WHERE id = '${jobId}';`)
+    }
+
+    const finalLeaseToken = runSql(`SELECT lease_token FROM time_claim_jobs(
+      1, 'retry-worker', 60) WHERE id = '${jobId}';`)
+    expect(runSql(`SELECT status || '|' || attempts || '|' || (ready_at IS NULL)
+      FROM time_fail_job('${jobId}', 'retry-worker', '${finalLeaseToken}', 'FAIL_4');`)).toMatch(/^FAILED\|4\|(t|true)$/)
+  })
+
+  test('allows only one normal complete-or-fail lease transition', async () => {
+    runSql(`DELETE FROM time_jobs;`)
+    const jobId = runSql(`INSERT INTO time_jobs
+      (user_id, job_type, dedupe_key, max_attempts)
+      VALUES ('${USER_A}', 'DAILY_METRICS', 'terminal-race', 1) RETURNING id;`)
+    const leaseToken = runSql(`SELECT lease_token FROM time_claim_jobs(
+      1, 'race-worker', 60) WHERE id = '${jobId}';`)
+    const results = await Promise.allSettled([
+      runSqlAsync(`SELECT status FROM time_complete_job(
+        '${jobId}', 'race-worker', '${leaseToken}', '{}');`),
+      runSqlAsync(`SELECT status FROM time_fail_job(
+        '${jobId}', 'race-worker', '${leaseToken}', 'RACE_FAILURE');`)
+    ])
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1)
+    expect(runSql(`SELECT status || '|' || attempts || '|' ||
+      (lease_token IS NULL) FROM time_jobs WHERE id = '${jobId}';`)).toMatch(/^(COMPLETED|FAILED)\|1\|(t|true)$/)
   })
 
   test('keeps Push endpoints globally unique and tracks account reassignment', () => {

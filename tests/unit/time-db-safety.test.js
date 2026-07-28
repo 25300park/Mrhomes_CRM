@@ -42,6 +42,31 @@ describe('isolated database safety gate', () => {
     expect(testTarget).toEqual(productionTarget)
   })
 
+  test('canonicalizes Supabase direct and pooler URLs by project ref', () => {
+    const direct = canonicalDatabaseFingerprint(
+      'postgresql://postgres:direct-secret@db.abcdefghijklmnopqrst.supabase.co:5432/postgres'
+    )
+    const pooler = canonicalDatabaseFingerprint(
+      'postgresql://postgres.abcdefghijklmnopqrst:pooler-secret@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres'
+    )
+
+    expect(direct).toEqual({ provider: 'supabase', projectRef: 'abcdefghijklmnopqrst' })
+    expect(pooler).toEqual(direct)
+    expect(JSON.stringify(pooler)).not.toContain('pooler-secret')
+    expect(JSON.stringify(pooler)).not.toContain('postgres.')
+  })
+
+  test('distinguishes Supabase projects that share a pooler host and database', () => {
+    const first = canonicalDatabaseFingerprint(
+      'postgresql://postgres.abcdefghijklmnopqrst:first-secret@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres'
+    )
+    const second = canonicalDatabaseFingerprint(
+      'postgresql://postgres.zxywvutsrqponmlkjihg:second-secret@aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres'
+    )
+
+    expect(first).not.toEqual(second)
+  })
+
   test('fails closed for invalid or non-PostgreSQL URLs', () => {
     expect(() => canonicalDatabaseFingerprint('not-a-url')).toThrow('valid PostgreSQL URL')
     expect(() => canonicalDatabaseFingerprint('https://db.example.test/database')).toThrow('valid PostgreSQL URL')

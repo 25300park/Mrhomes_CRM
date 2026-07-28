@@ -27,6 +27,7 @@ AS $$
 DECLARE
   v_active_entry_id UUID;
   v_active_started_at TIMESTAMPTZ;
+  v_effective_command_at TIMESTAMPTZ;
   v_business_date DATE;
   v_linked_entity_type VARCHAR(20);
   v_linked_entity_id UUID;
@@ -42,9 +43,6 @@ BEGIN
   IF p_command_type NOT IN ('START', 'SWITCH', 'STOP') THEN
     RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'unsupported timer command';
   END IF;
-  IF p_command_at IS NULL THEN
-    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'command timestamp is required';
-  END IF;
   IF p_business_time_zone IS DISTINCT FROM 'Asia/Seoul' THEN
     RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'unsupported business time zone';
   END IF;
@@ -54,8 +52,7 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'active user not found';
   END IF;
 
-  v_business_date := (p_command_at AT TIME ZONE p_business_time_zone)::DATE;
-  v_request := pg_catalog.jsonb_build_object(
+  v_request := pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
     'commandType', p_command_type,
     'standardCategoryId', p_standard_category_id,
     'personalCategoryId', p_personal_category_id,
@@ -67,7 +64,7 @@ BEGIN
     'linkedEntityLabel', p_linked_entity_label,
     'commandAt', p_command_at,
     'businessTimeZone', p_business_time_zone
-  );
+  ));
 
   PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_user_id::TEXT, 0));
 
@@ -90,6 +87,9 @@ BEGIN
     RETURN;
   END IF;
 
+  v_effective_command_at := COALESCE(p_command_at, pg_catalog.now());
+  v_business_date := (v_effective_command_at AT TIME ZONE p_business_time_zone)::DATE;
+
   SELECT id, started_at
     INTO v_active_entry_id, v_active_started_at
   FROM public.time_entries
@@ -104,7 +104,7 @@ BEGIN
   IF p_command_type IN ('SWITCH', 'STOP') AND v_active_entry_id IS NULL THEN
     RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'active timer not found';
   END IF;
-  IF v_active_entry_id IS NOT NULL AND p_command_at < v_active_started_at THEN
+  IF v_active_entry_id IS NOT NULL AND v_effective_command_at < v_active_started_at THEN
     RAISE EXCEPTION USING ERRCODE = '22007', MESSAGE = 'command time precedes active timer start';
   END IF;
 
@@ -139,9 +139,9 @@ BEGIN
 
   IF p_command_type IN ('SWITCH', 'STOP') THEN
     UPDATE public.time_entries
-    SET ended_at = p_command_at,
+    SET ended_at = v_effective_command_at,
         duration_seconds = pg_catalog.floor(
-          EXTRACT(epoch FROM (p_command_at - started_at))
+          EXTRACT(epoch FROM (v_effective_command_at - started_at))
         )::INTEGER,
         updated_at = pg_catalog.now()
     WHERE id = v_active_entry_id AND user_id = p_user_id;
@@ -167,7 +167,7 @@ BEGIN
       linked_entity_type, linked_entity_id, linked_entity_label
     ) VALUES (
       p_user_id, v_business_date, p_daily_plan_id, p_standard_category_id,
-      p_personal_category_id, 'TIMER', p_command_at, p_request_id,
+      p_personal_category_id, 'TIMER', v_effective_command_at, p_request_id,
       v_active_entry_id, p_contact_id, p_listing_id, p_lead_id, p_deal_id,
       v_linked_entity_type, v_linked_entity_id, p_linked_entity_label
     )
@@ -177,7 +177,8 @@ BEGIN
   replayed := false;
   v_response := pg_catalog.jsonb_build_object(
     'stoppedEntryId', stopped_entry_id,
-    'startedEntryId', started_entry_id
+    'startedEntryId', started_entry_id,
+    'effectiveCommandAt', v_effective_command_at
   );
   INSERT INTO public.time_commands (
     user_id, request_id, command_type, request_payload, response_payload
@@ -199,7 +200,7 @@ CREATE OR REPLACE FUNCTION public.time_start_timer(
   p_lead_id UUID DEFAULT NULL,
   p_deal_id UUID DEFAULT NULL,
   p_linked_entity_label TEXT DEFAULT NULL,
-  p_started_at TIMESTAMPTZ DEFAULT pg_catalog.now(),
+  p_started_at TIMESTAMPTZ DEFAULT NULL,
   p_business_time_zone TEXT DEFAULT 'Asia/Seoul'
 )
 RETURNS TABLE (stopped_entry_id UUID, started_entry_id UUID, replayed BOOLEAN)
@@ -226,7 +227,7 @@ CREATE OR REPLACE FUNCTION public.time_switch_timer(
   p_lead_id UUID DEFAULT NULL,
   p_deal_id UUID DEFAULT NULL,
   p_linked_entity_label TEXT DEFAULT NULL,
-  p_started_at TIMESTAMPTZ DEFAULT pg_catalog.now(),
+  p_started_at TIMESTAMPTZ DEFAULT NULL,
   p_business_time_zone TEXT DEFAULT 'Asia/Seoul'
 )
 RETURNS TABLE (stopped_entry_id UUID, started_entry_id UUID, replayed BOOLEAN)
@@ -245,7 +246,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.time_stop_timer(
   p_user_id UUID,
   p_request_id TEXT,
-  p_stopped_at TIMESTAMPTZ DEFAULT pg_catalog.now(),
+  p_stopped_at TIMESTAMPTZ DEFAULT NULL,
   p_business_time_zone TEXT DEFAULT 'Asia/Seoul'
 )
 RETURNS TABLE (stopped_entry_id UUID, started_entry_id UUID, replayed BOOLEAN)
@@ -324,6 +325,7 @@ BEGIN
       locked_at = NULL,
       locked_by = NULL,
       lease_until = NULL,
+      lease_token = NULL,
       updated_at = pg_catalog.now()
   WHERE status = 'PROCESSING'
     AND lease_until <= pg_catalog.now()
@@ -349,6 +351,7 @@ BEGIN
       locked_at = pg_catalog.now(),
       locked_by = pg_catalog.btrim(p_worker_id),
       lease_until = pg_catalog.now() + pg_catalog.make_interval(secs => p_lease_seconds),
+      lease_token = pg_catalog.gen_random_uuid(),
       completed_at = NULL,
       updated_at = pg_catalog.now()
   FROM ready
@@ -360,6 +363,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.time_fail_job(
   p_job_id UUID,
   p_worker_id TEXT,
+  p_lease_token UUID,
   p_error_code TEXT
 )
 RETURNS public.time_jobs
@@ -373,6 +377,9 @@ BEGIN
   IF p_worker_id IS NULL OR pg_catalog.btrim(p_worker_id) = '' THEN
     RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'worker_id is required';
   END IF;
+  IF p_lease_token IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'lease_token is required';
+  END IF;
   UPDATE public.time_jobs
   SET status = 'FAILED',
       ready_at = CASE
@@ -384,11 +391,13 @@ BEGIN
       locked_at = NULL,
       locked_by = NULL,
       lease_until = NULL,
+      lease_token = NULL,
       last_error_code = pg_catalog.left(COALESCE(p_error_code, 'UNKNOWN'), 100),
       updated_at = pg_catalog.now()
   WHERE id = p_job_id
     AND status = 'PROCESSING'
     AND locked_by = pg_catalog.btrim(p_worker_id)
+    AND lease_token = p_lease_token
     AND lease_until > pg_catalog.now()
   RETURNING * INTO v_job;
   IF NOT FOUND THEN
@@ -401,6 +410,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.time_complete_job(
   p_job_id UUID,
   p_worker_id TEXT,
+  p_lease_token UUID,
   p_result JSONB DEFAULT NULL
 )
 RETURNS public.time_jobs
@@ -414,6 +424,9 @@ BEGIN
   IF p_worker_id IS NULL OR pg_catalog.btrim(p_worker_id) = '' THEN
     RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'worker_id is required';
   END IF;
+  IF p_lease_token IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'lease_token is required';
+  END IF;
   UPDATE public.time_jobs
   SET status = 'COMPLETED',
       result = p_result,
@@ -421,11 +434,13 @@ BEGIN
       locked_at = NULL,
       locked_by = NULL,
       lease_until = NULL,
+      lease_token = NULL,
       completed_at = pg_catalog.now(),
       updated_at = pg_catalog.now()
   WHERE id = p_job_id
     AND status = 'PROCESSING'
     AND locked_by = pg_catalog.btrim(p_worker_id)
+    AND lease_token = p_lease_token
     AND lease_until > pg_catalog.now()
   RETURNING * INTO v_job;
   IF NOT FOUND THEN
@@ -448,8 +463,8 @@ REVOKE ALL ON FUNCTION public.time_stop_timer(UUID, TEXT, TIMESTAMPTZ, TEXT) FRO
 REVOKE ALL ON FUNCTION public.time_prevent_entry_business_date_update() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.time_track_push_owner_change() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.time_claim_jobs(INTEGER, TEXT, INTEGER) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.time_fail_job(UUID, TEXT, TEXT) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.time_complete_job(UUID, TEXT, JSONB) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.time_fail_job(UUID, TEXT, UUID, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.time_complete_job(UUID, TEXT, UUID, JSONB) FROM PUBLIC;
 
 DO $$
 DECLARE
@@ -458,8 +473,8 @@ DECLARE
     'public.time_switch_timer(UUID, TEXT, UUID, UUID, UUID, UUID, UUID, UUID, UUID, TEXT, TIMESTAMPTZ, TEXT), '
     'public.time_stop_timer(UUID, TEXT, TIMESTAMPTZ, TEXT), '
     'public.time_claim_jobs(INTEGER, TEXT, INTEGER), '
-    'public.time_fail_job(UUID, TEXT, TEXT), '
-    'public.time_complete_job(UUID, TEXT, JSONB)';
+    'public.time_fail_job(UUID, TEXT, UUID, TEXT), '
+    'public.time_complete_job(UUID, TEXT, UUID, JSONB)';
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'anon') THEN
     EXECUTE 'REVOKE ALL ON FUNCTION ' || v_functions || ' FROM anon';

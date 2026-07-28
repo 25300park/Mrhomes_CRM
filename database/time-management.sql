@@ -141,11 +141,13 @@ CREATE TABLE IF NOT EXISTS time_entries (
     )
     OR (
       num_nonnulls(contact_id, listing_id, lead_id, deal_id) = 1
-      AND
-      linked_entity_id = COALESCE(contact_id, listing_id, lead_id, deal_id)
+      AND linked_entity_type IS NOT NULL
+      AND linked_entity_id IS NOT NULL
       AND linked_entity_label IS NOT NULL
       AND btrim(linked_entity_label) <> ''
-      AND linked_entity_type = CASE
+      AND linked_entity_id IS NOT DISTINCT FROM
+        COALESCE(contact_id, listing_id, lead_id, deal_id)
+      AND linked_entity_type IS NOT DISTINCT FROM CASE
         WHEN contact_id IS NOT NULL THEN 'CONTACT'
         WHEN listing_id IS NOT NULL THEN 'LISTING'
         WHEN lead_id IS NOT NULL THEN 'LEAD'
@@ -284,11 +286,12 @@ CREATE TABLE IF NOT EXISTS time_jobs (
   payload JSONB NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(payload) = 'object'),
   result JSONB,
   attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0),
-  max_attempts INTEGER NOT NULL DEFAULT 3 CHECK (max_attempts > 0),
+  max_attempts INTEGER NOT NULL DEFAULT 4 CHECK (max_attempts > 0),
   ready_at TIMESTAMPTZ DEFAULT now(),
   locked_at TIMESTAMPTZ,
   locked_by TEXT,
   lease_until TIMESTAMPTZ,
+  lease_token UUID,
   completed_at TIMESTAMPTZ,
   last_error_code VARCHAR(100),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -297,15 +300,18 @@ CREATE TABLE IF NOT EXISTS time_jobs (
   CONSTRAINT time_jobs_worker_nonblank_ck CHECK (locked_by IS NULL OR btrim(locked_by) <> ''),
   CONSTRAINT time_jobs_state_fields_ck CHECK (
     (status = 'PENDING' AND ready_at IS NOT NULL AND locked_at IS NULL
-      AND locked_by IS NULL AND lease_until IS NULL AND completed_at IS NULL)
+      AND locked_by IS NULL AND lease_until IS NULL AND lease_token IS NULL
+      AND completed_at IS NULL)
     OR (status = 'PROCESSING' AND ready_at IS NULL AND locked_at IS NOT NULL
-      AND locked_by IS NOT NULL AND lease_until IS NOT NULL AND completed_at IS NULL)
+      AND locked_by IS NOT NULL AND lease_until IS NOT NULL
+      AND lease_token IS NOT NULL AND completed_at IS NULL)
     OR (status = 'FAILED' AND locked_at IS NULL AND locked_by IS NULL
-      AND lease_until IS NULL AND completed_at IS NULL
+      AND lease_until IS NULL AND lease_token IS NULL AND completed_at IS NULL
       AND ((attempts < max_attempts AND ready_at IS NOT NULL)
         OR (attempts = max_attempts AND ready_at IS NULL)))
     OR (status = 'COMPLETED' AND ready_at IS NULL AND locked_at IS NULL
-      AND locked_by IS NULL AND lease_until IS NULL AND completed_at IS NOT NULL)
+      AND locked_by IS NULL AND lease_until IS NULL AND lease_token IS NULL
+      AND completed_at IS NOT NULL)
   ),
   UNIQUE (job_type, dedupe_key)
 );

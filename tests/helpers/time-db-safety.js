@@ -13,8 +13,23 @@ function canonicalDatabaseFingerprint(value) {
     throw new Error('Database connection must be a valid PostgreSQL URL.')
   }
 
+  const hostname = parsed.hostname.toLowerCase()
+  const directMatch = hostname.match(/^db\.([a-z0-9]+)\.supabase\.co$/)
+  const decodedUsername = decodeURIComponent(parsed.username)
+  const poolerUserMatch = hostname.endsWith('.pooler.supabase.com')
+    ? decodedUsername.match(/^postgres\.([a-z0-9]+)$/)
+    : null
+  const projectRef = directMatch?.[1] || poolerUserMatch?.[1]
+
+  if (projectRef) {
+    return {
+      provider: 'supabase',
+      projectRef
+    }
+  }
+
   return {
-    host: parsed.hostname.toLowerCase(),
+    host: hostname,
     port: parsed.port || '5432',
     database: decodeURIComponent(parsed.pathname.slice(1))
   }
