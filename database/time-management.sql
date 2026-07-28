@@ -175,12 +175,16 @@ CREATE TABLE IF NOT EXISTS time_commands (
   id UUID PRIMARY KEY DEFAULT pg_catalog.gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   request_id TEXT NOT NULL CHECK (btrim(request_id) <> ''),
-  command_type VARCHAR(10) NOT NULL CHECK (command_type IN ('START', 'SWITCH', 'STOP')),
+  command_type VARCHAR(10) NOT NULL CHECK (command_type IN ('START', 'SWITCH', 'STOP', 'MANUAL', 'REVISE')),
   request_payload JSONB NOT NULL CHECK (jsonb_typeof(request_payload) = 'object'),
   response_payload JSONB NOT NULL CHECK (jsonb_typeof(response_payload) = 'object'),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, request_id)
 );
+
+ALTER TABLE time_commands DROP CONSTRAINT IF EXISTS time_commands_command_type_check;
+ALTER TABLE time_commands ADD CONSTRAINT time_commands_command_type_check
+  CHECK (command_type IN ('START', 'SWITCH', 'STOP', 'MANUAL', 'REVISE'));
 
 CREATE TABLE IF NOT EXISTS time_entry_revisions (
   id UUID PRIMARY KEY DEFAULT pg_catalog.gen_random_uuid(),

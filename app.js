@@ -3,6 +3,7 @@ const cors = require('cors')
 const morgan = require('morgan')
 const path = require('path')
 const cookieParser = require('cookie-parser')
+const crypto = require('node:crypto')
 const { requireCsrf } = require('./middleware/csrf')
 const { parseOrigins } = require('./services/runtime-config')
 
@@ -32,6 +33,13 @@ function createApp({ supabase, schedulerEnabled = true, allowedOrigins } = {}) {
   app.use(express.static(path.join(__dirname, 'public')))
   app.use((req, _res, next) => {
     req.supabase = supabase
+    next()
+  })
+  app.use('/api/time-management', (req, _res, next) => {
+    const inbound = req.get('X-Request-Id')
+    req.timeRequestId = typeof inbound === 'string' && /^[A-Za-z0-9._:-]{1,128}$/.test(inbound)
+      ? inbound
+      : crypto.randomUUID()
     next()
   })
   app.use(requireCsrf)

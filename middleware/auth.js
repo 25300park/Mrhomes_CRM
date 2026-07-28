@@ -53,6 +53,11 @@ async function auth(req, res, next) {
     req.user = req.auth.user
     next()
   } catch (error) {
+    if (req.timeRequestId) {
+      return res.status(error.status || 401).json({
+        error: { code: 'UNAUTHENTICATED', message: error.message, requestId: req.timeRequestId }
+      })
+    }
     res.status(error.status || 401).json({ error: error.message })
   }
 }

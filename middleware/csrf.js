@@ -27,6 +27,11 @@ async function requireCsrf(req, res, next) {
 
   const supplied = req.get('X-CSRF-Token')
   if (!tokensMatch(supplied, createCsrfToken(sessionToken))) {
+    if (req.timeRequestId) {
+      return res.status(403).json({
+        error: { code: 'CSRF_INVALID', message: '유효한 CSRF 토큰이 필요합니다.', requestId: req.timeRequestId }
+      })
+    }
     return res.status(403).json({ error: '유효한 CSRF 토큰이 필요합니다' })
   }
   next()

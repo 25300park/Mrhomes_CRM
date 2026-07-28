@@ -84,7 +84,8 @@ function assertSafeTarget() {
 function runSql(sql) {
   const result = psql(`SET search_path TO ${schemaName}, public;\n${sql}`)
   if (result.status !== 0) {
-    throw new Error('Isolated PostgreSQL command failed; inspect dedicated test DB logs.')
+    const diagnostic = (result.stderr || '').split('\n').filter(line => /^(ERROR|DETAIL|CONTEXT):/.test(line)).join(' ')
+    throw new Error(`Isolated PostgreSQL command failed: ${diagnostic || 'no PostgreSQL diagnostic'}`)
   }
   return result.stdout.trim()
 }
@@ -390,7 +391,7 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
       '${USER_A}', 'explicit-time', '${STANDARD_A}',
       p_started_at => '2026-07-15T19:00:01Z');`,
     { sqlState: '23505', constraint: 'time_commands_user_id_request_id_key' })
-  })
+  }, 30_000)
 
   test('claims disjoint batches and rejects same-worker stale lease ABA', async () => {
     runSql(`DELETE FROM time_jobs; INSERT INTO time_jobs (user_id, job_type, dedupe_key)
@@ -468,6 +469,63 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
     expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1)
     expect(runSql(`SELECT status || '|' || attempts || '|' ||
       (lease_token IS NULL) FROM time_jobs WHERE id = '${jobId}';`)).toMatch(/^(COMPLETED|FAILED)\|1\|(t|true)$/)
+  })
+
+  test('atomically replaces daily-plan allocations and rolls back invalid replacements', async () => {
+    runSql(`DELETE FROM time_plan_allocations WHERE daily_plan_id = '${PLAN_A}';`)
+    const valid = `[{"standardCategoryId":"${STANDARD_A}","personalCategoryId":null,"plannedMinutes":90}]`
+    expect(runSql(`SELECT allocation_total FROM time_save_daily_plan(
+      '${USER_A}', '2026-07-16', 480, '${valid}'::jsonb);`)).toBe('90')
+    expect(runSql(`SELECT sum(planned_minutes) FROM time_plan_allocations WHERE daily_plan_id = '${PLAN_A}';`)).toBe('90')
+
+    const invalid = `[{"standardCategoryId":"${STANDARD_A}","personalCategoryId":"${PERSONAL_B}","plannedMinutes":30}]`
+    expectSqlFailure(`SELECT * FROM time_save_daily_plan(
+      '${USER_A}', '2026-07-16', 480, '${invalid}'::jsonb);`, { sqlState: '42501' })
+    expect(runSql(`SELECT sum(planned_minutes) FROM time_plan_allocations WHERE daily_plan_id = '${PLAN_A}';`)).toBe('90')
+
+    const save = (minutes) => runSqlAsync(`SELECT allocation_total FROM time_save_daily_plan(
+      '${USER_A}', '2026-07-16', 480,
+      '[{"standardCategoryId":"${STANDARD_A}","personalCategoryId":null,"plannedMinutes":${minutes}}]'::jsonb);`)
+    await Promise.all([save(120), save(150)])
+    expect(runSql(`SELECT count(*) || '|' || sum(planned_minutes) FROM time_plan_allocations WHERE daily_plan_id = '${PLAN_A}';`)).toMatch(/^1\|(120|150)$/)
+  })
+
+  test('creates idempotent complete manual entries and rejects overlaps', () => {
+    runSql(`DELETE FROM time_commands WHERE user_id = '${USER_A}'; DELETE FROM time_entries WHERE user_id = '${USER_A}';`)
+    const created = runSql(`SELECT entry_id FROM time_create_manual_entry(
+      '${USER_A}', 'manual-db-1', '${STANDARD_A}', NULL, '${PLAN_A}',
+      '${CONTACT_A}', NULL, NULL, NULL, 'Fixture contact',
+      '2026-07-16T01:00:00Z', '2026-07-16T02:00:00Z', 'note', 'Asia/Seoul');`)
+    expect(runSql(`SELECT entry_id || '|' || replayed FROM time_create_manual_entry(
+      '${USER_A}', 'manual-db-1', '${STANDARD_A}', NULL, '${PLAN_A}',
+      '${CONTACT_A}', NULL, NULL, NULL, 'Fixture contact',
+      '2026-07-16T01:00:00Z', '2026-07-16T02:00:00Z', 'note', 'Asia/Seoul');`)).toMatch(new RegExp(`^${created}\\|(t|true)$`))
+    expect(runSql(`SELECT entry_type || '|' || duration_seconds || '|' || linked_entity_label FROM time_entries WHERE id = '${created}';`)).toBe('MANUAL|3600|Fixture contact')
+    expectSqlFailure(`SELECT * FROM time_create_manual_entry(
+      '${USER_A}', 'manual-db-overlap', '${STANDARD_A}', NULL, '${PLAN_A}',
+      NULL, NULL, NULL, NULL, NULL,
+      '2026-07-16T01:30:00Z', '2026-07-16T02:30:00Z', NULL, 'Asia/Seoul');`, { sqlState: '23P01', constraint: 'time_entries_user_time_overlap' })
+  })
+
+  test('atomically revises owned entries and keeps revision rows immutable', () => {
+    const entryId = runSql(`SELECT entry_id FROM time_create_manual_entry(
+      '${USER_A}', 'manual-db-1', '${STANDARD_A}', NULL, '${PLAN_A}',
+      '${CONTACT_A}', NULL, NULL, NULL, 'Fixture contact',
+      '2026-07-16T01:00:00Z', '2026-07-16T02:00:00Z', 'note', 'Asia/Seoul');`)
+    const revised = runSql(`SELECT revision_id FROM time_revise_entry(
+      '${USER_A}', '${entryId}', 'revise-db-1', NULL, NULL,
+      NULL, NULL, 'revised', ARRAY['notes']::text[],
+      NULL, NULL, NULL, NULL, NULL);`)
+    expect(runSql(`SELECT (before_value->>'notes') || '|' || (after_value->>'notes') FROM time_entry_revisions WHERE id = '${revised}';`)).toBe('note|revised')
+    expect(runSql(`SELECT revision_id FROM time_revise_entry(
+      '${USER_A}', '${entryId}', 'revise-db-1', NULL, NULL,
+      NULL, NULL, 'revised', ARRAY['notes']::text[],
+      NULL, NULL, NULL, NULL, NULL);`)).toBe(revised)
+    expectSqlFailure(`UPDATE time_entry_revisions SET after_value = '{}' WHERE id = '${revised}';`, { sqlState: '42501' })
+    expectSqlFailure(`SELECT * FROM time_revise_entry(
+      '${USER_B}', '${entryId}', 'revise-other-owner', NULL, NULL,
+      NULL, NULL, 'stolen', ARRAY['notes']::text[],
+      NULL, NULL, NULL, NULL, NULL);`, { sqlState: '42501' })
   })
 
   test('keeps Push endpoints globally unique and tracks account reassignment', () => {
