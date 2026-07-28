@@ -5,6 +5,10 @@ function databaseError(error) {
   return new TimeManagementError('DATABASE_ERROR', '시간 관리 데이터를 처리할 수 없습니다.', 500, { cause: error })
 }
 
+function isNotFound(error) {
+  return error?.code === 'PGRST116'
+}
+
 async function listAvailableCategories({ supabase, actor }) {
   requireActiveTimeActor(actor)
   const [standardResult, personalResult] = await Promise.all([
@@ -22,7 +26,12 @@ async function listAvailableCategories({ supabase, actor }) {
   ])
   if (standardResult.error) throw databaseError(standardResult.error)
   if (personalResult.error) throw databaseError(personalResult.error)
-  return { standard: standardResult.data || [], personal: personalResult.data || [] }
+  const standard = standardResult.data || []
+  const activeStandardIds = new Set(standard.map(category => category.id))
+  return {
+    standard,
+    personal: (personalResult.data || []).filter(category => activeStandardIds.has(category.parent_standard_category_id))
+  }
 }
 
 async function createStandardCategory({ supabase, actor, input }) {
@@ -49,7 +58,10 @@ async function updateStandardCategory({ supabase, actor, categoryId, input }) {
   if (input.isActive !== undefined) updates.is_active = input.isActive
   const { data, error } = await supabase.from('time_standard_categories')
     .update(updates).eq('id', categoryId).select().single()
-  if (error || !data) throw new TimeManagementError('CATEGORY_NOT_FOUND', '카테고리를 찾을 수 없습니다.', 404)
+  if (error || !data) {
+    if (!error || isNotFound(error)) throw new TimeManagementError('CATEGORY_NOT_FOUND', '카테고리를 찾을 수 없습니다.', 404)
+    throw databaseError(error)
+  }
   return data
 }
 
@@ -62,6 +74,7 @@ async function createPersonalCategory({ supabase, actor, input }) {
     .eq('is_active', true)
     .single()
   if (parentError || !parent) {
+    if (parentError && !isNotFound(parentError)) throw databaseError(parentError)
     throw new TimeManagementError('INACTIVE_STANDARD_CATEGORY', '활성 표준 카테고리를 선택해야 합니다.', 422)
   }
   const { data, error } = await supabase.from('time_personal_categories').insert({
@@ -77,14 +90,25 @@ async function createPersonalCategory({ supabase, actor, input }) {
 
 async function updatePersonalCategory({ supabase, actor, categoryId, input }) {
   requireActiveTimeActor(actor)
+  const { data: existing, error: existingError } = await supabase.from('time_personal_categories')
+    .select('id, user_id')
+    .eq('id', categoryId)
+    .single()
+  if (existingError || !existing) {
+    if (!existingError || isNotFound(existingError)) throw new TimeManagementError('CATEGORY_NOT_FOUND', '카테고리를 찾을 수 없습니다.', 404)
+    throw databaseError(existingError)
+  }
+  requireTimeOwner(actor, existing.user_id)
   const updates = { updated_at: new Date().toISOString() }
   if (input.name !== undefined) updates.name = input.name
   if (input.sortOrder !== undefined) updates.sort_order = input.sortOrder
   if (input.isActive !== undefined) updates.is_active = input.isActive
   const { data, error } = await supabase.from('time_personal_categories')
-    .update(updates).eq('id', categoryId).eq('user_id', actor.id).select().single()
-  if (error || !data) throw new TimeManagementError('CATEGORY_NOT_FOUND', '카테고리를 찾을 수 없습니다.', 404)
-  requireTimeOwner(actor, data.user_id)
+    .update(updates).eq('id', categoryId).select().single()
+  if (error || !data) {
+    if (!error || isNotFound(error)) throw new TimeManagementError('CATEGORY_NOT_FOUND', '카테고리를 찾을 수 없습니다.', 404)
+    throw databaseError(error)
+  }
   return data
 }
 

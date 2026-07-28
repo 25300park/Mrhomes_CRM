@@ -65,6 +65,7 @@ router.patch('/personal/:categoryId', async (req, res, next) => {
 
 router.delete('/personal/:categoryId', async (req, res, next) => {
   try {
+    parse(listQuerySchema, req.query)
     res.json(await categories.deactivatePersonalCategory({ supabase: req.supabase, actor: req.user, categoryId: parse(categoryId, req.params.categoryId) }))
   } catch (error) { next(error) }
 })

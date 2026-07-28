@@ -17,6 +17,7 @@ function createCrmLinkSupabase(actor) {
         select() { return query },
         eq(column, value) { state.filters.push([column, value]); return query },
         ilike() { return query },
+        order() { return query },
         limit() { return query },
         single() {
           if (table === 'users') return Promise.resolve({ data: actor, error: null })
@@ -41,8 +42,8 @@ test('CRM link search returns only safe labels for the CRM records visible to an
   expect(response.status).toBe(200)
   expect(response.body.data).toEqual([
     { id: 'contact-1', type: 'CONTACT', label: 'Jane Client' },
-    { id: 'listing-1', type: 'LISTING', label: 'Riverside Tower' },
     { id: 'lead-1', type: 'LEAD', label: 'Jane Client' },
+    { id: 'listing-1', type: 'LISTING', label: 'Riverside Tower' },
     { id: 'deal-1', type: 'DEAL', label: 'Riverside Tower — 2026-07-01' }
   ])
   for (const item of response.body.data) {

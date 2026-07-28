@@ -31,7 +31,7 @@ function createCategorySupabase({ actor }) {
           Object.assign(existing, state.update)
           return result(existing)
         }
-        return existing ? result(existing) : Promise.resolve({ data: null, error: { message: 'not found' } })
+        return existing ? result(existing) : Promise.resolve({ data: null, error: { code: 'PGRST116', message: 'not found' } })
       },
       then(resolve, reject) {
         const records = table === 'time_standard_categories' ? standards : personal
@@ -141,6 +141,39 @@ test('an agent cannot deactivate another agents personal category', async () => 
     .delete('/api/time-management/categories/personal/other-personal')
     .set('Authorization', bearer(actor))
 
-  expect(response.status).toBe(404)
+  expect(response.status).toBe(403)
+  expect(fixture.personal[0].is_active).toBe(true)
+})
+
+test('category list omits active personal categories when their standard parent is inactive', async () => {
+  const actor = { id: 'agent-1', role: 'agent', is_active: true }
+  const fixture = createCategorySupabase({ actor })
+  fixture.personal.push({
+    id: 'legacy-personal', user_id: actor.id, parent_standard_category_id: 'standard-inactive',
+    name: 'Legacy follow-up', sort_order: 0, is_active: true
+  })
+
+  const response = await request(createTestApp({ supabase: fixture.supabase }))
+    .get('/api/time-management/categories')
+    .set('Authorization', bearer(actor))
+
+  expect(response.status).toBe(200)
+  expect(response.body.personal).toEqual([])
+})
+
+test('personal category deletion rejects unexpected query parameters', async () => {
+  const actor = { id: 'agent-1', role: 'agent', is_active: true }
+  const fixture = createCategorySupabase({ actor })
+  fixture.personal.push({
+    id: 'personal-1', user_id: actor.id, parent_standard_category_id: 'standard-active',
+    name: 'VIP responses', sort_order: 0, is_active: true
+  })
+
+  const response = await request(createTestApp({ supabase: fixture.supabase }))
+    .delete('/api/time-management/categories/personal/personal-1?force=true')
+    .set('Authorization', bearer(actor))
+
+  expect(response.status).toBe(400)
+  expect(response.body.error.code).toBe('INVALID_REQUEST')
   expect(fixture.personal[0].is_active).toBe(true)
 })
