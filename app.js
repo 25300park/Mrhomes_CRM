@@ -57,6 +57,7 @@ function createApp({ supabase, schedulerEnabled = true, allowedOrigins } = {}) {
   app.use('/api/pms-care', pmsCare)
   app.use('/api/pms-accounts', pmsAccounts)
   app.use('/api/pms-documents', pmsDocuments)
+  app.use('/api/time-management', require('./routes/time-management'))
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', ts: new Date().toISOString() })
