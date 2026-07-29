@@ -59,7 +59,11 @@ $env:EXPECTED_RAILWAY_TARGET = "$env:RAILWAY_PROJECT_ID|$env:RAILWAY_ENVIRONMENT
 $env:RAILWAY_TARGET_VERIFIED = "<set-after-status-and-dashboard-target-check>"
 $env:AUTH_INVALID_BEFORE = "<YYYY-MM-DDTHH:mm:ssZ-approved-rollout-instant>"
 $env:APP_BASE_URL = "<https-production-application-origin>"
-$env:PRE_ROLLOUT_COOKIE_JAR = "<absolute-path-to-approved-pre-rollout-cookie-jar>"
+$env:FORCED_RELOGIN_NOTICE_IMPACT = "<approved-user-impact-summary>"
+$env:FORCED_RELOGIN_ROLLBACK_CONTACT = "<approved-rollback-contact>"
+$env:SMOKE_BUSINESS_DATE = "<YYYY-MM-DD-approved-business-date>"
+$env:PRIVACY_SENTINEL = "<approved-non-secret-reflection-sentinel>"
+$env:DISALLOWED_SMOKE_ORIGIN = "https://disallowed-smoke.invalid"
 
 function Assert-ApprovedChange {
   if ($env:TARGET_ENV -ne "production" -or $env:CHANGE_APPROVAL_CONFIRMED -ne "yes" -or $env:CHANGE_APPROVAL_ID -like "<*") { throw "Separate production approval is missing." }
@@ -95,14 +99,60 @@ if ($LASTEXITCODE -ne 0) { throw "Railway status failed." }
 
 Compare the non-secret project, environment, and service IDs printed by `railway status` with the three approved IDs and the Railway dashboard. Only then set `$env:RAILWAY_TARGET_VERIFIED` to `<production-project-id>|<production-environment-id>|<production-service-id>` and run both assertion functions. `railway status` does not display service variable values.
 
-### 2. Stop Push/AI jobs and force re-login before migration
+### 2. Prove a live pre-cutoff session and acknowledge the forced-login notice
 
-`SCHEDULER_ENABLED=false` stops both Push/reminder delivery and AI job leasing. `AUTH_INVALID_BEFORE` invalidates sessions issued before the approved UTC instant.
+Before opening a captured terminal, load `CRM_CANARY_EMAIL`, `CRM_CANARY_PASSWORD`, and `CRM_CANARY_NEW_PASSWORD` from the approved secret manager into environment variables. Use a dedicated canary account. Never place any of those values in this document, a command argument, output, evidence, or shell history. The new password must be unique to this change and different from the approved original.
+
+The following creates a fresh in-memory session, logs in before the cutoff, and proves `/api/auth/me` returns `200`. Keep `$preCutoffSession` in memory; do not serialize its cookies.
+
+```powershell
+foreach ($secretName in @("CRM_CANARY_EMAIL", "CRM_CANARY_PASSWORD", "CRM_CANARY_NEW_PASSWORD")) {
+  if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($secretName))) { throw "Approved canary secret environment is incomplete." }
+}
+if ($env:CRM_CANARY_PASSWORD -eq $env:CRM_CANARY_NEW_PASSWORD) { throw "Canary current and temporary passwords must differ." }
+$cutoff = [DateTimeOffset]::ParseExact($env:AUTH_INVALID_BEFORE, "yyyy-MM-ddTHH:mm:ssZ", [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AssumeUniversal)
+if ($cutoff -le [DateTimeOffset]::UtcNow) { throw "Choose an approved cutoff after the pre-cutoff canary baseline." }
+
+$preCutoffSession = [Microsoft.PowerShell.Commands.WebRequestSession]::new()
+$preCutoffLoginBody = @{ email = $env:CRM_CANARY_EMAIL; password = $env:CRM_CANARY_PASSWORD } | ConvertTo-Json -Compress
+Assert-ApprovedRailwayTarget
+$preCutoffLogin = Invoke-WebRequest -Method Post -Uri "$env:APP_BASE_URL/api/auth/login" -WebSession $preCutoffSession -ContentType "application/json" -Body $preCutoffLoginBody -SkipHttpErrorCheck
+if ($preCutoffLogin.StatusCode -ne 200) { throw "Pre-cutoff canary login failed; stop rollout." }
+Assert-ApprovedRailwayTarget
+$preCutoffMe = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/api/auth/me" -WebSession $preCutoffSession -SkipHttpErrorCheck
+if ($preCutoffMe.StatusCode -ne 200) { throw "Pre-cutoff canary authentication baseline failed; stop rollout." }
+$preCutoffAuthenticatedAt = [DateTimeOffset]::UtcNow
+if ($preCutoffAuthenticatedAt -ge $cutoff) { throw "Canary baseline did not complete before the cutoff; choose a new approved cutoff." }
+if ($preCutoffSession.Cookies.GetCookies([Uri]$env:APP_BASE_URL).Count -eq 0) { throw "Pre-cutoff canary session has no cookie; stop rollout." }
+```
+
+Publish this template through the approved operator channel. It contains no credentials:
+
+```powershell
+$forcedReloginNotice = @"
+Forced re-login notice
+Impact: $env:FORCED_RELOGIN_NOTICE_IMPACT
+Cutoff UTC: $env:AUTH_INVALID_BEFORE
+Rollback contact: $env:FORCED_RELOGIN_ROLLBACK_CONTACT
+"@
+Write-Host $forcedReloginNotice
+$env:FORCED_RELOGIN_NOTICE_ACK = Read-Host "Enter ACK-$env:CHANGE_APPROVAL_ID after the notice is delivered"
+
+function Assert-ForcedReloginNoticeAcknowledged {
+  if ($env:FORCED_RELOGIN_NOTICE_IMPACT -like "<*" -or $env:FORCED_RELOGIN_ROLLBACK_CONTACT -like "<*" -or $env:FORCED_RELOGIN_NOTICE_ACK -ne "ACK-$env:CHANGE_APPROVAL_ID") { throw "Forced re-login notice acknowledgment is missing." }
+  if ([DateTimeOffset]::UtcNow -lt $cutoff) { throw "Approved forced-login cutoff has not arrived." }
+}
+```
+
+### 3. Stop Push/AI jobs and apply the forced-login cutoff before migration
+
+`SCHEDULER_ENABLED=false` stops both Push/reminder delivery and AI job leasing. `AUTH_INVALID_BEFORE` invalidates sessions issued before the approved UTC instant. The explicit notice acknowledgment must pass before the cutoff variable is staged or deployed.
 
 ```powershell
 Assert-ApprovedRailwayTarget
 railway variable set "SCHEDULER_ENABLED=false" --skip-deploys --service "$env:RAILWAY_SERVICE_ID" --environment "$env:RAILWAY_ENVIRONMENT_ID"
 if ($LASTEXITCODE -ne 0) { throw "Railway variable update failed." }
+Assert-ForcedReloginNoticeAcknowledged
 Assert-ApprovedRailwayTarget
 railway variable set "AUTH_INVALID_BEFORE=$env:AUTH_INVALID_BEFORE" --skip-deploys --service "$env:RAILWAY_SERVICE_ID" --environment "$env:RAILWAY_ENVIRONMENT_ID"
 if ($LASTEXITCODE -ne 0) { throw "Railway variable update failed." }
@@ -123,7 +173,7 @@ if ($LASTEXITCODE -ne 0) { throw "Railway status failed after scheduler stop." }
 
 In the dashboard, confirm the current deployment is successful and no new time job is leased before continuing.
 
-### 3. Create and verify the production backup, then apply only reviewed SQL
+### 4. Create and verify the production backup, then apply only reviewed SQL
 
 ```powershell
 Assert-ApprovedProductionTarget
@@ -148,7 +198,7 @@ if ($LASTEXITCODE -ne 0) { throw "Production functions apply failed; stop and en
 
 Save only command names, exit codes, approved IDs, file checksums, and the non-secret fingerprint in evidence. Never save the connection string.
 
-### 4. Deploy the reviewed candidate and run smoke checks
+### 5. Deploy the reviewed candidate and run smoke checks
 
 `railway up` is intentionally attached: according to the CLI contract, exit `0` means the deployment reached `SUCCESS`. Do not use detached mode for this gate.
 
@@ -168,16 +218,100 @@ railway status
 if ($LASTEXITCODE -ne 0) { throw "Railway status failed after candidate deploy." }
 
 Assert-ApprovedRailwayTarget
-$healthCode = curl.exe --silent --show-error --output NUL --write-out "%{http_code}" "$env:APP_BASE_URL/health"
-if ($LASTEXITCODE -ne 0 -or $healthCode -ne "200") { throw "Production health smoke failed." }
+$candidateHealth = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/health" -SkipHttpErrorCheck
+if ($candidateHealth.StatusCode -ne 200) { throw "Production health smoke failed; stop and roll back." }
 Assert-ApprovedRailwayTarget
-$staleSessionCode = curl.exe --silent --show-error --output NUL --write-out "%{http_code}" --cookie "$env:PRE_ROLLOUT_COOKIE_JAR" "$env:APP_BASE_URL/api/auth/me"
-if ($LASTEXITCODE -ne 0 -or $staleSessionCode -ne "401") { throw "Forced re-login smoke failed." }
+$postCutoffStaleMe = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/api/auth/me" -WebSession $preCutoffSession -SkipHttpErrorCheck
+if ($postCutoffStaleMe.StatusCode -ne 401) { throw "The proven pre-cutoff session was not invalidated; stop and roll back." }
+
+$postCutoffSession = [Microsoft.PowerShell.Commands.WebRequestSession]::new()
+$postCutoffLoginBody = @{ email = $env:CRM_CANARY_EMAIL; password = $env:CRM_CANARY_PASSWORD } | ConvertTo-Json -Compress
+Assert-ApprovedRailwayTarget
+$postCutoffLogin = Invoke-WebRequest -Method Post -Uri "$env:APP_BASE_URL/api/auth/login" -WebSession $postCutoffSession -ContentType "application/json" -Body $postCutoffLoginBody -SkipHttpErrorCheck
+if ($postCutoffLogin.StatusCode -ne 200) { throw "Fresh post-cutoff login failed; stop and roll back." }
+Assert-ApprovedRailwayTarget
+$postCutoffFreshMe = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/api/auth/me" -WebSession $postCutoffSession -SkipHttpErrorCheck
+if ($postCutoffFreshMe.StatusCode -ne 200) { throw "Fresh post-cutoff authentication failed; stop and roll back." }
 ```
 
-Inspect the bounded logs for build/start success and confirm they contain no credentials, authorization headers, Push endpoints/keys, notes, or reflection text. Complete the approved CRM login, read-only time-management, private-API denial, CSRF/CORS, direct-refresh, and asset-base smoke checklist in the change record.
+The `401` check above reuses the exact session object proven live before the cutoff; a new or unrelated cookie cannot satisfy it. The fresh `200` checks distinguish intentional session invalidation from a broken authentication service.
 
-### 5. Re-enable Push/AI scheduling only after smoke approval
+### 6. Run exact CRM, password-recovery, privacy, CSRF, CORS, and asset smoke
+
+Every request below is read-only or uses the dedicated canary. Password mutation must be immediately reversed and verified with the original approved password. Any unexpected status blocks scheduler re-enable and starts the approved rollback procedure. Response bodies and credentials must not be printed.
+
+```powershell
+Assert-ApprovedRailwayTarget
+$dashboardSmoke = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/api/dashboard" -WebSession $postCutoffSession -SkipHttpErrorCheck
+if ($dashboardSmoke.StatusCode -ne 200) { throw "Authenticated CRM read smoke failed; stop and roll back." }
+Assert-ApprovedRailwayTarget
+$csrfResponse = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/api/auth/csrf" -WebSession $postCutoffSession -SkipHttpErrorCheck
+$csrfPayload = $csrfResponse.Content | ConvertFrom-Json
+if ($csrfResponse.StatusCode -ne 200 -or [string]::IsNullOrWhiteSpace($csrfPayload.csrfToken)) { throw "CSRF token smoke failed; stop and roll back." }
+$csrfHeaders = @{ "X-CSRF-Token" = [string]$csrfPayload.csrfToken }
+
+Assert-ApprovedRailwayTarget
+$noCsrfMutation = Invoke-WebRequest -Method Post -Uri "$env:APP_BASE_URL/api/auth/logout" -WebSession $postCutoffSession -SkipHttpErrorCheck
+if ($noCsrfMutation.StatusCode -ne 403) { throw "CSRF denial smoke failed; stop and roll back." }
+
+$passwordChangeBody = @{ current = $env:CRM_CANARY_PASSWORD; next_pw = $env:CRM_CANARY_NEW_PASSWORD } | ConvertTo-Json -Compress
+Assert-ApprovedRailwayTarget
+$passwordChange = Invoke-WebRequest -Method Post -Uri "$env:APP_BASE_URL/api/auth/change-password" -WebSession $postCutoffSession -Headers $csrfHeaders -ContentType "application/json" -Body $passwordChangeBody -SkipHttpErrorCheck
+if ($passwordChange.StatusCode -ne 200) { throw "Canary password change failed; stop and roll back." }
+$passwordRestoreBody = @{ current = $env:CRM_CANARY_NEW_PASSWORD; next_pw = $env:CRM_CANARY_PASSWORD } | ConvertTo-Json -Compress
+Assert-ApprovedRailwayTarget
+$passwordRestore = Invoke-WebRequest -Method Post -Uri "$env:APP_BASE_URL/api/auth/change-password" -WebSession $postCutoffSession -Headers $csrfHeaders -ContentType "application/json" -Body $passwordRestoreBody -SkipHttpErrorCheck
+if ($passwordRestore.StatusCode -ne 200) { throw "CRITICAL: canary password restore failed; stop, keep scheduling disabled, and roll back." }
+
+$originalPasswordSession = [Microsoft.PowerShell.Commands.WebRequestSession]::new()
+$originalPasswordLoginBody = @{ email = $env:CRM_CANARY_EMAIL; password = $env:CRM_CANARY_PASSWORD } | ConvertTo-Json -Compress
+Assert-ApprovedRailwayTarget
+$originalPasswordLogin = Invoke-WebRequest -Method Post -Uri "$env:APP_BASE_URL/api/auth/login" -WebSession $originalPasswordSession -ContentType "application/json" -Body $originalPasswordLoginBody -SkipHttpErrorCheck
+if ($originalPasswordLogin.StatusCode -ne 200) { throw "Original canary password was not restored; stop and roll back." }
+Assert-ApprovedRailwayTarget
+$originalPasswordMe = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/api/auth/me" -WebSession $originalPasswordSession -SkipHttpErrorCheck
+if ($originalPasswordMe.StatusCode -ne 200) { throw "Restored canary authentication failed; stop and roll back." }
+
+if ($env:PRIVACY_SENTINEL -like "<*" -or $env:SMOKE_BUSINESS_DATE -like "<*") { throw "Approved privacy smoke inputs are missing." }
+Assert-ApprovedRailwayTarget
+$anonymousAdmin = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/api/time-management/analytics/admin/members/$env:SMOKE_BUSINESS_DATE" -SkipHttpErrorCheck
+if ($anonymousAdmin.StatusCode -ne 401 -or $anonymousAdmin.Content -match [regex]::Escape($env:PRIVACY_SENTINEL)) { throw "Anonymous private-data denial smoke failed; stop and roll back." }
+Assert-ApprovedRailwayTarget
+$disallowedCors = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/health" -Headers @{ Origin = $env:DISALLOWED_SMOKE_ORIGIN } -SkipHttpErrorCheck
+if ($disallowedCors.StatusCode -ne 403 -or $disallowedCors.Headers.ContainsKey("Access-Control-Allow-Origin")) { throw "CORS denial smoke failed; stop and roll back." }
+
+Assert-ApprovedRailwayTarget
+$rootDirect = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/" -SkipHttpErrorCheck
+if ($rootDirect.StatusCode -ne 200) { throw "CRM root direct-route smoke failed; stop and roll back." }
+Assert-ApprovedRailwayTarget
+$timeRoot = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/time-management" -SkipHttpErrorCheck
+if ($timeRoot.StatusCode -ne 200) { throw "Time-management root direct-route smoke failed; stop and roll back." }
+Assert-ApprovedRailwayTarget
+$timeDirect = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/time-management/records" -SkipHttpErrorCheck
+if ($timeDirect.StatusCode -ne 200) { throw "Time-management nested direct-route smoke failed; stop and roll back." }
+$assetPaths = [regex]::Matches($timeRoot.Content, '/time-management/assets/[^"]+') | ForEach-Object { $_.Value } | Sort-Object -Unique
+if ($assetPaths.Count -eq 0) { throw "Built time-management assets were not referenced; stop and roll back." }
+foreach ($assetPath in $assetPaths) {
+  Assert-ApprovedRailwayTarget
+  $assetResponse = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL$assetPath" -SkipHttpErrorCheck
+  if ($assetResponse.StatusCode -ne 200) { throw "Referenced time-management asset smoke failed; stop and roll back." }
+}
+
+Assert-ApprovedRailwayTarget
+$originalSessionCsrfResponse = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/api/auth/csrf" -WebSession $originalPasswordSession -SkipHttpErrorCheck
+$originalSessionCsrf = ($originalSessionCsrfResponse.Content | ConvertFrom-Json).csrfToken
+if ($originalSessionCsrfResponse.StatusCode -ne 200 -or [string]::IsNullOrWhiteSpace($originalSessionCsrf)) { throw "Canary cleanup CSRF lookup failed; stop and roll back." }
+Assert-ApprovedRailwayTarget
+$originalLogout = Invoke-WebRequest -Method Post -Uri "$env:APP_BASE_URL/api/auth/logout" -WebSession $originalPasswordSession -Headers @{ "X-CSRF-Token" = $originalSessionCsrf } -SkipHttpErrorCheck
+if ($originalLogout.StatusCode -ne 200) { throw "Restored canary cleanup failed; stop and roll back." }
+Assert-ApprovedRailwayTarget
+$postCutoffLogout = Invoke-WebRequest -Method Post -Uri "$env:APP_BASE_URL/api/auth/logout" -WebSession $postCutoffSession -Headers $csrfHeaders -SkipHttpErrorCheck
+if ($postCutoffLogout.StatusCode -ne 200) { throw "Canary session cleanup failed; stop and roll back." }
+```
+
+Inspect the candidate's bounded logs for build/start success and confirm they contain no credentials, authorization headers, Push endpoints/keys, notes, or reflection text. Record only statuses, approved non-secret identifiers, and asset paths.
+
+### 7. Re-enable Push/AI scheduling only after smoke approval
 
 ```powershell
 $env:SCHEDULER_REENABLE_APPROVED = "<yes-after-health-auth-privacy-and-job-queue-smoke>"
@@ -196,9 +330,23 @@ Assert-ApprovedRailwayTarget
 railway redeploy --service "$env:RAILWAY_SERVICE_ID" --yes
 if ($LASTEXITCODE -ne 0) { throw "Scheduler re-enable redeploy failed." }
 Assert-ApprovedRailwayTarget
-railway status
-if ($LASTEXITCODE -ne 0) { throw "Railway status failed after scheduler re-enable." }
+railway deployment list --service "$env:RAILWAY_SERVICE_ID" --environment "$env:RAILWAY_ENVIRONMENT_ID" --limit 5
+if ($LASTEXITCODE -ne 0) { throw "Scheduler deployment status lookup failed." }
+$env:SCHEDULER_DEPLOYMENT_ID = "<scheduler-reenable-deployment-id-from-plain-list-or-dashboard>"
+Assert-ApprovedRailwayTarget
+$schedulerLogs = railway logs "$env:SCHEDULER_DEPLOYMENT_ID" --deployment --lines 200 --service "$env:RAILWAY_SERVICE_ID" --environment "$env:RAILWAY_ENVIRONMENT_ID"
+if ($LASTEXITCODE -ne 0) { throw "Scheduler startup log lookup failed; disable scheduling and roll back." }
+$schedulerLogText = $schedulerLogs -join "`n"
+$serverStartupSignal = "RBS Homes CRM: http://0.0.0.0:"
+$schedulerStartupSignal = "팔로업 스케줄러 시작"
+$schedulerFailurePattern = "\[Scheduler\] failed to start:|\[Scheduler\] time job processing failed:|Required environment variables are missing:|UnhandledPromiseRejection|uncaught exception|npm ERR!"
+if ($schedulerLogText -notmatch [regex]::Escape($serverStartupSignal) -or $schedulerLogText -notmatch [regex]::Escape($schedulerStartupSignal) -or $schedulerLogText -match $schedulerFailurePattern) { throw "Scheduler startup evidence failed; disable scheduling and roll back." }
+Assert-ApprovedRailwayTarget
+$schedulerHealth = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/health" -SkipHttpErrorCheck
+if ($schedulerHealth.StatusCode -ne 200) { throw "Scheduler re-enable health smoke failed; disable scheduling and roll back." }
 ```
+
+These checks only prove process/scheduler startup and health. Do not invoke a test Push, AI review, email, reminder, or any other external send as part of this smoke gate.
 
 ## Exact rollback procedure (new approval required)
 
@@ -282,12 +430,18 @@ railway logs "$env:ROLLBACK_DEPLOYMENT_ID" --deployment --lines 200 --service "$
 if ($LASTEXITCODE -ne 0) { throw "Post-rollback log lookup failed." }
 Assert-ApprovedRollback
 Assert-ApprovedRailwayTarget
-$rollbackHealthCode = curl.exe --silent --show-error --output NUL --write-out "%{http_code}" "$env:APP_BASE_URL/health"
-if ($LASTEXITCODE -ne 0 -or $rollbackHealthCode -ne "200") { throw "Post-rollback health smoke failed." }
+$rollbackHealth = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/health" -SkipHttpErrorCheck
+if ($rollbackHealth.StatusCode -ne 200) { throw "Post-rollback health smoke failed." }
+$rollbackSession = [Microsoft.PowerShell.Commands.WebRequestSession]::new()
+$rollbackLoginBody = @{ email = $env:CRM_CANARY_EMAIL; password = $env:CRM_CANARY_PASSWORD } | ConvertTo-Json -Compress
 Assert-ApprovedRollback
 Assert-ApprovedRailwayTarget
-$rollbackStaleSessionCode = curl.exe --silent --show-error --output NUL --write-out "%{http_code}" --cookie "$env:PRE_ROLLOUT_COOKIE_JAR" "$env:APP_BASE_URL/api/auth/me"
-if ($LASTEXITCODE -ne 0 -or $rollbackStaleSessionCode -ne "401") { throw "Post-rollback forced-login smoke failed." }
+$rollbackLogin = Invoke-WebRequest -Method Post -Uri "$env:APP_BASE_URL/api/auth/login" -WebSession $rollbackSession -ContentType "application/json" -Body $rollbackLoginBody -SkipHttpErrorCheck
+if ($rollbackLogin.StatusCode -ne 200) { throw "Post-rollback canary login failed." }
+Assert-ApprovedRollback
+Assert-ApprovedRailwayTarget
+$rollbackMe = Invoke-WebRequest -Method Get -Uri "$env:APP_BASE_URL/api/auth/me" -WebSession $rollbackSession -SkipHttpErrorCheck
+if ($rollbackMe.StatusCode -ne 200) { throw "Post-rollback canary authentication failed." }
 ```
 
 Repeat the approved CSRF/CORS, private denial, CRM regression, data reconciliation, queued-job, direct-refresh, and asset checks. Keep writes and `SCHEDULER_ENABLED=false` until the incident owner separately approves reopening them. Record approvals, target IDs, SHAs, deployment IDs, non-secret fingerprints, backup/PITR identifiers, exit codes, smoke results, and unresolved jobs.
