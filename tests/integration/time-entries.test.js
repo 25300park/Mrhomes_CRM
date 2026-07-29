@@ -253,7 +253,7 @@ test('owner records read returns date-scoped entries with immutable revision met
     personal_category_id: null, entry_type: 'MANUAL', started_at: '2026-07-29T01:00:00.000Z', ended_at: '2026-07-29T02:00:00.000Z',
     duration_seconds: 3600, notes: 'owner note', linked_entity_type: 'CONTACT', linked_entity_id: CONTACT, linked_entity_label: 'Archived contact'
   }
-  const revision = { id: '70000000-0000-4000-8000-000000000001', entry_id: ENTRY, user_id: ACTOR.id, changed_by: ACTOR.id, changed_at: '2026-07-29T03:00:00.000Z' }
+  const revision = { id: '70000000-0000-4000-8000-000000000001', entry_id: ENTRY, user_id: ACTOR.id, changed_by: ACTOR.id, changed_at: '2026-07-29T03:00:00.000Z', before_value: { notes: 'old' }, after_value: { notes: 'new' } }
   const supabase = {
     from(table) {
       const query = {
@@ -275,4 +275,5 @@ test('owner records read returns date-scoped entries with immutable revision met
   expect(response.body).toEqual({ entries: [{ ...record, revisions: [revision] }] })
   expect(calls).toContainEqual({ table: 'time_entries', operation: 'eq', column: 'user_id', value: ACTOR.id })
   expect(calls).toContainEqual({ table: 'time_entry_revisions', operation: 'eq', column: 'user_id', value: ACTOR.id })
+  expect(calls).toContainEqual({ table: 'time_entry_revisions', operation: 'select', columns: 'id, entry_id, user_id, changed_by, changed_at, before_value, after_value' })
 })

@@ -10,7 +10,7 @@ type Api = {
   delete: (path: string) => Promise<unknown>
 }
 type Category = { id: string, name: string }
-type Revision = { id: string, changed_at: string, changed_by: string }
+type Revision = { id: string, changed_at: string, changed_by: string, before_value: Record<string, unknown>, after_value: Record<string, unknown> }
 type Entry = {
   id: string
   standard_category_id: string
@@ -23,12 +23,24 @@ type Entry = {
   revisions: Revision[]
 }
 
-type RecordsPageProps = { api?: Api, online?: boolean, requestId?: () => string }
+type RecordsPageProps = { api?: Api, online?: boolean, requestId?: () => string, now?: () => Date }
 
-function dateForApi(): string { return new Date().toISOString().slice(0, 10) }
+export function businessDateInSeoul(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(date)
+  const value = (type: 'year' | 'month' | 'day') => parts.find(part => part.type === type)?.value
+  return `${value('year')}-${value('month')}-${value('day')}`
+}
+
 function newRequestId(): string { return window.crypto.randomUUID?.() ?? `manual-${Date.now()}-${Math.random().toString(36).slice(2)}` }
 
-export function RecordsPage({ api = apiClient, online = window.navigator.onLine, requestId = newRequestId }: RecordsPageProps) {
+function changedFields(revision: Revision): string[] {
+  const keys = new Set([...Object.keys(revision.before_value), ...Object.keys(revision.after_value)])
+  return [...keys].filter(key => JSON.stringify(revision.before_value[key]) !== JSON.stringify(revision.after_value[key]))
+}
+
+export function RecordsPage({ api = apiClient, online = window.navigator.onLine, requestId = newRequestId, now = () => new Date() }: RecordsPageProps) {
   const [entries, setEntries] = useState<Entry[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [manualOpen, setManualOpen] = useState(false)
@@ -43,7 +55,7 @@ export function RecordsPage({ api = apiClient, online = window.navigator.onLine,
   useEffect(() => {
     let cancelled = false
     void Promise.all([
-      api.get(`/entries?businessDate=${dateForApi()}`),
+      api.get(`/entries?businessDate=${businessDateInSeoul(now())}`),
       api.get('/categories')
     ]).then(([records, categoryData]) => {
       if (cancelled) return
@@ -108,6 +120,11 @@ export function RecordsPage({ api = apiClient, online = window.navigator.onLine,
       <p>{entry.notes || 'No notes'}</p>
       {entry.linked_entity_label && <><p>{entry.linked_entity_label}</p>{entry.linked_entity_id && <p>CRM link unavailable; showing stored snapshot.</p>}</>}
       <p>{entry.revisions.length} {entry.revisions.length === 1 ? 'revision' : 'revisions'}</p>
+      {entry.revisions.length > 0 && <ol aria-label="Revisions">{entry.revisions.map(revision => <li key={revision.id}>
+        <time dateTime={revision.changed_at}>{new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(revision.changed_at))}</time>
+        <p>Changed by you</p>
+        <p>Changed fields: {changedFields(revision).join(', ') || 'No field summary available'}</p>
+      </li>)}</ol>}
       <button onClick={() => { setEditing(entry); setRevisionNotes(entry.notes || ''); setRevisionConfirming(false) }}>Edit record</button>
     </article>)}</div>
   </section>

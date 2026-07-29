@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { RecordsPage } from '../src/features/records/records-page'
+import { businessDateInSeoul } from '../src/features/records/records-page'
 
 afterEach(cleanup)
 
@@ -8,17 +9,35 @@ const ENTRY = {
   id: '50000000-0000-4000-8000-000000000001', standard_category_id: '20000000-0000-4000-8000-000000000001',
   started_at: '2026-07-29T01:00:00.000Z', ended_at: '2026-07-29T02:00:00.000Z', notes: 'Follow up',
   linked_entity_type: 'CONTACT', linked_entity_id: '60000000-0000-4000-8000-000000000001', linked_entity_label: 'Archived contact',
-  revisions: [{ id: 'revision-1', changed_at: '2026-07-29T03:00:00.000Z', changed_by: '10000000-0000-4000-8000-000000000001' }]
+  revisions: [
+    { id: 'revision-1', changed_at: '2026-07-29T03:00:00.000Z', changed_by: '10000000-0000-4000-8000-000000000001', before_value: { notes: 'First note' }, after_value: { notes: 'Follow up' } },
+    { id: 'revision-2', changed_at: '2026-07-29T04:00:00.000Z', changed_by: '10000000-0000-4000-8000-000000000001', before_value: { linkedEntityLabel: 'Old contact' }, after_value: { linkedEntityLabel: 'Archived contact' } }
+  ]
 }
 
 describe('records editing', () => {
+  test('derives the records business date in Asia/Seoul across the UTC boundary', () => {
+    expect(businessDateInSeoul(new Date('2026-07-29T14:59:59.000Z'))).toBe('2026-07-29')
+    expect(businessDateInSeoul(new Date('2026-07-29T15:00:00.000Z'))).toBe('2026-07-30')
+  })
+
+  test('loads records using the current Asia/Seoul business date', async () => {
+    const api = { get: vi.fn(async (path: string) => path === '/categories' ? { standard: [] } : { entries: [] }), post: vi.fn(), put: vi.fn(), patch: vi.fn(), delete: vi.fn() }
+    render(<RecordsPage api={api} online now={() => new Date('2026-07-29T15:00:00.000Z')} />)
+
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/entries?businessDate=2026-07-30'))
+  })
+
   test('shows owner records, revision metadata, and the stored CRM snapshot fallback', async () => {
     const api = { get: vi.fn(async (path: string) => path === '/categories' ? { standard: [{ id: ENTRY.standard_category_id, name: 'Client work' }] } : { entries: [ENTRY] }), post: vi.fn(), put: vi.fn(), patch: vi.fn(), delete: vi.fn() }
     render(<RecordsPage api={api} online />)
 
     expect(await screen.findByText('Archived contact')).toBeInTheDocument()
-    expect(screen.getByText('1 revision')).toBeInTheDocument()
+    expect(screen.getByText('2 revisions')).toBeInTheDocument()
     expect(screen.getByText('CRM link unavailable; showing stored snapshot.')).toBeInTheDocument()
+    expect(screen.getByText('Changed fields: notes')).toBeInTheDocument()
+    expect(screen.getByText('Changed fields: linkedEntityLabel')).toBeInTheDocument()
+    expect(screen.getAllByText('Changed by you')).toHaveLength(2)
   })
 
   test('requires an explicit confirmation before a manual entry mutation', async () => {

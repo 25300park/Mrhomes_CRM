@@ -186,7 +186,7 @@ async function listTimeEntries({ supabase, actor, businessDate }) {
   const records = entries || []
   if (!records.length) return { entries: [] }
   const { data: revisions, error: revisionError } = await supabase.from('time_entry_revisions')
-    .select('id, entry_id, user_id, changed_by, changed_at')
+    .select('id, entry_id, user_id, changed_by, changed_at, before_value, after_value')
     .eq('user_id', actor.id)
     .in('entry_id', records.map(entry => entry.id))
     .order('changed_at', { ascending: false })
