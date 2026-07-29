@@ -8,7 +8,7 @@ const reflection = { id: '20000000-0000-4000-8000-000000000001', user_id: AGENT.
 
 function bearer(user) { return `Bearer ${jwt.sign({ id: user.id }, process.env.JWT_SECRET)}` }
 
-function reflectionSupabase({ jobInsertError = null } = {}) {
+function reflectionSupabase({ jobInsertError = null, existingReflection = null, jobStatus = null } = {}) {
   const events = []
   const persistedReflections = []
   return {
@@ -22,8 +22,9 @@ function reflectionSupabase({ jobInsertError = null } = {}) {
           eq(key, value) { filters[key] = value; return query },
           single() {
             if (table === 'users') return Promise.resolve({ data: filters.id === ADMIN.id ? ADMIN : AGENT, error: null })
-            if (table === 'time_reflections') return Promise.resolve({ data: null, error: { code: 'PGRST116' } })
+            if (table === 'time_reflections') return Promise.resolve({ data: existingReflection, error: existingReflection ? null : { code: 'PGRST116' } })
             if (table === 'time_ai_reviews') return Promise.resolve({ data: null, error: { code: 'PGRST116' } })
+            if (table === 'time_jobs') return Promise.resolve({ data: jobStatus ? { status: jobStatus } : null, error: jobStatus ? null : { code: 'PGRST116' } })
             return Promise.resolve({ data: null, error: { code: 'PGRST116' } })
           },
           insert(value) {
@@ -74,4 +75,24 @@ test('does not let administrators read another users reflection through the priv
 
   expect(response.status).toBe(200)
   expect(response.body.reflection).toBeNull()
+})
+
+test('reports only the current reflection AI state for the owner', async () => {
+  const fixture = reflectionSupabase()
+  const response = await request(createTestApp({ supabase: fixture.supabase }))
+    .get('/api/time-management/reflections/today/status')
+    .set('Authorization', bearer(AGENT))
+
+  expect(response.status).toBe(200)
+  expect(response.body).toEqual({ status: 'NOT_STARTED' })
+})
+
+test('reports a failed current AI job without exposing reflection or job details', async () => {
+  const fixture = reflectionSupabase({ existingReflection: reflection, jobStatus: 'FAILED' })
+  const response = await request(createTestApp({ supabase: fixture.supabase }))
+    .get('/api/time-management/reflections/today/status')
+    .set('Authorization', bearer(AGENT))
+
+  expect(response.status).toBe(200)
+  expect(response.body).toEqual({ status: 'FAILED' })
 })

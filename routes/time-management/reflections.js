@@ -26,6 +26,13 @@ router.get('/today', async (req, res, next) => {
   } catch (error) { next(error) }
 })
 
+router.get('/today/status', async (req, res, next) => {
+  try {
+    emptyQuery.parse(req.query)
+    res.json(await reflections.getReflectionAiStatus({ supabase: req.supabase, actor: req.user, businessDate: businessDateAt(new Date()) }))
+  } catch (error) { next(error) }
+})
+
 router.get('/:businessDate', async (req, res, next) => {
   try {
     emptyQuery.parse(req.query)

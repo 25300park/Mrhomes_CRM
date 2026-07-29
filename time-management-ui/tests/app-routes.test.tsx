@@ -29,9 +29,9 @@ describe('time-management routes', () => {
     expect(screen.queryByRole('heading', { name: 'Admin' })).not.toBeInTheDocument()
   })
 
-  test('allows an admin to open the admin route directly', () => {
+  test('allows an admin to open the privacy-safe team summary directly', () => {
     renderAdminRoute('admin')
 
-    expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Team summary' })).toBeInTheDocument()
   })
 })

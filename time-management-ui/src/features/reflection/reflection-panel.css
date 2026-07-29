@@ -1,0 +1,2 @@
+.reflection-panel textarea { font: inherit; min-height: 12rem; padding: .7rem; resize: vertical; width: 100%; }
+.reflection-panel button { justify-self: start; }

@@ -3,6 +3,9 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { apiClient } from './api/client'
 import { TodayPage } from './features/today/today-page'
 import { RecordsPage } from './features/records/records-page'
+import { PersonalReviewPage } from './features/review/personal-review-page'
+import { AdminSummaryPage } from './features/admin/admin-summary-page'
+import { PushSettingsPage } from './features/settings/push-settings-page'
 import { AppShell } from './shared/app-shell'
 
 type Role = 'admin' | 'agent'
@@ -22,9 +25,9 @@ export function AppView({ role }: { role: Role | null }) {
       <Routes>
         <Route index element={<TodayPage />} />
         <Route path="records" element={<RecordsPage />} />
-        <Route path="review" element={<Placeholder title="Review" />} />
-        <Route path="settings" element={<Placeholder title="Settings" />} />
-        <Route path="admin" element={role === 'admin' ? <Placeholder title="Admin" /> : <Navigate replace to="/" />} />
+        <Route path="review" element={<PersonalReviewPage />} />
+        <Route path="settings" element={<PushSettingsPage />} />
+        <Route path="admin" element={role === 'admin' ? <AdminSummaryPage /> : <Navigate replace to="/" />} />
         <Route path="*" element={<Placeholder title="Today" />} />
       </Routes>
     </AppShell>

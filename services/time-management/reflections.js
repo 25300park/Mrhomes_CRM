@@ -55,4 +55,19 @@ async function getReflection({ supabase, actor, businessDate }) {
   return { reflection, review: reviewResult.data || null }
 }
 
-module.exports = { findReflection, saveReflection, getReflection }
+async function getReflectionAiStatus({ supabase, actor, businessDate }) {
+  requireActiveTimeActor(actor)
+  const reflection = await findReflection({ supabase, userId: actor.id, businessDate })
+  if (!reflection) return { status: 'NOT_STARTED' }
+  const reviewResult = await supabase.from('time_ai_reviews')
+    .select('id').eq('reflection_id', reflection.id).eq('reflection_version', reflection.version).single()
+  if (reviewResult.error && reviewResult.error.code !== 'PGRST116') throw databaseError()
+  if (reviewResult.data) return { status: 'COMPLETED' }
+  const jobResult = await supabase.from('time_jobs').select('status')
+    .eq('user_id', actor.id).eq('job_type', 'AI_REVIEW').eq('dedupe_key', `${reflection.id}:${reflection.version}`).single()
+  if (jobResult.error?.code === 'PGRST116') return { status: 'PROCESSING' }
+  if (jobResult.error) throw databaseError()
+  return { status: jobResult.data?.status === 'FAILED' ? 'FAILED' : 'PROCESSING' }
+}
+
+module.exports = { findReflection, saveReflection, getReflection, getReflectionAiStatus }

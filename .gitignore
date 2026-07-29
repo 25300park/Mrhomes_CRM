@@ -11,6 +11,7 @@ time-management-ui/dist/
 # local implementation reports
 .superpowers/sdd/**/task-*-report.md
 task-10-report.md
+task-11-report.md
 
 # logs
 *.log
