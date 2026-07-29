@@ -269,18 +269,30 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
   })
 
   test('uses one active actor/action policy for CRM search and exact resolution', () => {
-    expect(runSql(`SELECT count(*) FROM time_resolve_crm_link(
-      '${USER_A}', 'agent', 'CONTACT', '${CONTACT_A}');`)).toBe('1')
-    expect(runSql(`SELECT count(*) FROM time_resolve_crm_link(
-      '${USER_A}', 'admin', 'CONTACT', '${CONTACT_A}');`)).toBe('0')
-    expect(runSql(`SELECT count(*) FROM time_resolve_crm_link(
-      '${USER_A}', 'agent', 'CONTACT', 'ffffffff-ffff-4fff-8fff-ffffffffffff');`)).toBe('0')
-    runSql(`UPDATE users SET is_active = false WHERE id = '${USER_A}';`)
-    expect(runSql(`SELECT count(*) FROM time_resolve_crm_link(
-      '${USER_A}', 'agent', 'CONTACT', '${CONTACT_A}');`)).toBe('0')
-    expect(runSql(`SELECT count(*) FROM time_search_crm_links(
-      '${USER_A}', 'agent', '', ARRAY['CONTACT']::text[], 20);`)).toBe('0')
-    runSql(`UPDATE users SET is_active = true WHERE id = '${USER_A}';`)
+    const policyResults = runSql(`
+      BEGIN;
+      SELECT 'active_actor_resolves|' || count(*) FROM time_resolve_crm_link(
+        '${USER_A}', 'agent', 'CONTACT', '${CONTACT_A}');
+      SELECT 'forged_role_is_rejected|' || count(*) FROM time_resolve_crm_link(
+        '${USER_A}', 'admin', 'CONTACT', '${CONTACT_A}');
+      SELECT 'missing_link_is_rejected|' || count(*) FROM time_resolve_crm_link(
+        '${USER_A}', 'agent', 'CONTACT', 'ffffffff-ffff-4fff-8fff-ffffffffffff');
+      UPDATE users SET is_active = false WHERE id = '${USER_A}';
+      SELECT 'inactive_actor_cannot_resolve|' || count(*) FROM time_resolve_crm_link(
+        '${USER_A}', 'agent', 'CONTACT', '${CONTACT_A}');
+      SELECT 'inactive_actor_cannot_search|' || count(*) FROM time_search_crm_links(
+        '${USER_A}', 'agent', '', ARRAY['CONTACT']::text[], 20);
+      UPDATE users SET is_active = true WHERE id = '${USER_A}';
+      COMMIT;
+    `).split(/\r?\n/)
+
+    expect(policyResults).toEqual([
+      'active_actor_resolves|1',
+      'forged_role_is_rejected|0',
+      'missing_link_is_rejected|0',
+      'inactive_actor_cannot_resolve|0',
+      'inactive_actor_cannot_search|0'
+    ])
   })
 
   test('enforces plan/personal ownership and NULL-safe allocation uniqueness', () => {

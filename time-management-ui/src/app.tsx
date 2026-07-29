@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { apiClient } from './api/client'
 import { TodayPage } from './features/today/today-page'
 import { RecordsPage } from './features/records/records-page'
