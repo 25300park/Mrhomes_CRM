@@ -1,21 +1,3 @@
-# 환경변수 (절대 업로드 금지)
-.env
-.env.local
-.env.production
-
-# 의존성
+task-10-report.md
 node_modules/
 time-management-ui/node_modules/
-.superpowers/sdd/**/task-*-report.md
-
-# 로그
-*.log
-npm-debug.log*
-
-# OS
-.DS_Store
-Thumbs.db
-
-# 에디터
-.vscode/
-.idea/

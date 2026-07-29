@@ -1,0 +1,6 @@
+.records-page { display: grid; gap: 1rem; }
+.records-list { display: grid; gap: .75rem; }
+.record-card { background: #fff; border: 1px solid #eae6df; border-radius: .75rem; padding: 1rem; }
+.record-card h2 { margin-top: 0; }
+.record-card label { display: grid; gap: .35rem; font-weight: 600; }
+.record-card select, .record-card button, .records-page > button { font: inherit; min-height: 2.75rem; padding: .55rem .7rem; }

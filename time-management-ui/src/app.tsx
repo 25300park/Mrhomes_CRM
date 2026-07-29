@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { apiClient } from './api/client'
+import { TodayPage } from './features/today/today-page'
+import { RecordsPage } from './features/records/records-page'
 import { AppShell } from './shared/app-shell'
 
 type Role = 'admin' | 'agent'
@@ -18,8 +20,8 @@ export function AppView({ role }: { role: Role | null }) {
   return (
     <AppShell role={role}>
       <Routes>
-        <Route index element={<Placeholder title="Today" />} />
-        <Route path="records" element={<Placeholder title="Records" />} />
+        <Route index element={<TodayPage />} />
+        <Route path="records" element={<RecordsPage />} />
         <Route path="review" element={<Placeholder title="Review" />} />
         <Route path="settings" element={<Placeholder title="Settings" />} />
         <Route path="admin" element={role === 'admin' ? <Placeholder title="Admin" /> : <Navigate replace to="/" />} />

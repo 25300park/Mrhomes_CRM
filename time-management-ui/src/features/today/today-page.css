@@ -1,0 +1,12 @@
+.workflow-page { display: grid; gap: 1rem; }
+.workflow-card { background: #fff; border: 1px solid #eae6df; border-radius: .75rem; display: grid; gap: .8rem; padding: 1rem; }
+.workflow-card h2 { margin: 0; }
+.workflow-card label { display: grid; font-weight: 600; gap: .35rem; }
+.workflow-card input, .workflow-card select, .workflow-card button { font: inherit; min-height: 2.75rem; padding: .55rem .7rem; }
+.timer-actions { display: flex; gap: .75rem; }
+.primary-timer, .stop-timer { border: 0; border-radius: .6rem; color: white; font-weight: 700; min-height: 3.5rem !important; padding: .8rem 1.15rem !important; }
+.primary-timer { background: #12644f; flex: 1; }
+.stop-timer { background: #8d3434; }
+.offline-notice { background: #fff3cd; border-radius: .5rem; padding: .75rem; }
+.running-timer { font-weight: 700; }
+@media (min-width: 768px) { .workflow-page { grid-template-columns: repeat(2, minmax(0, 1fr)); } .workflow-page > h1, .workflow-page > p { grid-column: 1 / -1; } }

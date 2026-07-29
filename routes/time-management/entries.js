@@ -15,9 +15,19 @@ const revisionSchema = z.object({ requestId, standardCategoryId: uuid.optional()
   .refine(value => Object.keys(value).some(key => key !== 'requestId'), 'At least one revision field is required')
   .refine(value => !value.startedAt || !value.endedAt || Date.parse(value.endedAt) > Date.parse(value.startedAt), { path: ['endedAt'], message: 'endedAt must be after startedAt' })
 const reconcileSchema = z.object({ displayedEntryId: uuid.nullish(), displayedStartedAt: timestamp.nullish() }).strict()
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
+  const [year, month, day] = value.split('-').map(Number)
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day
+}, 'Invalid calendar date')
+const listSchema = z.object({ businessDate: dateSchema }).strict()
 
 function route(handler) { return async (req, res, next) => { try { await handler(req, res) } catch (error) { next(error) } } }
 
+router.get('/', route(async (req, res) => {
+  const { businessDate } = listSchema.parse(req.query)
+  res.json(await entries.listTimeEntries({ supabase: req.supabase, actor: req.user, businessDate }))
+}))
 router.post('/timer/start', route(async (req, res) => {
   emptyQuery.parse(req.query)
   const result = await entries.startTimer({ supabase: req.supabase, actor: req.user, input: timerSchema.parse(req.body) })

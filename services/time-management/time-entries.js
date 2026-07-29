@@ -175,4 +175,29 @@ async function reconcileActiveTimer({ supabase, actor, clientState }) {
   return { matches, authoritativeEntry: data || null }
 }
 
-module.exports = { startTimer, switchTimer, stopTimer, createManualEntry, reviseTimeEntry, reconcileActiveTimer, mapDatabaseError }
+async function listTimeEntries({ supabase, actor, businessDate }) {
+  requireActiveTimeActor(actor)
+  const { data: entries, error: entryError } = await supabase.from('time_entries')
+    .select('id, user_id, business_date, daily_plan_id, standard_category_id, personal_category_id, entry_type, started_at, ended_at, duration_seconds, notes, linked_entity_type, linked_entity_id, linked_entity_label')
+    .eq('user_id', actor.id)
+    .eq('business_date', businessDate)
+    .order('started_at', { ascending: false })
+  if (entryError) throw mapDatabaseError(entryError)
+  const records = entries || []
+  if (!records.length) return { entries: [] }
+  const { data: revisions, error: revisionError } = await supabase.from('time_entry_revisions')
+    .select('id, entry_id, user_id, changed_by, changed_at')
+    .eq('user_id', actor.id)
+    .in('entry_id', records.map(entry => entry.id))
+    .order('changed_at', { ascending: false })
+  if (revisionError) throw mapDatabaseError(revisionError)
+  const byEntry = new Map()
+  for (const revision of revisions || []) {
+    const existing = byEntry.get(revision.entry_id) || []
+    existing.push(revision)
+    byEntry.set(revision.entry_id, existing)
+  }
+  return { entries: records.map(entry => ({ ...entry, revisions: byEntry.get(entry.id) || [] })) }
+}
+
+module.exports = { startTimer, switchTimer, stopTimer, createManualEntry, reviseTimeEntry, reconcileActiveTimer, listTimeEntries, mapDatabaseError }

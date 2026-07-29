@@ -245,3 +245,34 @@ test('unknown nested methods and unexpected failures never leak to the CRM SPA o
   expect(failed.body).toEqual({ error: { code: 'INTERNAL_ERROR', message: expect.any(String), requestId: 'unexpected-500' } })
   expect(JSON.stringify(failed.body)).not.toContain('private details')
 })
+
+test('owner records read returns date-scoped entries with immutable revision metadata', async () => {
+  const calls = []
+  const record = {
+    id: ENTRY, user_id: ACTOR.id, business_date: '2026-07-29', standard_category_id: STANDARD,
+    personal_category_id: null, entry_type: 'MANUAL', started_at: '2026-07-29T01:00:00.000Z', ended_at: '2026-07-29T02:00:00.000Z',
+    duration_seconds: 3600, notes: 'owner note', linked_entity_type: 'CONTACT', linked_entity_id: CONTACT, linked_entity_label: 'Archived contact'
+  }
+  const revision = { id: '70000000-0000-4000-8000-000000000001', entry_id: ENTRY, user_id: ACTOR.id, changed_by: ACTOR.id, changed_at: '2026-07-29T03:00:00.000Z' }
+  const supabase = {
+    from(table) {
+      const query = {
+        select(columns) { calls.push({ table, operation: 'select', columns }); return query },
+        eq(column, value) { calls.push({ table, operation: 'eq', column, value }); return query },
+        in(column, values) { calls.push({ table, operation: 'in', column, values }); return query },
+        order() { return Promise.resolve({ data: table === 'time_entries' ? [record] : [revision], error: null }) },
+        single() { return Promise.resolve({ data: ACTOR, error: null }) }
+      }
+      return query
+    }
+  }
+
+  const response = await request(createTestApp({ supabase }))
+    .get('/api/time-management/entries?businessDate=2026-07-29')
+    .set('Authorization', bearer())
+
+  expect(response.status).toBe(200)
+  expect(response.body).toEqual({ entries: [{ ...record, revisions: [revision] }] })
+  expect(calls).toContainEqual({ table: 'time_entries', operation: 'eq', column: 'user_id', value: ACTOR.id })
+  expect(calls).toContainEqual({ table: 'time_entry_revisions', operation: 'eq', column: 'user_id', value: ACTOR.id })
+})
