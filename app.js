@@ -12,9 +12,10 @@ const pmsCare = require('./routes/pms-care')
 const pmsAccounts = require('./routes/pms-accounts')
 const pmsDocuments = require('./routes/pms-documents')
 
-function createApp({ supabase, schedulerEnabled = true, allowedOrigins } = {}) {
+function createApp({ supabase, schedulerEnabled = true, allowedOrigins, timePushSecurity } = {}) {
   const app = express()
   app.locals.schedulerEnabled = schedulerEnabled
+  app.locals.timePushSecurity = timePushSecurity || {}
 
   const origins = new Set(parseOrigins(allowedOrigins ?? process.env.ALLOWED_ORIGINS ?? process.env.FRONTEND_URL))
   app.use(cors({

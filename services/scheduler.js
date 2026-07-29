@@ -5,24 +5,46 @@ const { processReadyTimeJobs } = require('./time-management/job-queue')
 const { createOpenAiReviewProvider, retryAiReview } = require('./time-management/ai-review')
 const { scheduleReflectionReminders, sendReflectionReminder } = require('./time-management/push')
 
-function startScheduler(supabase, { pushSender } = {}) {
+function createTimeJobPoll({
+  supabase,
+  workerId,
+  provider,
+  pushSender,
+  pushSecurity,
+  scheduleReminders = scheduleReflectionReminders,
+  processJobs = processReadyTimeJobs,
+  retryReview = retryAiReview,
+  sendReminder = sendReflectionReminder,
+  logger = console
+}) {
+  return async () => {
+    try {
+      await scheduleReminders({ supabase })
+    } catch (error) {
+      logger.error('[Scheduler] reflection reminder scheduling failed:', error.message)
+    }
+    await processJobs({
+      supabase,
+      workerId,
+      handlers: {
+        AI_REVIEW: (job) => retryReview({ supabase, job, provider }),
+        REMINDER_PUSH: (job) => sendReminder({ supabase, job, ...(pushSender ? { sender: pushSender } : {}), ...pushSecurity })
+      }
+    })
+  }
+}
+
+function startScheduler(supabase, { pushSender, pushSecurity } = {}) {
   const workerId = process.env.TIME_JOB_WORKER_ID || `${os.hostname()}:${process.pid}`
   const intervalMs = Math.max(15_000, Number(process.env.TIME_JOB_POLL_MS) || 60_000)
   const provider = createOpenAiReviewProvider({ apiKey: process.env.OPENAI_API_KEY })
   let processingJobs = false
+  const pollTimeJobs = createTimeJobPoll({ supabase, workerId, provider, pushSender, pushSecurity })
   const processJobs = async () => {
     if (processingJobs) return
     processingJobs = true
     try {
-      await scheduleReflectionReminders({ supabase })
-      await processReadyTimeJobs({
-        supabase,
-        workerId,
-        handlers: {
-          AI_REVIEW: (job) => retryAiReview({ supabase, job, provider }),
-          REMINDER_PUSH: (job) => sendReflectionReminder({ supabase, job, ...(pushSender ? { sender: pushSender } : {}) })
-        }
-      })
+      await pollTimeJobs()
     } catch (error) {
       console.error('[Scheduler] time job processing failed:', error.message)
     } finally {
@@ -112,4 +134,4 @@ function startScheduler(supabase, { pushSender } = {}) {
   console.log('📅 팔로업 스케줄러 시작 (매일 오전 8:00 필리핀 시간)')
 }
 
-module.exports = { startScheduler }
+module.exports = { createTimeJobPoll, startScheduler }

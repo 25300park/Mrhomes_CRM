@@ -4,9 +4,10 @@ const { createSupabaseFake } = require('./supabase-fake')
 function createTestApp({
   supabase = createSupabaseFake(),
   schedulerEnabled = false,
-  allowedOrigins
+  allowedOrigins,
+  timePushSecurity
 } = {}) {
-  return createApp({ supabase, schedulerEnabled, allowedOrigins })
+  return createApp({ supabase, schedulerEnabled, allowedOrigins, timePushSecurity })
 }
 
 module.exports = { createTestApp }

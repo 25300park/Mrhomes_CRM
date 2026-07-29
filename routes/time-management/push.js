@@ -10,7 +10,12 @@ const endpointSchema = z.object({ endpoint: z.string().url().refine((value) => n
 
 router.post('/subscriptions', async (req, res, next) => {
   try {
-    const result = await push.savePushSubscription({ supabase: req.supabase, actor: req.user, subscription: subscriptionSchema.parse(req.body) })
+    const result = await push.savePushSubscription({
+      supabase: req.supabase,
+      actor: req.user,
+      subscription: subscriptionSchema.parse(req.body),
+      ...req.app.locals.timePushSecurity
+    })
     res.status(201).json(result)
   } catch (error) { next(error) }
 })
