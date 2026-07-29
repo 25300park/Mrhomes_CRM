@@ -37,34 +37,48 @@ async function generateAiReview({ provider, reflectionText, planVsActual }) {
   }
 }
 
-function createOpenAiReviewProvider({ apiKey, fetchImpl = globalThis.fetch, model = process.env.TIME_AI_REVIEW_MODEL || 'gpt-4.1-mini' } = {}) {
+function createOpenAiReviewProvider({ apiKey, fetchImpl = globalThis.fetch, model = process.env.TIME_AI_REVIEW_MODEL || 'gpt-4.1-mini', timeoutMs = 45_000 } = {}) {
   return {
     async review({ reflectionText, planVsActual }) {
       if (!apiKey || typeof fetchImpl !== 'function') throw safeProviderError()
-      const response = await fetchImpl('https://api.openai.com/v1/responses', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model,
-          store: false,
-          input: [{ role: 'user', content: `Reflection:\n${reflectionText}\n\nPlan vs actual:\n${JSON.stringify(planVsActual)}` }],
-          text: { format: { type: 'json_schema', name: 'daily_review', strict: true, schema: {
-            type: 'object', additionalProperties: false,
-            required: ['keywords', 'summary', 'wins', 'blockers', 'nextActions'],
-            properties: {
-              keywords: { type: 'array', minItems: 1, maxItems: 7, items: { type: 'string', minLength: 1 } },
-              summary: { type: 'string', minLength: 1, maxLength: 500 },
-              wins: { type: 'array', maxItems: 3, items: { type: 'string' } },
-              blockers: { type: 'array', maxItems: 3, items: { type: 'string' } },
-              nextActions: { type: 'array', minItems: 1, maxItems: 3, items: { type: 'string' } }
-            }
-          } } }
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), timeoutMs)
+      try {
+        const response = await fetchImpl('https://api.openai.com/v1/responses', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            model,
+            store: false,
+            input: [{ role: 'user', content: `Reflection:\n${reflectionText}\n\nPlan vs actual:\n${JSON.stringify(planVsActual)}` }],
+            text: { format: { type: 'json_schema', name: 'daily_review', strict: true, schema: {
+              type: 'object', additionalProperties: false,
+              required: ['keywords', 'summary', 'wins', 'blockers', 'nextActions'],
+              properties: {
+                keywords: { type: 'array', minItems: 1, maxItems: 7, items: { type: 'string', minLength: 1 } },
+                summary: { type: 'string', minLength: 1, maxLength: 500 },
+                wins: { type: 'array', maxItems: 3, items: { type: 'string' } },
+                blockers: { type: 'array', maxItems: 3, items: { type: 'string' } },
+                nextActions: { type: 'array', minItems: 1, maxItems: 3, items: { type: 'string' } }
+              }
+            } } }
+          })
         })
-      })
-      if (!response.ok) throw safeProviderError()
-      const body = await response.json()
-      if (typeof body.output_text !== 'string') throw safeProviderError()
-      try { return JSON.parse(body.output_text) } catch (_error) { throw safeProviderError() }
+        if (!response.ok) throw safeProviderError()
+        const body = await response.json()
+        if (body.status && body.status !== 'completed') throw safeProviderError()
+        const outputText = (body.output || [])
+          .filter(item => item?.type === 'message')
+          .flatMap(item => item.content || [])
+          .find(item => item?.type === 'output_text' && typeof item.text === 'string')?.text
+        if (!outputText) throw safeProviderError()
+        try { return JSON.parse(outputText) } catch (_error) { throw safeProviderError() }
+      } catch (_error) {
+        throw safeProviderError()
+      } finally {
+        clearTimeout(timer)
+      }
     }
   }
 }
@@ -92,11 +106,18 @@ async function getPlanVsActual({ supabase, userId, businessDate }) {
 
 async function retryAiReview({ supabase, job, provider }) {
   const payload = job.payload || {}
+  if (!payload.reflectionId || !Number.isInteger(payload.reflectionVersion)) throw safeProviderError()
+  const existingReview = await supabase.from('time_ai_reviews').select('id')
+    .eq('reflection_id', payload.reflectionId).eq('reflection_version', payload.reflectionVersion).eq('user_id', job.user_id).single()
+  if (existingReview.error && existingReview.error.code !== 'PGRST116') throw safeProviderError()
+  if (existingReview.data) return { reviewId: existingReview.data.id, deduplicated: true }
   const reflectionResult = await supabase.from('time_reflections')
     .select('id, user_id, business_date, reflection_text, version')
-    .eq('id', payload.reflectionId).eq('user_id', job.user_id).eq('version', payload.reflectionVersion).single()
+    .eq('id', payload.reflectionId).eq('user_id', job.user_id).single()
   if (reflectionResult.error || !reflectionResult.data) throw safeProviderError()
   const reflection = reflectionResult.data
+  if (reflection.version > payload.reflectionVersion) return { skipped: true, reason: 'STALE_REFLECTION_VERSION' }
+  if (reflection.version !== payload.reflectionVersion) throw safeProviderError()
   const review = await generateAiReview({
     provider,
     reflectionText: reflection.reflection_text,

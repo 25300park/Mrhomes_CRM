@@ -1,9 +1,3 @@
-const RETRY_DELAYS_MINUTES = Object.freeze([1, 5, 30])
-
-function retryDelayMinutes(attempt) {
-  return RETRY_DELAYS_MINUTES[attempt - 1] ?? null
-}
-
 function databaseError(error) {
   const safe = new Error('Time-management job operation failed.')
   safe.code = error?.code
@@ -22,42 +16,63 @@ async function enqueueTimeJob({ supabase, userId, jobType, dedupeKey, payload })
   return { job: existing.data, deduplicated: true }
 }
 
-async function processReadyTimeJobs({ supabase, workerId, handlers, limit = 10, leaseSeconds = 60 }) {
+function isLostLease(error) {
+  return error?.code === '42501'
+}
+
+function runWithTimeout(work, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Time job handler timed out.')), timeoutMs)
+    Promise.resolve().then(work).then(
+      (result) => { clearTimeout(timer); resolve(result) },
+      (error) => { clearTimeout(timer); reject(error) }
+    )
+  })
+}
+
+async function processReadyTimeJobs({ supabase, workerId, handlers, limit = 3, leaseSeconds = 60, handlerTimeoutMs }) {
+  const claimLimit = Math.min(Math.max(Number(limit) || 1, 1), 5)
   const claim = await supabase.rpc('time_claim_jobs', {
-    p_limit: limit,
+    p_limit: claimLimit,
     p_worker_id: workerId,
     p_lease_seconds: leaseSeconds
   })
   if (claim.error) throw databaseError(claim.error)
   const jobs = claim.data || []
-  let completed = 0
-  let failed = 0
-
-  for (const job of jobs) {
+  const timeoutMs = Math.max(1_000, Math.min(
+    Number(handlerTimeoutMs) || (leaseSeconds * 1000) - 5_000,
+    (leaseSeconds * 1000) - 1_000
+  ))
+  const outcomes = await Promise.all(jobs.map(async (job) => {
     try {
       const handler = handlers?.[job.job_type]
       if (!handler) throw new Error('No job handler is configured.')
-      const result = await handler(job)
+      const result = await runWithTimeout(() => handler(job), timeoutMs)
       const completion = await supabase.rpc('time_complete_job', {
         p_job_id: job.id,
         p_worker_id: workerId,
         p_lease_token: job.lease_token,
         p_result: result ?? null
       })
-      if (completion.error) throw databaseError(completion.error)
-      completed += 1
+      if (!completion.error) return 'completed'
+      if (isLostLease(completion.error)) return 'failed'
     } catch (_error) {
+      // The DB RPC remains authoritative; an already-lost lease is terminal for this worker only.
+    }
+    try {
       const failure = await supabase.rpc('time_fail_job', {
         p_job_id: job.id,
         p_worker_id: workerId,
         p_lease_token: job.lease_token,
         p_error_code: `${job.job_type || 'UNKNOWN'}_FAILED`
       })
-      if (failure.error) throw databaseError(failure.error)
-      failed += 1
+      if (failure.error && !isLostLease(failure.error)) return 'failed'
+    } catch (_error) {
+      // A failed release must not abort other independently leased jobs.
     }
-  }
-  return { claimed: jobs.length, completed, failed }
+    return 'failed'
+  }))
+  return { claimed: jobs.length, completed: outcomes.filter(outcome => outcome === 'completed').length, failed: outcomes.filter(outcome => outcome === 'failed').length }
 }
 
-module.exports = { RETRY_DELAYS_MINUTES, retryDelayMinutes, enqueueTimeJob, processReadyTimeJobs }
+module.exports = { enqueueTimeJob, processReadyTimeJobs }
