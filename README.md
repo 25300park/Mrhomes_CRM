@@ -61,12 +61,12 @@ Do not use blanket password-update SQL. Provision the first administrator throug
 
 ## Time-management release checks
 
-Use Node.js 22.12 or newer. Install the root and UI lockfiles separately, build the React client into `/public/time-management`, then run the browser suite against local in-memory fixtures:
+Use Node.js 22.22 or newer. Install the root and UI lockfiles separately, build the React client into `/public/time-management`, then run the browser suite against local in-memory fixtures:
 
 ```powershell
 npm ci
 npm --prefix time-management-ui ci
-npm run build:time
+npm run build
 npm run test:e2e
 ```
 

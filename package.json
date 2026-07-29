@@ -12,6 +12,7 @@
     "test:integration": "vitest run tests/integration --passWithNoTests",
     "test:regression": "vitest run tests/regression --passWithNoTests",
     "test:e2e": "playwright test",
+    "build": "npm run build:time",
     "build:time": "npm --prefix time-management-ui run build",
     "check": "npm test -- --run && npm run build:time"
   },

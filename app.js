@@ -12,7 +12,7 @@ const pmsCare = require('./routes/pms-care')
 const pmsAccounts = require('./routes/pms-accounts')
 const pmsDocuments = require('./routes/pms-documents')
 
-function createApp({ supabase, schedulerEnabled = true, allowedOrigins, timePushSecurity } = {}) {
+function createApp({ supabase, schedulerEnabled = true, allowedOrigins, timePushSecurity, logger = console, httpLogStream } = {}) {
   const app = express()
   app.locals.schedulerEnabled = schedulerEnabled
   app.locals.timePushSecurity = timePushSecurity || {}
@@ -30,7 +30,7 @@ function createApp({ supabase, schedulerEnabled = true, allowedOrigins, timePush
   }))
   app.use(express.json())
   app.use(cookieParser())
-  app.use(morgan('combined'))
+  app.use(morgan('combined', httpLogStream ? { stream: httpLogStream } : undefined))
   app.use(express.static(path.join(__dirname, 'public'), { redirect: false }))
   app.use((req, _res, next) => {
     req.supabase = supabase
@@ -82,7 +82,7 @@ function createApp({ supabase, schedulerEnabled = true, allowedOrigins, timePush
   })
 
   app.use((err, _req, res, _next) => {
-    console.error(err.stack)
+    logger.error(err.stack)
     res.status(err.status || 500).json({ error: err.message || 'Server Error' })
   })
 

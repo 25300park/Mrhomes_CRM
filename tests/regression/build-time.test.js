@@ -4,12 +4,12 @@ const { spawnSync } = require('node:child_process')
 
 function runRootBuild() {
   if (process.platform === 'win32') {
-    return spawnSync(process.env.ComSpec, ['/d', '/s', '/c', 'npm.cmd run build:time'], {
+    return spawnSync(process.env.ComSpec, ['/d', '/s', '/c', 'npm.cmd run build'], {
       cwd: path.resolve(__dirname, '../..'),
       encoding: 'utf8'
     })
   }
-  return spawnSync('npm', ['run', 'build:time'], {
+  return spawnSync('npm', ['run', 'build'], {
     cwd: path.resolve(__dirname, '../..'),
     encoding: 'utf8'
   })
@@ -26,4 +26,12 @@ test('the root time-management build script produces the CRM-hosted UI', () => {
   expect(index).toContain('<div id="root"></div>')
   expect(script).not.toBeNull()
   expect(fs.readFileSync(path.resolve(__dirname, '../../public/time-management', script[1]), 'utf8')).not.toContain('jsxDEV')
+})
+
+test('Nixpacks installs both lockfiles, runs the root build, and starts the server', () => {
+  const config = fs.readFileSync(path.resolve(__dirname, '../../nixpacks.toml'), 'utf8')
+  expect(config).toContain('npm ci')
+  expect(config).toContain('npm --prefix time-management-ui ci')
+  expect(config).toContain('npm run build')
+  expect(config).toContain('npm start')
 })

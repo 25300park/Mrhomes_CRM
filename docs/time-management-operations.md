@@ -2,6 +2,51 @@
 
 This is a procedure, not evidence that a rollout occurred. Task 12 did not push, deploy, or execute SQL.
 
+## Release-candidate build (local or CI)
+
+Run these exact commands from the repository root with Node.js 22.22 or newer:
+
+```bash
+npm ci
+npm --prefix time-management-ui ci
+npm run build
+npm run test:unit
+npm run test:regression
+npm run test:e2e
+test -f public/time-management/index.html
+```
+
+Railway/Nixpacks is committed in `nixpacks.toml`. Its install phase runs both lockfiles, its build phase runs `npm run build`, and its start command is `npm start`. Do not override those commands in the Railway service UI.
+
+## Marked staging migration commands
+
+These commands are examples for an already authorized staging window. The operator must obtain `STAGING_DATABASE_URL` from the approved secret manager; never paste it into a ticket or shell history.
+
+```bash
+test "$TARGET_ENV" = "staging"
+test -n "$STAGING_DATABASE_URL"
+pg_dump --format=custom --no-owner --no-acl --file "$APPROVED_BACKUP_PATH" "$STAGING_DATABASE_URL"
+test -s "$APPROVED_BACKUP_PATH"
+pg_restore --list "$APPROVED_BACKUP_PATH" >/dev/null
+psql "$STAGING_DATABASE_URL" -v ON_ERROR_STOP=1 -f database/time-management.sql
+psql "$STAGING_DATABASE_URL" -v ON_ERROR_STOP=1 -f database/time-management-functions.sql
+```
+
+For production, replace the target only inside a separately authorized production window, require `TARGET_ENV=production`, take and verify a new production backup, and retain `SCHEDULER_ENABLED=false` until all smoke checks pass.
+
+## Railway smoke and rollback commands
+
+After an authorized deployment, record the candidate SHA and run:
+
+```bash
+railway status
+railway variables --kv
+railway logs --deployment
+curl --fail --show-error --silent "$APP_BASE_URL/health"
+```
+
+Do not print secret values in captured evidence. If rollback is required, first set `SCHEDULER_ENABLED=false` through the Railway variable control, redeploy that configuration, then roll back to the recorded previous deployment in Railway and repeat the health/auth/privacy smoke checks.
+
 ## Preconditions
 
 - Use a separately authorized staging or production change window.

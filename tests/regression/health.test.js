@@ -14,3 +14,18 @@ test('createApp records that scheduling is disabled for tests', () => {
 
   expect(app.locals.schedulerEnabled).toBe(false)
 })
+
+test('createApp can capture errors without changing the production logger default', async () => {
+  const errors = []
+  const app = createApp({
+    supabase: {},
+    schedulerEnabled: false,
+    allowedOrigins: ['http://allowed.test'],
+    logger: { error: value => errors.push(String(value)) }
+  })
+
+  const response = await request(app).get('/health').set('Origin', 'http://blocked.test')
+
+  expect(response.status).toBe(403)
+  expect(errors.join('\n')).toContain('Origin is not allowed')
+})
