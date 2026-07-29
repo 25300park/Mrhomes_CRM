@@ -212,8 +212,38 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
     expectSqlFailure(`SET ROLE anon; SELECT * FROM ${schemaName}.time_entries;`, { sqlState: '42501' })
     expectSqlFailure(`SET ROLE authenticated; SELECT * FROM ${schemaName}.time_entries;`, { sqlState: '42501' })
     expect(runSql(`SELECT has_table_privilege('service_role', '${schemaName}.time_entries', 'SELECT');`)).toBe('t')
-    expect(runSql(`SELECT has_function_privilege('service_role', '${schemaName}.time_start_timer(uuid,text,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,timestamptz,text)', 'EXECUTE');`)).toBe('t')
-    expect(runSql(`SELECT has_function_privilege('anon', '${schemaName}.time_start_timer(uuid,text,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,timestamptz,text)', 'EXECUTE');`)).toBe('f')
+    const actorAwareStart = `${schemaName}.time_start_timer(uuid,text,text,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,timestamptz,text)`
+    expect(runSql(`SELECT has_function_privilege('service_role', '${actorAwareStart}', 'EXECUTE');`)).toBe('t')
+    expect(runSql(`SELECT has_function_privilege('anon', '${actorAwareStart}', 'EXECUTE');`)).toBe('f')
+    expect(runSql(`SELECT has_function_privilege('authenticated', '${actorAwareStart}', 'EXECUTE');`)).toBe('f')
+  })
+
+  test('removes every actor-unaware CRM mutation RPC signature', () => {
+    const legacySignatures = [
+      'time_apply_timer_command(uuid,text,text,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,timestamptz,text)',
+      'time_start_timer(uuid,text,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,timestamptz,text)',
+      'time_switch_timer(uuid,text,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,timestamptz,text)',
+      'time_stop_timer(uuid,text,timestamptz,text)',
+      'time_create_manual_entry(uuid,text,uuid,uuid,uuid,uuid,uuid,uuid,uuid,text,timestamptz,timestamptz,text,text)',
+      'time_revise_entry(uuid,uuid,text,uuid,uuid,timestamptz,timestamptz,text,text[],uuid,uuid,uuid,uuid,text)',
+      'time_resolve_crm_link(text,uuid)',
+      'time_search_crm_links(text,text[],integer)'
+    ]
+    const catalogList = legacySignatures
+      .map(signature => `'${schemaName}.${signature}'`)
+      .join(',')
+    expect(runSql(`SELECT count(*) FROM pg_catalog.unnest(ARRAY[${catalogList}]) signature
+      WHERE pg_catalog.to_regprocedure(signature) IS NOT NULL;`)).toBe('0')
+
+    runSql(`GRANT USAGE ON SCHEMA ${schemaName} TO service_role, authenticated, anon;`)
+    for (const role of ['service_role', 'authenticated', 'anon']) {
+      expectSqlFailure(`SET ROLE ${role}; SELECT * FROM ${schemaName}.time_start_timer(
+        '${USER_A}'::uuid, 'legacy-direct-call'::text, '${STANDARD_A}'::uuid,
+        NULL::uuid, NULL::uuid, NULL::uuid, NULL::uuid, NULL::uuid, NULL::uuid,
+        'forged label'::text, '2026-07-15T00:00:00Z'::timestamptz, 'Asia/Seoul'::text);`,
+      { sqlState: '42883' })
+    }
+    runSql(`REVOKE USAGE ON SCHEMA ${schemaName} FROM service_role, authenticated, anon;`)
   })
 
   test('returns exact CRM link top-N in the database when an earlier label belongs to the 21st parent', () => {
@@ -318,7 +348,7 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
     runSql(`DELETE FROM time_commands WHERE user_id = '${USER_A}'; DELETE FROM time_entries WHERE user_id = '${USER_A}';`)
     const start = () => runSqlAsync(`SELECT COALESCE(stopped_entry_id::text, '') || '|' ||
       COALESCE(started_entry_id::text, '') || '|' || CASE WHEN replayed THEN '1' ELSE '0' END
-      FROM time_start_timer('${USER_A}', 'start-concurrent', '${STANDARD_A}',
+      FROM time_start_timer('${USER_A}', 'agent', 'start-concurrent', '${STANDARD_A}',
         p_started_at => '2026-07-15T15:30:00Z');`)
     const starts = await Promise.all([start(), start()])
     expect(new Set(starts.map((value) => value.replace(/\|[01]$/, ''))).size).toBe(1)
@@ -327,7 +357,7 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
 
     const switchTimer = () => runSqlAsync(`SELECT stopped_entry_id || '|' ||
       COALESCE(started_entry_id::text, '') || '|' || CASE WHEN replayed THEN '1' ELSE '0' END
-      FROM time_switch_timer('${USER_A}', 'switch-concurrent', '${STANDARD_A}',
+      FROM time_switch_timer('${USER_A}', 'agent', 'switch-concurrent', '${STANDARD_A}',
         p_started_at => '2026-07-15T15:45:00Z');`)
     const switches = await Promise.all([switchTimer(), switchTimer()])
     expect(new Set(switches.map((value) => value.replace(/\|[01]$/, ''))).size).toBe(1)
@@ -340,12 +370,12 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
     expectSqlFailure(`UPDATE time_entries SET business_date = '2026-07-17'
       WHERE user_id = '${USER_A}' AND ended_at IS NULL;`,
     { sqlState: '23514', constraint: 'time_entries_business_date_immutable' })
-    expectSqlFailure(`SELECT * FROM time_stop_timer('${USER_A}', 'bad-zone',
+    expectSqlFailure(`SELECT * FROM time_stop_timer('${USER_A}', 'agent', 'bad-zone',
       '2026-07-15T16:00:00Z', 'UTC');`, { sqlState: '22023' })
 
     const stop = () => runSqlAsync(`SELECT stopped_entry_id || '|' || COALESCE(started_entry_id::text, '') || '|' ||
       CASE WHEN replayed THEN '1' ELSE '0' END
-      FROM time_stop_timer('${USER_A}', 'stop-concurrent', '2026-07-15T16:00:00Z');`)
+      FROM time_stop_timer('${USER_A}', 'agent', 'stop-concurrent', '2026-07-15T16:00:00Z', 'Asia/Seoul');`)
     const stops = await Promise.all([stop(), stop()])
     expect(new Set(stops.map((value) => value.replace(/\|[01]$/, ''))).size).toBe(1)
     expect(stops.filter((value) => /\|1$/.test(value))).toHaveLength(1)
@@ -354,11 +384,11 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
   })
 
   test('rolls back the stopped timer if the replacement insert fails', () => {
-    runSql(`SELECT * FROM time_start_timer('${USER_A}', 'rollback-start', '${STANDARD_A}',
+    runSql(`SELECT * FROM time_start_timer('${USER_A}', 'agent', 'rollback-start', '${STANDARD_A}',
       p_started_at => '2026-07-15T17:00:00Z');`)
     const activeBefore = runSql(`SELECT id FROM time_entries WHERE user_id = '${USER_A}' AND ended_at IS NULL;`)
     expectSqlFailure(`SELECT * FROM time_switch_timer(
-      '${USER_A}', 'rollback-switch', '${STANDARD_A}',
+      '${USER_A}', 'agent', 'rollback-switch', '${STANDARD_A}',
       p_daily_plan_id => '${WRONG_DATE_PLAN}', p_started_at => '2026-07-15T17:30:00Z');`,
     { sqlState: '23503', constraint: 'time_entries_plan_owner_date_fk' })
     expect(runSql(`SELECT id FROM time_entries WHERE user_id = '${USER_A}' AND ended_at IS NULL;`)).toBe(activeBefore)
@@ -369,11 +399,11 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
       DELETE FROM time_entries WHERE user_id IN ('${USER_A}', '${USER_B}');
       UPDATE users SET is_active = false WHERE id = '${USER_B}';`)
     expectSqlFailure(`SELECT * FROM time_start_timer(
-      '${USER_B}', 'inactive-user', '${STANDARD_A}',
+      '${USER_B}', 'agent', 'inactive-user', '${STANDARD_A}',
       p_started_at => '2026-07-15T18:00:00Z');`, { sqlState: '42501' })
     runSql(`UPDATE users SET is_active = true WHERE id = '${USER_B}';`)
     expectSqlFailure(`SELECT * FROM time_start_timer(
-      '${USER_A}', 'other-personal-category', '${STANDARD_A}',
+      '${USER_A}', 'agent', 'other-personal-category', '${STANDARD_A}',
       p_personal_category_id => '${PERSONAL_B}',
       p_started_at => '2026-07-15T18:00:00Z');`, { sqlState: '42501' })
   })
@@ -383,44 +413,44 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
       DELETE FROM time_entries WHERE user_id = '${USER_A}';`)
 
     const first = runSql(`SELECT started_entry_id FROM time_start_timer(
-      '${USER_A}', 'omitted-sequential', '${STANDARD_A}');`)
+      '${USER_A}', 'agent', 'omitted-sequential', '${STANDARD_A}');`)
     const replay = runSql(`SELECT started_entry_id FROM time_start_timer(
-      '${USER_A}', 'omitted-sequential', '${STANDARD_A}');`)
+      '${USER_A}', 'agent', 'omitted-sequential', '${STANDARD_A}');`)
     expect(replay).toBe(first)
     expect(runSql(`SELECT
-      ((response_payload ->> 'effectiveCommandAt')::timestamptz = entry.started_at)
+      ((command.response_payload ->> 'started_entry_id')::uuid = entry.id)
       FROM time_commands command
-      JOIN time_entries entry ON entry.id = (command.response_payload ->> 'startedEntryId')::uuid
+      JOIN time_entries entry ON entry.id = (command.response_payload ->> 'started_entry_id')::uuid
       WHERE command.user_id = '${USER_A}' AND command.request_id = 'omitted-sequential';`)).toBe('t')
     expectSqlFailure(`SELECT * FROM time_stop_timer(
-      '${USER_A}', 'omitted-sequential');`,
+      '${USER_A}', 'agent', 'omitted-sequential', NULL, 'Asia/Seoul');`,
     { sqlState: '23505', constraint: 'time_commands_user_id_request_id_key' })
     expectSqlFailure(`SELECT * FROM time_start_timer(
-      '${USER_A}', 'omitted-sequential', '${STANDARD_A}',
+      '${USER_A}', 'agent', 'omitted-sequential', '${STANDARD_A}',
       p_contact_id => '${CONTACT_A}', p_linked_entity_label => 'different');`,
     { sqlState: '23505', constraint: 'time_commands_user_id_request_id_key' })
-    runSql(`SELECT * FROM time_stop_timer('${USER_A}', 'omitted-cleanup');`)
+    runSql(`SELECT * FROM time_stop_timer('${USER_A}', 'agent', 'omitted-cleanup', NULL, 'Asia/Seoul');`)
 
     runSql(`DELETE FROM time_commands WHERE user_id = '${USER_A}';
       DELETE FROM time_entries WHERE user_id = '${USER_A}';`)
     const omittedConcurrent = () => runSqlAsync(`SELECT started_entry_id FROM time_start_timer(
-      '${USER_A}', 'omitted-concurrent', '${STANDARD_A}');`)
+      '${USER_A}', 'agent', 'omitted-concurrent', '${STANDARD_A}');`)
     const concurrent = await Promise.all([omittedConcurrent(), omittedConcurrent()])
     expect(new Set(concurrent).size).toBe(1)
     expect(runSql(`SELECT count(*) FROM time_entries
       WHERE user_id = '${USER_A}' AND request_id = 'omitted-concurrent';`)).toBe('1')
-    runSql(`SELECT * FROM time_stop_timer('${USER_A}', 'omitted-concurrent-cleanup');`)
+    runSql(`SELECT * FROM time_stop_timer('${USER_A}', 'agent', 'omitted-concurrent-cleanup', NULL, 'Asia/Seoul');`)
 
     runSql(`DELETE FROM time_commands WHERE user_id = '${USER_A}';
       DELETE FROM time_entries WHERE user_id = '${USER_A}';`)
     const explicit = runSql(`SELECT started_entry_id FROM time_start_timer(
-      '${USER_A}', 'explicit-time', '${STANDARD_A}',
+      '${USER_A}', 'agent', 'explicit-time', '${STANDARD_A}',
       p_started_at => '2026-07-15T19:00:00Z');`)
     expect(runSql(`SELECT started_entry_id FROM time_start_timer(
-      '${USER_A}', 'explicit-time', '${STANDARD_A}',
+      '${USER_A}', 'agent', 'explicit-time', '${STANDARD_A}',
       p_started_at => '2026-07-15T19:00:00Z');`)).toBe(explicit)
     expectSqlFailure(`SELECT * FROM time_start_timer(
-      '${USER_A}', 'explicit-time', '${STANDARD_A}',
+      '${USER_A}', 'agent', 'explicit-time', '${STANDARD_A}',
       p_started_at => '2026-07-15T19:00:01Z');`,
     { sqlState: '23505', constraint: 'time_commands_user_id_request_id_key' })
   }, 30_000)
@@ -482,7 +512,7 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
       1, 'retry-worker', 60) WHERE id = '${jobId}';`)
     expect(runSql(`SELECT status || '|' || attempts || '|' || (ready_at IS NULL)
       FROM time_fail_job('${jobId}', 'retry-worker', '${finalLeaseToken}', 'FAIL_4');`)).toMatch(/^FAILED\|4\|(t|true)$/)
-  })
+  }, 30_000)
 
   test('allows only one normal complete-or-fail lease transition', async () => {
     runSql(`DELETE FROM time_jobs;`)
@@ -527,37 +557,37 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
     const created = runSql(`SELECT entry_id FROM time_create_manual_entry(
       '${USER_A}', 'manual-db-1', '${STANDARD_A}', NULL, '${PLAN_A}',
       '${CONTACT_A}', NULL, NULL, NULL, 'Fixture contact',
-      '2026-07-16T01:00:00Z', '2026-07-16T02:00:00Z', 'note', 'Asia/Seoul');`)
+      '2026-07-16T01:00:00Z', '2026-07-16T02:00:00Z', 'note', 'Asia/Seoul', 'agent');`)
     expect(runSql(`SELECT entry_id || '|' || replayed FROM time_create_manual_entry(
       '${USER_A}', 'manual-db-1', '${STANDARD_A}', NULL, '${PLAN_A}',
       '${CONTACT_A}', NULL, NULL, NULL, 'Fixture contact',
-      '2026-07-16T01:00:00Z', '2026-07-16T02:00:00Z', 'note', 'Asia/Seoul');`)).toMatch(new RegExp(`^${created}\\|(t|true)$`))
+      '2026-07-16T01:00:00Z', '2026-07-16T02:00:00Z', 'note', 'Asia/Seoul', 'agent');`)).toMatch(new RegExp(`^${created}\\|(t|true)$`))
     expect(runSql(`SELECT entry_type || '|' || duration_seconds || '|' || linked_entity_label FROM time_entries WHERE id = '${created}';`)).toBe('MANUAL|3600|Fixture contact')
     expectSqlFailure(`SELECT * FROM time_create_manual_entry(
       '${USER_A}', 'manual-db-overlap', '${STANDARD_A}', NULL, '${PLAN_A}',
       NULL, NULL, NULL, NULL, NULL,
-      '2026-07-16T01:30:00Z', '2026-07-16T02:30:00Z', NULL, 'Asia/Seoul');`, { sqlState: '23P01', constraint: 'time_entries_user_time_overlap' })
+      '2026-07-16T01:30:00Z', '2026-07-16T02:30:00Z', NULL, 'Asia/Seoul', 'agent');`, { sqlState: '23P01', constraint: 'time_entries_user_time_overlap' })
   })
 
   test('atomically revises owned entries and keeps revision rows immutable', () => {
     const entryId = runSql(`SELECT entry_id FROM time_create_manual_entry(
       '${USER_A}', 'manual-db-1', '${STANDARD_A}', NULL, '${PLAN_A}',
       '${CONTACT_A}', NULL, NULL, NULL, 'Fixture contact',
-      '2026-07-16T01:00:00Z', '2026-07-16T02:00:00Z', 'note', 'Asia/Seoul');`)
+      '2026-07-16T01:00:00Z', '2026-07-16T02:00:00Z', 'note', 'Asia/Seoul', 'agent');`)
     const revised = runSql(`SELECT revision_id FROM time_revise_entry(
       '${USER_A}', '${entryId}', 'revise-db-1', NULL, NULL,
       NULL, NULL, 'revised', ARRAY['notes']::text[],
-      NULL, NULL, NULL, NULL, NULL);`)
+      NULL, NULL, NULL, NULL, NULL, 'agent');`)
     expect(runSql(`SELECT (before_value->>'notes') || '|' || (after_value->>'notes') FROM time_entry_revisions WHERE id = '${revised}';`)).toBe('note|revised')
     expect(runSql(`SELECT revision_id FROM time_revise_entry(
       '${USER_A}', '${entryId}', 'revise-db-1', NULL, NULL,
       NULL, NULL, 'revised', ARRAY['notes']::text[],
-      NULL, NULL, NULL, NULL, NULL);`)).toBe(revised)
+      NULL, NULL, NULL, NULL, NULL, 'agent');`)).toBe(revised)
     expectSqlFailure(`UPDATE time_entry_revisions SET after_value = '{}' WHERE id = '${revised}';`, { sqlState: '42501' })
     expectSqlFailure(`SELECT * FROM time_revise_entry(
       '${USER_B}', '${entryId}', 'revise-other-owner', NULL, NULL,
       NULL, NULL, 'stolen', ARRAY['notes']::text[],
-      NULL, NULL, NULL, NULL, NULL);`, { sqlState: '42501' })
+      NULL, NULL, NULL, NULL, NULL, 'agent');`, { sqlState: '42501' })
   })
 
   test('enforces non-overlap for direct writes, timer commands, manual entries, and revisions', () => {

@@ -282,6 +282,10 @@ SECURITY DEFINER
 SET search_path = pg_catalog, pg_temp
 AS $$
 DECLARE
+  v_active_entry_id UUID;
+  v_active_started_at TIMESTAMPTZ;
+  v_effective_command_at TIMESTAMPTZ;
+  v_business_date DATE;
   v_request JSONB;
   v_existing_response JSONB;
   v_response JSONB;
@@ -289,6 +293,15 @@ DECLARE
   v_link_id UUID;
   v_label TEXT;
 BEGIN
+  IF p_request_id IS NULL OR pg_catalog.btrim(p_request_id) = '' THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'request_id is required';
+  END IF;
+  IF p_command_type NOT IN ('START', 'SWITCH', 'STOP') THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'unsupported timer command';
+  END IF;
+  IF p_business_time_zone IS DISTINCT FROM 'Asia/Seoul' THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'unsupported business time zone';
+  END IF;
   IF pg_catalog.num_nonnulls(p_contact_id, p_listing_id, p_lead_id, p_deal_id) > 1 THEN
     RAISE EXCEPTION USING ERRCODE = '23514', MESSAGE = 'only one CRM entity may be linked',
       CONSTRAINT = 'time_entries_single_crm_link_ck';
@@ -327,18 +340,73 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT legacy.stopped_entry_id, legacy.started_entry_id, legacy.replayed
-    INTO stopped_entry_id, started_entry_id, replayed
-  FROM public.time_apply_timer_command(
-    p_user_id, p_request_id, p_command_type, p_standard_category_id,
-    p_personal_category_id, p_daily_plan_id, p_contact_id, p_listing_id,
-    p_lead_id, p_deal_id, v_label, p_command_at, p_business_time_zone
-  ) legacy;
+  v_effective_command_at := COALESCE(p_command_at, pg_catalog.now());
+  v_business_date := (v_effective_command_at AT TIME ZONE p_business_time_zone)::DATE;
+
+  SELECT entry.id, entry.started_at INTO v_active_entry_id, v_active_started_at
+  FROM public.time_entries entry
+  WHERE entry.user_id = p_user_id AND entry.entry_type = 'TIMER' AND entry.ended_at IS NULL
+  FOR UPDATE;
+  IF p_command_type = 'START' AND v_active_entry_id IS NOT NULL THEN
+    RAISE EXCEPTION USING ERRCODE = '23505', MESSAGE = 'an active timer already exists',
+      CONSTRAINT = 'time_entries_active_user_uq';
+  END IF;
+  IF p_command_type IN ('SWITCH', 'STOP') AND v_active_entry_id IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'active timer not found';
+  END IF;
+  IF v_active_entry_id IS NOT NULL AND v_effective_command_at < v_active_started_at THEN
+    RAISE EXCEPTION USING ERRCODE = '22007', MESSAGE = 'command time precedes active timer start';
+  END IF;
+
+  IF p_command_type IN ('START', 'SWITCH') THEN
+    IF NOT EXISTS (SELECT 1 FROM public.time_standard_categories category
+      WHERE category.id = p_standard_category_id AND category.is_active = true) THEN
+      RAISE EXCEPTION USING ERRCODE = '23503', MESSAGE = 'active standard category not found';
+    END IF;
+    IF p_personal_category_id IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.time_personal_categories category
+      WHERE category.id = p_personal_category_id AND category.user_id = p_user_id
+        AND category.parent_standard_category_id = p_standard_category_id AND category.is_active = true
+    ) THEN
+      RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'personal category is not owned by user';
+    END IF;
+    IF p_daily_plan_id IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.time_daily_plans plan WHERE plan.id = p_daily_plan_id
+        AND plan.user_id = p_user_id AND plan.business_date = v_business_date
+    ) THEN
+      RAISE EXCEPTION USING ERRCODE = '23503', MESSAGE = 'daily plan does not match owner and business date',
+        CONSTRAINT = 'time_entries_plan_owner_date_fk';
+    END IF;
+  END IF;
+
+  IF p_command_type IN ('SWITCH', 'STOP') THEN
+    UPDATE public.time_entries SET
+      ended_at = v_effective_command_at,
+      duration_seconds = pg_catalog.floor(EXTRACT(epoch FROM (v_effective_command_at - started_at)))::INTEGER,
+      updated_at = pg_catalog.now()
+    WHERE id = v_active_entry_id AND user_id = p_user_id;
+    stopped_entry_id := v_active_entry_id;
+  END IF;
+
+  IF p_command_type IN ('START', 'SWITCH') THEN
+    INSERT INTO public.time_entries (
+      user_id, business_date, daily_plan_id, standard_category_id, personal_category_id,
+      entry_type, started_at, request_id, previous_entry_id,
+      contact_id, listing_id, lead_id, deal_id,
+      linked_entity_type, linked_entity_id, linked_entity_label
+    ) VALUES (
+      p_user_id, v_business_date, p_daily_plan_id, p_standard_category_id, p_personal_category_id,
+      'TIMER', v_effective_command_at, p_request_id, v_active_entry_id,
+      p_contact_id, p_listing_id, p_lead_id, p_deal_id,
+      v_link_type, v_link_id, v_label
+    ) RETURNING time_entries.id INTO started_entry_id;
+  END IF;
+  replayed := false;
   v_response := pg_catalog.jsonb_build_object(
     'stopped_entry_id', stopped_entry_id, 'started_entry_id', started_entry_id
   );
-  UPDATE public.time_commands SET request_payload = v_request, response_payload = v_response
-  WHERE user_id = p_user_id AND request_id = p_request_id;
+  INSERT INTO public.time_commands (user_id, request_id, command_type, request_payload, response_payload)
+  VALUES (p_user_id, p_request_id, p_command_type, v_request, v_response);
   RETURN NEXT;
 END;
 $$;
@@ -398,7 +466,7 @@ AS $$
   SELECT * FROM public.time_apply_timer_command(
     p_user_id, p_request_id, 'STOP', NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, p_stopped_at, p_business_time_zone,
-    COALESCE(p_actor_role, (SELECT role FROM public.users WHERE id = p_user_id))
+    p_actor_role
   );
 $$;
 
@@ -908,6 +976,7 @@ SECURITY DEFINER
 SET search_path = pg_catalog, pg_temp
 AS $$
 DECLARE
+  v_business_date DATE;
   v_request JSONB;
   v_existing_response JSONB;
   v_response JSONB;
@@ -949,15 +1018,45 @@ BEGIN
     IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE = 'P0003', MESSAGE = 'CRM link not found'; END IF;
   END IF;
 
-  SELECT legacy.entry_id, legacy.replayed INTO entry_id, replayed
-  FROM public.time_create_manual_entry(
-    p_user_id, p_request_id, p_standard_category_id, p_personal_category_id,
-    p_daily_plan_id, p_contact_id, p_listing_id, p_lead_id, p_deal_id,
-    v_label, p_started_at, p_ended_at, p_notes, p_business_time_zone
-  ) legacy;
+  IF p_business_time_zone IS DISTINCT FROM 'Asia/Seoul'
+    OR p_started_at IS NULL OR p_ended_at IS NULL OR p_ended_at <= p_started_at THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'invalid manual entry';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.time_standard_categories category
+    WHERE category.id = p_standard_category_id AND category.is_active = true) THEN
+    RAISE EXCEPTION USING ERRCODE = '23503', MESSAGE = 'active standard category not found';
+  END IF;
+  IF p_personal_category_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.time_personal_categories category
+    WHERE category.id = p_personal_category_id AND category.user_id = p_user_id
+      AND category.parent_standard_category_id = p_standard_category_id AND category.is_active = true
+  ) THEN RAISE EXCEPTION USING ERRCODE = '42501', MESSAGE = 'personal category is not owned by user'; END IF;
+  v_business_date := (p_started_at AT TIME ZONE p_business_time_zone)::DATE;
+  IF p_daily_plan_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.time_daily_plans plan WHERE plan.id = p_daily_plan_id
+      AND plan.user_id = p_user_id AND plan.business_date = v_business_date
+  ) THEN RAISE EXCEPTION USING ERRCODE = '23503', MESSAGE = 'daily plan does not match owner and business date'; END IF;
+  IF EXISTS (SELECT 1 FROM public.time_entries existing WHERE existing.user_id = p_user_id
+    AND pg_catalog.tstzrange(existing.started_at, COALESCE(existing.ended_at, 'infinity'::TIMESTAMPTZ), '[)')
+      && pg_catalog.tstzrange(p_started_at, p_ended_at, '[)')) THEN
+    RAISE EXCEPTION USING ERRCODE = '23P01', MESSAGE = 'time entry overlaps an existing entry',
+      CONSTRAINT = 'time_entries_user_time_overlap';
+  END IF;
+  INSERT INTO public.time_entries (
+    user_id, business_date, daily_plan_id, standard_category_id, personal_category_id,
+    entry_type, started_at, ended_at, duration_seconds, notes, request_id,
+    contact_id, listing_id, lead_id, deal_id, linked_entity_type, linked_entity_id, linked_entity_label
+  ) VALUES (
+    p_user_id, v_business_date, p_daily_plan_id, p_standard_category_id, p_personal_category_id,
+    'MANUAL', p_started_at, p_ended_at,
+    pg_catalog.floor(EXTRACT(epoch FROM (p_ended_at - p_started_at)))::INTEGER,
+    p_notes, p_request_id, p_contact_id, p_listing_id, p_lead_id, p_deal_id,
+    v_link_type, v_link_id, v_label
+  ) RETURNING time_entries.id INTO entry_id;
+  replayed := false;
   v_response := pg_catalog.jsonb_build_object('entry_id', entry_id);
-  UPDATE public.time_commands SET request_payload = v_request, response_payload = v_response
-  WHERE user_id = p_user_id AND request_id = p_request_id;
+  INSERT INTO public.time_commands (user_id, request_id, command_type, request_payload, response_payload)
+  VALUES (p_user_id, p_request_id, 'MANUAL', v_request, v_response);
   RETURN NEXT;
 END;
 $$;
@@ -1345,29 +1444,29 @@ $$;
 
 DROP FUNCTION IF EXISTS public.time_search_crm_links(TEXT, TEXT[], INTEGER);
 DROP FUNCTION IF EXISTS public.time_resolve_crm_link(TEXT, UUID);
-
-REVOKE ALL ON FUNCTION public.time_apply_timer_command(
+DROP FUNCTION IF EXISTS public.time_start_timer(
+  UUID, TEXT, UUID, UUID, UUID, UUID, UUID, UUID, UUID, TEXT, TIMESTAMPTZ, TEXT
+);
+DROP FUNCTION IF EXISTS public.time_switch_timer(
+  UUID, TEXT, UUID, UUID, UUID, UUID, UUID, UUID, UUID, TEXT, TIMESTAMPTZ, TEXT
+);
+DROP FUNCTION IF EXISTS public.time_stop_timer(UUID, TEXT, TIMESTAMPTZ, TEXT);
+DROP FUNCTION IF EXISTS public.time_create_manual_entry(
+  UUID, TEXT, UUID, UUID, UUID, UUID, UUID, UUID, UUID, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT
+);
+DROP FUNCTION IF EXISTS public.time_revise_entry(
+  UUID, UUID, TEXT, UUID, UUID, TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT[], UUID, UUID, UUID, UUID, TEXT
+);
+DROP FUNCTION IF EXISTS public.time_apply_timer_command(
   UUID, TEXT, TEXT, UUID, UUID, UUID, UUID, UUID, UUID, UUID, TEXT, TIMESTAMPTZ, TEXT
-) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.time_start_timer(
-  UUID, TEXT, UUID, UUID, UUID, UUID, UUID, UUID, UUID, TEXT, TIMESTAMPTZ, TEXT
-) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.time_switch_timer(
-  UUID, TEXT, UUID, UUID, UUID, UUID, UUID, UUID, UUID, TEXT, TIMESTAMPTZ, TEXT
-) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.time_stop_timer(UUID, TEXT, TIMESTAMPTZ, TEXT) FROM PUBLIC;
+);
+
 REVOKE ALL ON FUNCTION public.time_prevent_entry_business_date_update() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.time_track_push_owner_change() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.time_claim_jobs(INTEGER, TEXT, INTEGER) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.time_fail_job(UUID, TEXT, UUID, TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.time_complete_job(UUID, TEXT, UUID, JSONB) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.time_save_daily_plan(UUID, DATE, INTEGER, JSONB) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.time_create_manual_entry(
-  UUID, TEXT, UUID, UUID, UUID, UUID, UUID, UUID, UUID, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT
-) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.time_revise_entry(
-  UUID, UUID, TEXT, UUID, UUID, TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT[], UUID, UUID, UUID, UUID, TEXT
-) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.time_reject_revision_mutation() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.time_crm_actor_can(UUID, TEXT, TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.time_get_command_replay(UUID, TEXT, TEXT, JSONB) FROM PUBLIC;
@@ -1393,15 +1492,10 @@ REVOKE ALL ON FUNCTION public.time_revise_entry(
 DO $$
 DECLARE
   v_functions CONSTANT TEXT :=
-    'public.time_start_timer(UUID, TEXT, UUID, UUID, UUID, UUID, UUID, UUID, UUID, TEXT, TIMESTAMPTZ, TEXT), '
-    'public.time_switch_timer(UUID, TEXT, UUID, UUID, UUID, UUID, UUID, UUID, UUID, TEXT, TIMESTAMPTZ, TEXT), '
-    'public.time_stop_timer(UUID, TEXT, TIMESTAMPTZ, TEXT), '
     'public.time_claim_jobs(INTEGER, TEXT, INTEGER), '
     'public.time_fail_job(UUID, TEXT, UUID, TEXT), '
     'public.time_complete_job(UUID, TEXT, UUID, JSONB), '
     'public.time_save_daily_plan(UUID, DATE, INTEGER, JSONB), '
-    'public.time_create_manual_entry(UUID, TEXT, UUID, UUID, UUID, UUID, UUID, UUID, UUID, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT), '
-    'public.time_revise_entry(UUID, UUID, TEXT, UUID, UUID, TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT[], UUID, UUID, UUID, UUID, TEXT), '
     'public.time_get_command_replay(UUID, TEXT, TEXT, JSONB), '
     'public.time_resolve_crm_link(UUID, TEXT, TEXT, UUID), '
     'public.time_search_crm_links(UUID, TEXT, TEXT, TEXT[], INTEGER), '
