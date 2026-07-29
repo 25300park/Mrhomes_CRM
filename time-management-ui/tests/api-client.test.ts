@@ -38,6 +38,38 @@ describe('time-management API client', () => {
     })
   })
 
+  test.each([
+    '/../auth/login',
+    '/%2e%2e/auth/login',
+    '/%2E%2E/auth/login',
+    '/../auth/login?next=/api/time-management/entries',
+    'https://evil.example/steal',
+    '//evil.example/steal',
+    '?path=/entries'
+  ])('rejects namespace escape %s before acquiring or sending CSRF', async path => {
+    const fetchFn = vi.fn().mockResolvedValue(response(200, {}))
+    const getCsrfToken = vi.fn().mockResolvedValue('csrf-token')
+    const client = createApiClient({ fetchFn, getCsrfToken })
+
+    await expect(client.post(path, { private: true })).rejects.toThrow()
+
+    expect(getCsrfToken).not.toHaveBeenCalled()
+    expect(fetchFn).not.toHaveBeenCalled()
+  })
+
+  test.each([
+    ['/entries?businessDate=2026-07-29', '/api/time-management/entries?businessDate=2026-07-29'],
+    ['/entries/../plans/today', '/api/time-management/plans/today'],
+    ['/', '/api/time-management/']
+  ])('canonicalizes valid relative path %s inside the namespace', async (path, expected) => {
+    const fetchFn = vi.fn().mockResolvedValue(response(200, {}))
+    const client = createApiClient({ fetchFn })
+
+    await client.get(path)
+
+    expect(fetchFn).toHaveBeenCalledWith(expected, expect.objectContaining({ method: 'GET' }))
+  })
+
   test('returns a stable structured error from the API response', async () => {
     const fetchFn = vi.fn().mockResolvedValue(response(422, {
       error: { code: 'ENTRY_INVALID', message: 'Entry is invalid.', requestId: 'request-123' }

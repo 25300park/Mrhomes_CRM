@@ -39,10 +39,16 @@ type ApiErrorBody = {
 }
 
 function apiPath(path: string): string {
+  const pathError = new Error('Time management API paths must stay within the API namespace.')
   if (!path.startsWith('/') || path.startsWith('//')) {
-    throw new Error('Time management API paths must be relative.')
+    throw pathError
   }
-  return `${API_ROOT}${path}`
+  const origin = window.location.origin
+  const url = new URL(`${API_ROOT}${path}`, origin)
+  if (url.origin !== origin || (url.pathname !== API_ROOT && !url.pathname.startsWith(`${API_ROOT}/`))) {
+    throw pathError
+  }
+  return `${url.pathname}${url.search}`
 }
 
 function isMutation(method: string): boolean {
@@ -98,6 +104,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
   const getCsrfToken = options.getCsrfToken ?? createCsrfTokenGetter(fetchFn, redirectToLogin)
 
   async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    const requestPath = apiPath(path)
     const headers: Record<string, string> = { Accept: 'application/json' }
     const init: RequestInit = { credentials: 'same-origin', headers, method }
 
@@ -107,7 +114,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
       if (body !== undefined) init.body = JSON.stringify(body)
     }
 
-    const response = await fetchFn(apiPath(path), init)
+    const response = await fetchFn(requestPath, init)
     const responseBody = await parseJson(response)
     if (!response.ok) {
       const error = toApiError(response.status, responseBody as ApiErrorBody | undefined)
