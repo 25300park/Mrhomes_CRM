@@ -7,11 +7,17 @@
 node_modules/
 time-management-ui/node_modules/
 time-management-ui/dist/
+time-management-ui/coverage/
 
 # local implementation reports
 .superpowers/sdd/**/task-*-report.md
 task-10-report.md
 task-11-report.md
+task-12-report.md
+
+# Playwright local evidence (CI should archive separately)
+playwright-report/
+test-results/
 
 # logs
 *.log

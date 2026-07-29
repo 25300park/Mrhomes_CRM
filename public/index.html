@@ -196,7 +196,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 <div id="login-screen">
   <div class="login-box">
     <div style="text-align:center;margin-bottom:20px">
-      <img src="https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logo%20white-15.png" style="height:64px;object-fit:contain;display:block;margin:0 auto 8px">
+      <img src="https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logo%20white-15.png" alt="RBS Homes CRM" style="height:64px;object-fit:contain;display:block;margin:0 auto 8px">
     </div>
     <form id="lf">
       <label class="ll">Email</label>
@@ -215,7 +215,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 <div id="app">
   <aside id="sidebar">
     <div class="sb-logo" style="text-align:center;padding:12px 16px">
-      <img src="https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logo%20white-15.png" style="height:40px;object-fit:contain;max-width:100%">
+      <img src="https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logo%20white-15.png" alt="RBS Homes CRM" style="height:40px;object-fit:contain;max-width:100%">
     </div>
     <div style="flex:1;overflow-y:auto;padding-top:6px">
       <div class="nav-sec">Main</div>
@@ -1081,6 +1081,9 @@ async function doLogout() {
   csrfToken = null; me = null
   document.getElementById('app').style.display = 'none'
   document.getElementById('login-screen').style.display = 'flex'
+  const loginButton = document.getElementById('lbtn')
+  loginButton.disabled = false
+  loginButton.textContent = 'Sign In'
 }
 
 ;(async function restoreSession() {

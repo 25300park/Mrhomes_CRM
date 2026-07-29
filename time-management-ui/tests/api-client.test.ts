@@ -12,11 +12,11 @@ describe('time-management API client', () => {
 
     await client.get('/entries')
 
-    expect(fetchFn).toHaveBeenCalledWith('/api/time-management/entries', {
+    expect(fetchFn).toHaveBeenCalledWith('/api/time-management/entries', expect.objectContaining({
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
       method: 'GET'
-    })
+    }))
   })
 
   test('gets a CSRF token and sends it for mutations', async () => {
@@ -26,7 +26,7 @@ describe('time-management API client', () => {
 
     await client.post('/entries/manual', { categoryId: 'work' })
 
-    expect(fetchFn).toHaveBeenCalledWith('/api/time-management/entries/manual', {
+    expect(fetchFn).toHaveBeenCalledWith('/api/time-management/entries/manual', expect.objectContaining({
       body: JSON.stringify({ categoryId: 'work' }),
       credentials: 'same-origin',
       headers: {
@@ -35,7 +35,7 @@ describe('time-management API client', () => {
         'X-CSRF-Token': 'csrf-token'
       },
       method: 'POST'
-    })
+    }))
   })
 
   test.each([
@@ -81,6 +81,24 @@ describe('time-management API client', () => {
       message: 'Entry is invalid.',
       requestId: 'request-123',
       status: 422
+    }))
+  })
+
+  test('aborts a request that exceeds the configured deadline with a stable timeout error', async () => {
+    const fetchFn = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true })
+    })) as unknown as typeof fetch
+    const client = createApiClient({ fetchFn, requestTimeoutMs: 5 })
+
+    await expect(client.get('/entries')).rejects.toEqual(new ApiClientError({
+      code: 'REQUEST_TIMEOUT',
+      message: 'Time management request timed out.',
+      status: 408
+    }))
+
+    expect(fetchFn).toHaveBeenCalledWith('/api/time-management/entries', expect.objectContaining({
+      method: 'GET',
+      signal: expect.any(AbortSignal)
     }))
   })
 

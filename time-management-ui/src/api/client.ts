@@ -28,6 +28,7 @@ type ApiClientOptions = {
   fetchFn?: FetchFunction
   getCsrfToken?: () => Promise<string>
   redirectToLogin?: (path: string) => void
+  requestTimeoutMs?: number
 }
 
 type ApiErrorBody = {
@@ -79,13 +80,28 @@ function browserLoginRedirect(path: string): void {
   window.location.assign(path)
 }
 
-function createCsrfTokenGetter(fetchFn: FetchFunction, redirectToLogin: (path: string) => void): () => Promise<string> {
+async function fetchWithTimeout(fetchFn: FetchFunction, input: RequestInfo | URL, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetchFn(input, { ...init, signal: controller.signal })
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new ApiClientError({ code: 'REQUEST_TIMEOUT', message: 'Time management request timed out.', status: 408 })
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeout)
+  }
+}
+
+function createCsrfTokenGetter(fetchFn: FetchFunction, redirectToLogin: (path: string) => void, requestTimeoutMs: number): () => Promise<string> {
   return async () => {
-    const response = await fetchFn(apiPath('/csrf'), {
+    const response = await fetchWithTimeout(fetchFn, apiPath('/csrf'), {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
       method: 'GET'
-    })
+    }, requestTimeoutMs)
     const body = await parseJson(response) as { csrfToken?: unknown } | undefined
     if (!response.ok) {
       if (response.status === 401) redirectToLogin(CRM_LOGIN_PATH)
@@ -101,7 +117,8 @@ function createCsrfTokenGetter(fetchFn: FetchFunction, redirectToLogin: (path: s
 export function createApiClient(options: ApiClientOptions = {}) {
   const fetchFn = options.fetchFn ?? window.fetch.bind(window)
   const redirectToLogin = options.redirectToLogin ?? browserLoginRedirect
-  const getCsrfToken = options.getCsrfToken ?? createCsrfTokenGetter(fetchFn, redirectToLogin)
+  const requestTimeoutMs = options.requestTimeoutMs ?? 10_000
+  const getCsrfToken = options.getCsrfToken ?? createCsrfTokenGetter(fetchFn, redirectToLogin, requestTimeoutMs)
 
   async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const requestPath = apiPath(path)
@@ -114,7 +131,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
       if (body !== undefined) init.body = JSON.stringify(body)
     }
 
-    const response = await fetchFn(requestPath, init)
+    const response = await fetchWithTimeout(fetchFn, requestPath, init, requestTimeoutMs)
     const responseBody = await parseJson(response)
     if (!response.ok) {
       const error = toApiError(response.status, responseBody as ApiErrorBody | undefined)
