@@ -16,6 +16,8 @@ async function searchCrmLinks({ supabase, actor, query = '', types = TYPES, limi
   const selected = types.filter(type => TYPES.includes(type))
   const requestLimit = Math.min(limit, 50)
   const { data, error } = await supabase.rpc('time_search_crm_links', {
+    p_actor_id: actor.id,
+    p_actor_role: actor.role,
     p_query: query,
     p_types: selected,
     p_limit: requestLimit

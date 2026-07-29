@@ -10,7 +10,7 @@ const CONTACT = '60000000-0000-4000-8000-000000000001'
 
 function bearer() { return `Bearer ${jwt.sign({ id: ACTOR.id }, process.env.JWT_SECRET)}` }
 
-function entrySupabase({ rpcErrors = {} } = {}) {
+function entrySupabase({ rpcErrors = {}, replay = null, throwRpc = null } = {}) {
   const calls = []
   const active = { id: ENTRY, user_id: ACTOR.id, standard_category_id: STANDARD, entry_type: 'TIMER', started_at: '2026-07-29T01:00:00.000Z', ended_at: null }
   return {
@@ -18,8 +18,11 @@ function entrySupabase({ rpcErrors = {} } = {}) {
     supabase: {
       rpc(name, args) {
         calls.push({ operation: 'rpc', name, args })
+        if (name === throwRpc) throw new Error('unexpected database failure with private details')
         if (rpcErrors[name]) return Promise.resolve({ data: null, error: rpcErrors[name] })
-        if (name === 'time_resolve_crm_link') return Promise.resolve({ data: [{ id: CONTACT, type: 'CONTACT', label: 'Jane Client' }], error: null })
+        if (name === 'time_get_command_replay') {
+          return Promise.resolve({ data: replay ? [{ response_payload: replay }] : [], error: null })
+        }
         if (name === 'time_create_manual_entry') return Promise.resolve({ data: [{ entry_id: ENTRY, replayed: false }], error: null })
         if (name === 'time_revise_entry') return Promise.resolve({ data: [{ entry_id: ENTRY, revision_id: '70000000-0000-4000-8000-000000000001', replayed: false }], error: null })
         return Promise.resolve({ data: [{ stopped_entry_id: name === 'time_start_timer' ? null : ENTRY, started_entry_id: name === 'time_stop_timer' ? null : ENTRY, replayed: false }], error: null })
@@ -44,10 +47,19 @@ test('timer start and switch delegate to atomic idempotent RPCs with a frozen CR
   const body = { requestId: 'timer-1', standardCategoryId: STANDARD, crmLink: { type: 'CONTACT', id: CONTACT } }
   const started = await request(app).post('/api/time-management/entries/timer/start').set('Authorization', bearer()).send(body)
   expect(started.status).toBe(201)
-  expect(fixture.calls).toContainEqual({ operation: 'rpc', name: 'time_resolve_crm_link', args: { p_type: 'CONTACT', p_id: CONTACT } })
+  expect(fixture.calls.find(call => call.name === 'time_get_command_replay')).toEqual({ operation: 'rpc', name: 'time_get_command_replay', args: {
+    p_user_id: ACTOR.id,
+    p_request_id: 'timer-1',
+    p_command_type: 'START',
+    p_request_payload: {
+      standardCategoryId: STANDARD,
+      crmLink: { type: 'CONTACT', id: CONTACT },
+      businessTimeZone: 'Asia/Seoul'
+    }
+  } })
   expect(fixture.calls).toContainEqual({ operation: 'rpc', name: 'time_start_timer', args: expect.objectContaining({
-    p_user_id: ACTOR.id, p_request_id: 'timer-1', p_standard_category_id: STANDARD,
-    p_contact_id: CONTACT, p_linked_entity_label: 'Jane Client', p_business_time_zone: 'Asia/Seoul'
+    p_user_id: ACTOR.id, p_actor_role: ACTOR.role, p_request_id: 'timer-1', p_standard_category_id: STANDARD,
+    p_contact_id: CONTACT, p_linked_entity_label: null, p_business_time_zone: 'Asia/Seoul'
   }) })
 
   const switched = await request(app).post('/api/time-management/entries/timer/switch').set('Authorization', bearer())
@@ -73,8 +85,35 @@ test('manual entries are complete and revisions are owner-scoped atomic RPCs', a
   })
   expect(revised.status).toBe(200)
   expect(fixture.calls).toContainEqual({ operation: 'rpc', name: 'time_revise_entry', args: expect.objectContaining({
-    p_user_id: ACTOR.id, p_entry_id: ENTRY, p_request_id: 'revise-1'
+    p_user_id: ACTOR.id, p_actor_role: ACTOR.role, p_entry_id: ENTRY, p_request_id: 'revise-1'
   }) })
+})
+
+test('stored command replay is returned before any mutable CRM lookup', async () => {
+  const fixture = entrySupabase({ replay: { stopped_entry_id: null, started_entry_id: ENTRY } })
+  const response = await request(createTestApp({ supabase: fixture.supabase }))
+    .post('/api/time-management/entries/timer/start')
+    .set('Authorization', bearer())
+    .send({ requestId: 'replay-before-crm', standardCategoryId: STANDARD, crmLink: { type: 'CONTACT', id: CONTACT } })
+
+  expect(response.status).toBe(200)
+  expect(response.body).toEqual({ stopped_entry_id: null, started_entry_id: ENTRY, replayed: true })
+  expect(fixture.calls.map(call => call.name).filter(Boolean)).toEqual(['time_get_command_replay'])
+})
+
+test('revision canonicalizes patch field order before replay lookup and mutation', async () => {
+  const fixture = entrySupabase()
+  const response = await request(createTestApp({ supabase: fixture.supabase }))
+    .patch(`/api/time-management/entries/${ENTRY}`)
+    .set('Authorization', bearer())
+    .send({ requestId: 'canonical-revise', standardCategoryId: STANDARD, crmLink: null, notes: 'ordered' })
+
+  expect(response.status).toBe(200)
+  const replayCall = fixture.calls.find(call => call.name === 'time_get_command_replay')
+  expect(replayCall.args.p_request_payload.patchFields).toEqual(['crmLink', 'notes', 'standardCategoryId'])
+  expect(replayCall.args.p_request_payload).not.toHaveProperty('linkedEntityLabel')
+  const mutationCall = fixture.calls.find(call => call.name === 'time_revise_entry')
+  expect(mutationCall.args.p_patch_fields).toEqual(['crmLink', 'notes', 'standardCategoryId'])
 })
 
 test('entry validation rejects invalid timestamps, multiple links, and unknown keys before writes', async () => {
@@ -123,6 +162,17 @@ test('database conflicts map to stable request-scoped errors without exposing ow
   expect(response.body).toEqual({ error: { code: 'ACTIVE_TIMER_NOT_FOUND', message: expect.any(String), requestId: 'http-stop-1' } })
 })
 
+test('missing and inaccessible CRM links share the same non-disclosing API error', async () => {
+  const fixture = entrySupabase({ rpcErrors: { time_start_timer: { code: 'P0003', message: 'CRM link not found' } } })
+  const response = await request(createTestApp({ supabase: fixture.supabase }))
+    .post('/api/time-management/entries/timer/start')
+    .set('Authorization', bearer())
+    .set('X-Request-Id', 'crm-link-denied')
+    .send({ requestId: 'crm-link-denied', standardCategoryId: STANDARD, crmLink: { type: 'CONTACT', id: CONTACT } })
+  expect(response.status).toBe(404)
+  expect(response.body).toEqual({ error: { code: 'CRM_LINK_NOT_FOUND', message: expect.any(String), requestId: 'crm-link-denied' } })
+})
+
 test('Task 5 authentication and CSRF failures use the exact request-scoped error contract', async () => {
   const fixture = entrySupabase()
   const app = createTestApp({ supabase: fixture.supabase })
@@ -141,4 +191,33 @@ test('Task 5 authentication and CSRF failures use the exact request-scoped error
     .send({ requestId: 'stop-1' })
   expect(csrf.status).toBe(403)
   expect(csrf.body).toEqual({ error: { code: 'CSRF_INVALID', message: expect.any(String), requestId: 'csrf-1' } })
+})
+
+test('unknown nested methods and unexpected failures never leak to the CRM SPA or global error shape', async () => {
+  const fixture = entrySupabase({ throwRpc: 'time_get_command_replay' })
+  const app = createTestApp({ supabase: fixture.supabase })
+
+  const missingGet = await request(app)
+    .get('/api/time-management/not-a-route')
+    .set('Authorization', bearer())
+    .set('X-Request-Id', 'missing-get')
+  expect(missingGet.status).toBe(404)
+  expect(missingGet.type).toMatch(/json/)
+  expect(missingGet.body).toEqual({ error: { code: 'NOT_FOUND', message: expect.any(String), requestId: 'missing-get' } })
+
+  const missingPost = await request(app)
+    .post('/api/time-management/not-a-route')
+    .set('Authorization', bearer())
+    .set('X-Request-Id', 'missing-post')
+  expect(missingPost.status).toBe(404)
+  expect(missingPost.body.error).toMatchObject({ code: 'NOT_FOUND', requestId: 'missing-post' })
+
+  const failed = await request(app)
+    .post('/api/time-management/entries/timer/start')
+    .set('Authorization', bearer())
+    .set('X-Request-Id', 'unexpected-500')
+    .send({ requestId: 'unexpected-500', standardCategoryId: STANDARD })
+  expect(failed.status).toBe(500)
+  expect(failed.body).toEqual({ error: { code: 'INTERNAL_ERROR', message: expect.any(String), requestId: 'unexpected-500' } })
+  expect(JSON.stringify(failed.body)).not.toContain('private details')
 })

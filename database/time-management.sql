@@ -171,6 +171,187 @@ CREATE INDEX IF NOT EXISTS time_entries_user_started_idx
 CREATE INDEX IF NOT EXISTS time_entries_user_business_date_idx
   ON time_entries (user_id, business_date, started_at DESC);
 
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+ALTER TABLE time_entries
+  ADD COLUMN IF NOT EXISTS linked_entity_detached_at TIMESTAMPTZ;
+
+ALTER TABLE time_entries DROP CONSTRAINT IF EXISTS time_entries_crm_snapshot_pair_ck;
+ALTER TABLE time_entries ADD CONSTRAINT time_entries_crm_snapshot_pair_ck CHECK (
+  (
+    linked_entity_type IS NULL
+    AND linked_entity_id IS NULL
+    AND linked_entity_label IS NULL
+  )
+  OR (
+    linked_entity_type IS NOT NULL
+    AND linked_entity_id IS NOT NULL
+    AND linked_entity_label IS NOT NULL
+    AND btrim(linked_entity_label) <> ''
+  )
+);
+
+ALTER TABLE time_entries DROP CONSTRAINT IF EXISTS time_entries_crm_snapshot_ck;
+ALTER TABLE time_entries ADD CONSTRAINT time_entries_crm_snapshot_ck CHECK (
+  (
+    num_nonnulls(contact_id, listing_id, lead_id, deal_id) = 0
+    AND (
+      (linked_entity_type IS NULL AND linked_entity_id IS NULL
+        AND linked_entity_label IS NULL AND linked_entity_detached_at IS NULL)
+      OR
+      (linked_entity_type IS NOT NULL AND linked_entity_id IS NOT NULL
+        AND linked_entity_label IS NOT NULL AND linked_entity_detached_at IS NOT NULL)
+    )
+  )
+  OR (
+    num_nonnulls(contact_id, listing_id, lead_id, deal_id) = 1
+    AND linked_entity_detached_at IS NULL
+    AND linked_entity_id IS NOT DISTINCT FROM
+      COALESCE(contact_id, listing_id, lead_id, deal_id)
+    AND linked_entity_type IS NOT DISTINCT FROM CASE
+      WHEN contact_id IS NOT NULL THEN 'CONTACT'
+      WHEN listing_id IS NOT NULL THEN 'LISTING'
+      WHEN lead_id IS NOT NULL THEN 'LEAD'
+      WHEN deal_id IS NOT NULL THEN 'DEAL'
+    END
+  )
+);
+
+CREATE OR REPLACE FUNCTION time_enforce_crm_snapshot_transition()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = pg_catalog, pg_temp
+AS $$
+DECLARE
+  v_old_live_count INTEGER;
+  v_new_live_count INTEGER;
+BEGIN
+  v_new_live_count := pg_catalog.num_nonnulls(
+    NEW.contact_id, NEW.listing_id, NEW.lead_id, NEW.deal_id
+  );
+
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.linked_entity_detached_at IS NOT NULL THEN
+      RAISE EXCEPTION USING
+        ERRCODE = '23514', MESSAGE = 'detached CRM snapshots may only be created by source deletion',
+        CONSTRAINT = 'time_entries_crm_snapshot_transition';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  v_old_live_count := pg_catalog.num_nonnulls(
+    OLD.contact_id, OLD.listing_id, OLD.lead_id, OLD.deal_id
+  );
+
+  IF OLD.linked_entity_detached_at IS NOT NULL
+    AND NEW.linked_entity_detached_at IS NOT NULL
+    AND (
+      NEW.linked_entity_type IS DISTINCT FROM OLD.linked_entity_type
+      OR NEW.linked_entity_id IS DISTINCT FROM OLD.linked_entity_id
+      OR NEW.linked_entity_label IS DISTINCT FROM OLD.linked_entity_label
+      OR NEW.linked_entity_detached_at IS DISTINCT FROM OLD.linked_entity_detached_at
+      OR v_new_live_count <> 0
+    ) THEN
+    RAISE EXCEPTION USING
+      ERRCODE = '23514', MESSAGE = 'detached CRM snapshot is immutable',
+      CONSTRAINT = 'time_entries_crm_snapshot_transition';
+  END IF;
+
+  IF OLD.linked_entity_detached_at IS NULL
+    AND NEW.linked_entity_detached_at IS NOT NULL
+    AND NOT (
+      pg_catalog.pg_trigger_depth() > 1
+      AND v_old_live_count = 1
+      AND v_new_live_count = 0
+      AND NEW.linked_entity_type IS NOT DISTINCT FROM OLD.linked_entity_type
+      AND NEW.linked_entity_id IS NOT DISTINCT FROM OLD.linked_entity_id
+      AND NEW.linked_entity_label IS NOT DISTINCT FROM OLD.linked_entity_label
+    ) THEN
+    RAISE EXCEPTION USING
+      ERRCODE = '23514', MESSAGE = 'CRM link detachment requires source deletion',
+      CONSTRAINT = 'time_entries_crm_snapshot_transition';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS time_entries_crm_snapshot_transition_trg ON time_entries;
+CREATE TRIGGER time_entries_crm_snapshot_transition_trg
+  BEFORE INSERT OR UPDATE OF contact_id, listing_id, lead_id, deal_id,
+    linked_entity_type, linked_entity_id, linked_entity_label,
+    linked_entity_detached_at
+  ON time_entries
+  FOR EACH ROW EXECUTE FUNCTION time_enforce_crm_snapshot_transition();
+
+CREATE OR REPLACE FUNCTION time_detach_deleted_crm_source()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, pg_temp
+AS $$
+BEGIN
+  IF TG_TABLE_NAME = 'contacts' THEN
+    UPDATE public.time_entries SET contact_id = NULL,
+      linked_entity_detached_at = pg_catalog.now(), updated_at = pg_catalog.now()
+    WHERE contact_id = OLD.id;
+  ELSIF TG_TABLE_NAME = 'listings' THEN
+    UPDATE public.time_entries SET listing_id = NULL,
+      linked_entity_detached_at = pg_catalog.now(), updated_at = pg_catalog.now()
+    WHERE listing_id = OLD.id;
+  ELSIF TG_TABLE_NAME = 'leads' THEN
+    UPDATE public.time_entries SET lead_id = NULL,
+      linked_entity_detached_at = pg_catalog.now(), updated_at = pg_catalog.now()
+    WHERE lead_id = OLD.id;
+  ELSIF TG_TABLE_NAME = 'deals' THEN
+    UPDATE public.time_entries SET deal_id = NULL,
+      linked_entity_detached_at = pg_catalog.now(), updated_at = pg_catalog.now()
+    WHERE deal_id = OLD.id;
+  END IF;
+  RETURN OLD;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS time_detach_contact_links_trg ON contacts;
+CREATE TRIGGER time_detach_contact_links_trg
+  BEFORE DELETE ON contacts FOR EACH ROW EXECUTE FUNCTION time_detach_deleted_crm_source();
+DROP TRIGGER IF EXISTS time_detach_listing_links_trg ON listings;
+CREATE TRIGGER time_detach_listing_links_trg
+  BEFORE DELETE ON listings FOR EACH ROW EXECUTE FUNCTION time_detach_deleted_crm_source();
+DROP TRIGGER IF EXISTS time_detach_lead_links_trg ON leads;
+CREATE TRIGGER time_detach_lead_links_trg
+  BEFORE DELETE ON leads FOR EACH ROW EXECUTE FUNCTION time_detach_deleted_crm_source();
+DROP TRIGGER IF EXISTS time_detach_deal_links_trg ON deals;
+CREATE TRIGGER time_detach_deal_links_trg
+  BEFORE DELETE ON deals FOR EACH ROW EXECUTE FUNCTION time_detach_deleted_crm_source();
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_constraint
+    WHERE conrelid = 'time_entries'::regclass
+      AND conname = 'time_entries_user_time_overlap'
+  ) THEN
+    IF EXISTS (
+      SELECT 1
+      FROM time_entries left_entry
+      JOIN time_entries right_entry
+        ON right_entry.user_id = left_entry.user_id
+       AND right_entry.id > left_entry.id
+       AND tstzrange(left_entry.started_at, COALESCE(left_entry.ended_at, 'infinity'::TIMESTAMPTZ), '[)')
+         && tstzrange(right_entry.started_at, COALESCE(right_entry.ended_at, 'infinity'::TIMESTAMPTZ), '[)')
+    ) THEN
+      RAISE EXCEPTION USING
+        ERRCODE = '23P01', MESSAGE = 'preexisting time entries overlap',
+        CONSTRAINT = 'time_entries_user_time_overlap';
+    END IF;
+    EXECUTE 'ALTER TABLE time_entries ADD CONSTRAINT time_entries_user_time_overlap '
+      'EXCLUDE USING gist (user_id WITH =, '
+      'tstzrange(started_at, COALESCE(ended_at, ''infinity''::TIMESTAMPTZ), ''[)'') WITH &&)';
+  END IF;
+END;
+$$;
+
 CREATE TABLE IF NOT EXISTS time_commands (
   id UUID PRIMARY KEY DEFAULT pg_catalog.gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -396,5 +577,8 @@ BEGIN
   END IF;
 END;
 $$;
+
+REVOKE ALL ON FUNCTION time_enforce_crm_snapshot_transition() FROM PUBLIC;
+REVOKE ALL ON FUNCTION time_detach_deleted_crm_source() FROM PUBLIC;
 
 COMMIT;

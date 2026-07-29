@@ -10,10 +10,17 @@ const {
 
 const USER_A = '00000000-0000-0000-0000-000000000001'
 const USER_B = '00000000-0000-0000-0000-000000000002'
+const USER_C = '00000000-0000-0000-0000-000000000003'
 const STANDARD_A = '10000000-0000-0000-0000-000000000001'
 const PERSONAL_B = '20000000-0000-0000-0000-000000000002'
 const CONTACT_A = '30000000-0000-0000-0000-000000000001'
+const CONTACT_DELETE = '30000000-0000-0000-0000-000000000002'
+const CONTACT_FOR_LEAD = '30000000-0000-0000-0000-000000000003'
 const LISTING_A = '40000000-0000-0000-0000-000000000001'
+const LISTING_DELETE = '40000000-0000-0000-0000-000000000002'
+const LISTING_FOR_DEAL = '40000000-0000-0000-0000-000000000003'
+const LEAD_DELETE = '60000000-0000-0000-0000-000000000001'
+const DEAL_DELETE = '70000000-0000-0000-0000-000000000001'
 const PLAN_A = '50000000-0000-0000-0000-000000000001'
 const PLAN_B = '50000000-0000-0000-0000-000000000002'
 const WRONG_DATE_PLAN = '50000000-0000-0000-0000-000000000003'
@@ -150,9 +157,19 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
       CREATE TABLE deals (id UUID PRIMARY KEY, listing_id UUID REFERENCES listings(id), contract_date DATE NOT NULL);
       INSERT INTO users (id, name, email, password_hash, role) VALUES
         ('${USER_A}', 'Agent A', 'agent-a@example.test', 'fixture', 'agent'),
-        ('${USER_B}', 'Agent B', 'agent-b@example.test', 'fixture', 'agent');
-      INSERT INTO contacts (id, name) VALUES ('${CONTACT_A}', 'Fixture contact');
-      INSERT INTO listings (id, name) VALUES ('${LISTING_A}', 'Fixture listing');
+        ('${USER_B}', 'Agent B', 'agent-b@example.test', 'fixture', 'agent'),
+        ('${USER_C}', 'Agent C', 'agent-c@example.test', 'fixture', 'agent');
+      INSERT INTO contacts (id, name) VALUES
+        ('${CONTACT_A}', 'Fixture contact'),
+        ('${CONTACT_DELETE}', 'Deleted contact'),
+        ('${CONTACT_FOR_LEAD}', 'Deleted lead contact');
+      INSERT INTO listings (id, name) VALUES
+        ('${LISTING_A}', 'Fixture listing'),
+        ('${LISTING_DELETE}', 'Deleted listing'),
+        ('${LISTING_FOR_DEAL}', 'Deleted deal listing');
+      INSERT INTO leads (id, contact_id) VALUES ('${LEAD_DELETE}', '${CONTACT_FOR_LEAD}');
+      INSERT INTO deals (id, listing_id, contract_date)
+      VALUES ('${DEAL_DELETE}', '${LISTING_FOR_DEAL}', '2026-07-20');
     `)
     if (base.status !== 0) throw new Error('Could not create isolated fixture tables.')
 
@@ -216,9 +233,24 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
     `)
 
     expect(runSql(`SELECT string_agg(type || ':' || label, '|' ORDER BY label, type, id)
-      FROM time_search_crm_links('', ARRAY['LEAD', 'DEAL']::text[], 2);`)).toBe('LEAD:Alpha|DEAL:Alpha — 2026-07-01')
-    expect(runSql(`SELECT has_function_privilege('service_role', '${schemaName}.time_search_crm_links(text,text[],integer)', 'EXECUTE');`)).toBe('t')
-    expect(runSql(`SELECT has_function_privilege('anon', '${schemaName}.time_search_crm_links(text,text[],integer)', 'EXECUTE');`)).toBe('f')
+      FROM time_search_crm_links('${USER_A}', 'agent', '', ARRAY['LEAD', 'DEAL']::text[], 2);`)).toBe('LEAD:Alpha|DEAL:Alpha — 2026-07-01')
+    expect(runSql(`SELECT has_function_privilege('service_role', '${schemaName}.time_search_crm_links(uuid,text,text,text[],integer)', 'EXECUTE');`)).toBe('t')
+    expect(runSql(`SELECT has_function_privilege('anon', '${schemaName}.time_search_crm_links(uuid,text,text,text[],integer)', 'EXECUTE');`)).toBe('f')
+  })
+
+  test('uses one active actor/action policy for CRM search and exact resolution', () => {
+    expect(runSql(`SELECT count(*) FROM time_resolve_crm_link(
+      '${USER_A}', 'agent', 'CONTACT', '${CONTACT_A}');`)).toBe('1')
+    expect(runSql(`SELECT count(*) FROM time_resolve_crm_link(
+      '${USER_A}', 'admin', 'CONTACT', '${CONTACT_A}');`)).toBe('0')
+    expect(runSql(`SELECT count(*) FROM time_resolve_crm_link(
+      '${USER_A}', 'agent', 'CONTACT', 'ffffffff-ffff-4fff-8fff-ffffffffffff');`)).toBe('0')
+    runSql(`UPDATE users SET is_active = false WHERE id = '${USER_A}';`)
+    expect(runSql(`SELECT count(*) FROM time_resolve_crm_link(
+      '${USER_A}', 'agent', 'CONTACT', '${CONTACT_A}');`)).toBe('0')
+    expect(runSql(`SELECT count(*) FROM time_search_crm_links(
+      '${USER_A}', 'agent', '', ARRAY['CONTACT']::text[], 20);`)).toBe('0')
+    runSql(`UPDATE users SET is_active = true WHERE id = '${USER_A}';`)
   })
 
   test('enforces plan/personal ownership and NULL-safe allocation uniqueness', () => {
@@ -526,6 +558,172 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
       '${USER_B}', '${entryId}', 'revise-other-owner', NULL, NULL,
       NULL, NULL, 'stolen', ARRAY['notes']::text[],
       NULL, NULL, NULL, NULL, NULL);`, { sqlState: '42501' })
+  })
+
+  test('enforces non-overlap for direct writes, timer commands, manual entries, and revisions', () => {
+    runSql(`DELETE FROM time_commands WHERE user_id = '${USER_C}'; DELETE FROM time_entries WHERE user_id = '${USER_C}';`)
+    runSql(`INSERT INTO time_entries
+      (user_id, business_date, standard_category_id, entry_type, started_at, ended_at, duration_seconds)
+      VALUES ('${USER_C}', '2026-07-16', '${STANDARD_A}', 'MANUAL',
+        '2026-07-16T01:00:00Z', '2026-07-16T02:00:00Z', 3600);`)
+    expectSqlFailure(`INSERT INTO time_entries
+      (user_id, business_date, standard_category_id, entry_type, started_at, ended_at, duration_seconds)
+      VALUES ('${USER_C}', '2026-07-16', '${STANDARD_A}', 'MANUAL',
+        '2026-07-16T01:30:00Z', '2026-07-16T02:30:00Z', 3600);`,
+    { sqlState: '23P01', constraint: 'time_entries_user_time_overlap' })
+    runSql(`INSERT INTO time_entries
+      (user_id, business_date, standard_category_id, entry_type, started_at, ended_at, duration_seconds)
+      VALUES ('${USER_C}', '2026-07-16', '${STANDARD_A}', 'MANUAL',
+        '2026-07-16T02:00:00Z', '2026-07-16T03:00:00Z', 3600);`)
+
+    expectSqlFailure(`SELECT * FROM time_start_timer(
+      '${USER_C}', 'agent', 'backdated-start-overlap', '${STANDARD_A}',
+      p_started_at => '2026-07-16T01:15:00Z');`,
+    { sqlState: '23P01', constraint: 'time_entries_user_time_overlap' })
+    expectSqlFailure(`SELECT * FROM time_create_manual_entry(
+      '${USER_C}', 'manual-overlap-db-constraint', '${STANDARD_A}', NULL, NULL,
+      NULL, NULL, NULL, NULL, NULL,
+      '2026-07-16T02:30:00Z', '2026-07-16T03:30:00Z', NULL, 'Asia/Seoul', 'agent');`,
+    { sqlState: '23P01', constraint: 'time_entries_user_time_overlap' })
+
+    const boundaryId = runSql(`SELECT id FROM time_entries WHERE user_id = '${USER_C}'
+      AND started_at = '2026-07-16T02:00:00Z';`)
+    expectSqlFailure(`SELECT * FROM time_revise_entry(
+      '${USER_C}', '${boundaryId}', 'revise-overlap-db-constraint', NULL, NULL,
+      '2026-07-16T01:30:00Z', NULL, NULL, ARRAY['startedAt']::text[],
+      NULL, NULL, NULL, NULL, NULL, 'agent');`,
+    { sqlState: '23P01', constraint: 'time_entries_user_time_overlap' })
+    expect(runSql(`SELECT started_at FROM time_entries WHERE id = '${boundaryId}';`)).toBe('2026-07-16 02:00:00+00')
+    expect(runSql(`SELECT count(*) FROM time_entry_revisions WHERE entry_id = '${boundaryId}';`)).toBe('0')
+
+    runSql(`DELETE FROM time_commands WHERE user_id = '${USER_C}'; DELETE FROM time_entries WHERE user_id = '${USER_C}';
+      ALTER TABLE time_entries DROP CONSTRAINT time_entries_user_time_overlap;
+      INSERT INTO time_entries
+        (user_id, business_date, standard_category_id, entry_type, started_at, ended_at, duration_seconds)
+      VALUES
+        ('${USER_C}', '2026-07-18', '${STANDARD_A}', 'MANUAL', '2026-07-18T01:00:00Z', '2026-07-18T03:00:00Z', 7200),
+        ('${USER_C}', '2026-07-18', '${STANDARD_A}', 'MANUAL', '2026-07-18T02:00:00Z', '2026-07-18T04:00:00Z', 7200);`)
+    const conflictingMigration = psql(migrationSql().schema)
+    expect(conflictingMigration.status).not.toBe(0)
+    expect(conflictingMigration.stderr).toContain('time_entries_user_time_overlap')
+    runSql(`DELETE FROM time_entries WHERE user_id = '${USER_C}' AND business_date = '2026-07-18';`)
+    const restoredMigration = psql(migrationSql().schema)
+    expect(restoredMigration.status).toBe(0)
+  }, 40_000)
+
+  test('replays canonical CRM commands before actor and mutable source checks', () => {
+    runSql(`DELETE FROM time_commands WHERE user_id = '${USER_B}'; DELETE FROM time_entries WHERE user_id = '${USER_B}';`)
+    const first = runSql(`SELECT entry_id FROM time_create_manual_entry(
+      '${USER_B}', 'crm-replay-before-lookup', '${STANDARD_A}', NULL, NULL,
+      '${CONTACT_DELETE}', NULL, NULL, NULL, NULL,
+      '2026-07-20T01:00:00Z', '2026-07-20T02:00:00Z', 'original', 'Asia/Seoul', 'agent');`)
+    expect(runSql(`SELECT linked_entity_label FROM time_entries WHERE id = '${first}';`)).toBe('Deleted contact')
+    runSql(`UPDATE contacts SET name = 'Renamed after command' WHERE id = '${CONTACT_DELETE}';
+      UPDATE users SET is_active = false WHERE id = '${USER_B}';`)
+    expect(runSql(`SELECT entry_id || '|' || replayed FROM time_create_manual_entry(
+      '${USER_B}', 'crm-replay-before-lookup', '${STANDARD_A}', NULL, NULL,
+      '${CONTACT_DELETE}', NULL, NULL, NULL, 'ignored changed label',
+      '2026-07-20T01:00:00Z', '2026-07-20T02:00:00Z', 'original', 'Asia/Seoul', 'agent');`))
+      .toMatch(new RegExp(`^${first}\\|(t|true)$`))
+    runSql(`UPDATE users SET is_active = true WHERE id = '${USER_B}'; DELETE FROM contacts WHERE id = '${CONTACT_DELETE}';`)
+    expect(runSql(`SELECT entry_id FROM time_create_manual_entry(
+      '${USER_B}', 'crm-replay-before-lookup', '${STANDARD_A}', NULL, NULL,
+      '${CONTACT_DELETE}', NULL, NULL, NULL, NULL,
+      '2026-07-20T01:00:00Z', '2026-07-20T02:00:00Z', 'original', 'Asia/Seoul', 'agent');`)).toBe(first)
+    expectSqlFailure(`SELECT * FROM time_create_manual_entry(
+      '${USER_B}', 'crm-replay-before-lookup', '${STANDARD_A}', NULL, NULL,
+      NULL, NULL, NULL, NULL, NULL,
+      '2026-07-20T01:00:00Z', '2026-07-20T02:00:00Z', 'changed', 'Asia/Seoul', 'agent');`,
+    { sqlState: '23505', constraint: 'time_commands_user_id_request_id_key' })
+  })
+
+  test('preserves attached snapshots through source deletion and no-link revisions', () => {
+    const listingEntry = runSql(`SELECT entry_id FROM time_create_manual_entry(
+      '${USER_B}', 'detach-listing', '${STANDARD_A}', NULL, NULL,
+      NULL, '${LISTING_DELETE}', NULL, NULL, NULL,
+      '2026-07-20T02:00:00Z', '2026-07-20T03:00:00Z', NULL, 'Asia/Seoul', 'agent');`)
+    const leadEntry = runSql(`SELECT entry_id FROM time_create_manual_entry(
+      '${USER_B}', 'detach-lead', '${STANDARD_A}', NULL, NULL,
+      NULL, NULL, '${LEAD_DELETE}', NULL, NULL,
+      '2026-07-20T03:00:00Z', '2026-07-20T04:00:00Z', NULL, 'Asia/Seoul', 'agent');`)
+    const dealEntry = runSql(`SELECT entry_id FROM time_create_manual_entry(
+      '${USER_B}', 'detach-deal', '${STANDARD_A}', NULL, NULL,
+      NULL, NULL, NULL, '${DEAL_DELETE}', NULL,
+      '2026-07-20T04:00:00Z', '2026-07-20T05:00:00Z', NULL, 'Asia/Seoul', 'agent');`)
+
+    runSql(`DELETE FROM listings WHERE id = '${LISTING_DELETE}';
+      DELETE FROM leads WHERE id = '${LEAD_DELETE}';
+      DELETE FROM deals WHERE id = '${DEAL_DELETE}';`)
+    expect(runSql(`SELECT count(*) FROM time_entries
+      WHERE request_id IN ('crm-replay-before-lookup', 'detach-listing', 'detach-lead', 'detach-deal')
+      AND num_nonnulls(contact_id, listing_id, lead_id, deal_id) = 0
+      AND linked_entity_type IS NOT NULL AND linked_entity_id IS NOT NULL
+      AND btrim(linked_entity_label) <> '' AND linked_entity_detached_at IS NOT NULL;`)).toBe('4')
+
+    expectSqlFailure(`INSERT INTO time_entries
+      (user_id, business_date, standard_category_id, entry_type, started_at, ended_at, duration_seconds,
+       linked_entity_type, linked_entity_id, linked_entity_label, linked_entity_detached_at)
+      VALUES ('${USER_B}', '2026-07-20', '${STANDARD_A}', 'MANUAL',
+       '2026-07-20T05:00:00Z', '2026-07-20T06:00:00Z', 3600,
+       'CONTACT', '${CONTACT_A}', 'forged detached snapshot', now());`,
+    { sqlState: '23514', constraint: 'time_entries_crm_snapshot_transition' })
+
+    const attached = runSql(`SELECT entry_id FROM time_create_manual_entry(
+      '${USER_B}', 'attached-direct-orphan', '${STANDARD_A}', NULL, NULL,
+      '${CONTACT_A}', NULL, NULL, NULL, NULL,
+      '2026-07-20T05:00:00Z', '2026-07-20T06:00:00Z', NULL, 'Asia/Seoul', 'agent');`)
+    expectSqlFailure(`UPDATE time_entries SET contact_id = NULL, linked_entity_detached_at = now()
+      WHERE id = '${attached}';`, { sqlState: '23514', constraint: 'time_entries_crm_snapshot_transition' })
+
+    runSql(`SELECT * FROM time_revise_entry(
+      '${USER_B}', '${listingEntry}', 'detached-notes-revision', NULL, NULL,
+      NULL, NULL, 'snapshot remains', ARRAY['notes','notes']::text[],
+      NULL, NULL, NULL, NULL, NULL, 'agent');`)
+    expect(runSql(`SELECT linked_entity_type || '|' || linked_entity_label || '|' ||
+      (linked_entity_detached_at IS NOT NULL) FROM time_entries WHERE id = '${listingEntry}';`))
+      .toMatch(/^LISTING\|Deleted listing\|(t|true)$/)
+    expect(runSql(`SELECT replayed FROM time_revise_entry(
+      '${USER_B}', '${listingEntry}', 'detached-notes-revision', NULL, NULL,
+      NULL, NULL, 'snapshot remains', ARRAY['notes']::text[],
+      NULL, NULL, NULL, NULL, NULL, 'agent');`)).toMatch(/^(t|true)$/)
+    expect(runSql(`SELECT count(*) FROM time_entries WHERE id IN ('${listingEntry}', '${leadEntry}', '${dealEntry}');`)).toBe('3')
+  })
+
+  test('writes revision audit before update and rolls it back when the update fails', () => {
+    const entryId = runSql(`SELECT entry_id FROM time_create_manual_entry(
+      '${USER_A}', 'audit-order-entry', '${STANDARD_A}', NULL, NULL,
+      NULL, NULL, NULL, NULL, NULL,
+      '2026-07-21T01:00:00Z', '2026-07-21T02:00:00Z', 'before', 'Asia/Seoul', 'agent');`)
+    runSql(`CREATE FUNCTION time_test_require_audit_before_update() RETURNS trigger
+      LANGUAGE plpgsql AS $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM ${schemaName}.time_entry_revisions WHERE entry_id = OLD.id) THEN
+          RAISE EXCEPTION 'revision audit must exist before update';
+        END IF;
+        RETURN NEW;
+      END $$;
+      CREATE TRIGGER time_test_require_audit_before_update_trg
+      BEFORE UPDATE ON time_entries FOR EACH ROW EXECUTE FUNCTION time_test_require_audit_before_update();`)
+    expect(runSql(`SELECT revision_id FROM time_revise_entry(
+      '${USER_A}', '${entryId}', 'audit-before-update', NULL, NULL,
+      NULL, NULL, 'after', ARRAY['notes']::text[],
+      NULL, NULL, NULL, NULL, NULL, 'agent');`)).toMatch(/^[0-9a-f-]{36}$/)
+    runSql(`DROP TRIGGER time_test_require_audit_before_update_trg ON time_entries;
+      DROP FUNCTION time_test_require_audit_before_update();`)
+
+    const beforeCount = runSql(`SELECT count(*) FROM time_entry_revisions WHERE entry_id = '${entryId}';`)
+    runSql(`CREATE FUNCTION time_test_fail_after_entry_update() RETURNS trigger
+      LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'forced update failure'; END $$;
+      CREATE TRIGGER time_test_fail_after_entry_update_trg
+      AFTER UPDATE ON time_entries FOR EACH ROW EXECUTE FUNCTION time_test_fail_after_entry_update();`)
+    expectSqlFailure(`SELECT * FROM time_revise_entry(
+      '${USER_A}', '${entryId}', 'audit-rollback', NULL, NULL,
+      NULL, NULL, 'must rollback', ARRAY['notes']::text[],
+      NULL, NULL, NULL, NULL, NULL, 'agent');`, { sqlState: 'P0001' })
+    expect(runSql(`SELECT count(*) FROM time_entry_revisions WHERE entry_id = '${entryId}';`)).toBe(beforeCount)
+    expect(runSql(`SELECT notes FROM time_entries WHERE id = '${entryId}';`)).toBe('after')
+    expect(runSql(`SELECT count(*) FROM time_commands WHERE user_id = '${USER_A}' AND request_id = 'audit-rollback';`)).toBe('0')
+    runSql(`DROP TRIGGER time_test_fail_after_entry_update_trg ON time_entries;
+      DROP FUNCTION time_test_fail_after_entry_update();`)
   })
 
   test('keeps Push endpoints globally unique and tracks account reassignment', () => {

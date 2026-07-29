@@ -72,7 +72,9 @@ test('CRM link search finds a lead match beyond the first client page before app
 
   expect(response.status).toBe(200)
   expect(response.body.data).toEqual([{ id: 'lead-21', type: 'LEAD', label: 'Needle client' }])
-  expect(fixture.calls).toContainEqual({ operation: 'rpc', name: 'time_search_crm_links', args: { p_query: 'needle', p_types: ['LEAD'], p_limit: 1 } })
+  expect(fixture.calls).toContainEqual({ operation: 'rpc', name: 'time_search_crm_links', args: {
+    p_actor_id: actor.id, p_actor_role: actor.role, p_query: 'needle', p_types: ['LEAD'], p_limit: 1
+  } })
 })
 
 test('CRM link search treats ILIKE wildcard characters as literal search text', async () => {
@@ -84,7 +86,9 @@ test('CRM link search treats ILIKE wildcard characters as literal search text', 
 
   expect(response.status).toBe(200)
   expect(response.body.data).toEqual([{ id: 'percent', type: 'CONTACT', label: '100% complete' }])
-  expect(fixture.calls).toContainEqual({ operation: 'rpc', name: 'time_search_crm_links', args: { p_query: '%', p_types: ['CONTACT'], p_limit: 20 } })
+  expect(fixture.calls).toContainEqual({ operation: 'rpc', name: 'time_search_crm_links', args: {
+    p_actor_id: actor.id, p_actor_role: actor.role, p_query: '%', p_types: ['CONTACT'], p_limit: 20
+  } })
   expect(fixture.calls.filter(call => ['contacts', 'listings', 'leads', 'deals'].includes(call.table))).toEqual([])
 })
 
@@ -117,7 +121,7 @@ test('CRM link search delegates exact global top-N ordering to the bounded datab
   expect(fixture.calls).toContainEqual({
     operation: 'rpc',
     name: 'time_search_crm_links',
-    args: { p_query: '', p_types: ['LEAD'], p_limit: 1 }
+    args: { p_actor_id: actor.id, p_actor_role: actor.role, p_query: '', p_types: ['LEAD'], p_limit: 1 }
   })
   expect(fixture.calls.filter(call => ['leads', 'deals'].includes(call.table))).toEqual([])
 })

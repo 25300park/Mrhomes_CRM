@@ -6,6 +6,7 @@ const LINK_COLUMNS = { CONTACT: 'contact', LISTING: 'listing', LEAD: 'lead', DEA
 
 function mapDatabaseError(error) {
   const constraint = error?.constraint || error?.details || ''
+  if (error?.code === 'P0003') return new TimeManagementError('CRM_LINK_NOT_FOUND', '연결할 수 있는 CRM 항목을 찾을 수 없습니다.', 404)
   if (error?.code === 'P0002') return new TimeManagementError('ACTIVE_TIMER_NOT_FOUND', '진행 중인 타이머를 찾을 수 없습니다.', 404)
   if (error?.code === '23505' && String(constraint).includes('active_user')) return new TimeManagementError('ACTIVE_TIMER_EXISTS', '이미 진행 중인 타이머가 있습니다.', 409)
   if (error?.code === '23505') return new TimeManagementError('REQUEST_ID_CONFLICT', '이미 다른 요청에 사용된 요청 ID입니다.', 409)
@@ -30,13 +31,37 @@ function linkArguments(link) {
   const values = { p_contact_id: null, p_listing_id: null, p_lead_id: null, p_deal_id: null, p_linked_entity_label: null }
   if (!link) return values
   values[`p_${LINK_COLUMNS[link.type]}_id`] = link.id
-  values.p_linked_entity_label = link.label
   return values
+}
+
+function compactPayload(value) {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined && item !== null))
+}
+
+function canonicalTimestamp(value) {
+  return value == null ? value : new Date(value).toISOString()
+}
+
+function canonicalCrmLink(crmLink) {
+  return crmLink ? { type: crmLink.type, id: crmLink.id } : crmLink
+}
+
+async function getCommandReplay(supabase, actor, requestId, commandType, requestPayload) {
+  const { data, error } = await supabase.rpc('time_get_command_replay', {
+    p_user_id: actor.id,
+    p_request_id: requestId,
+    p_command_type: commandType,
+    p_request_payload: compactPayload(requestPayload)
+  })
+  if (error) throw mapDatabaseError(error)
+  const row = Array.isArray(data) ? data[0] : data
+  return row?.response_payload ? { ...row.response_payload, replayed: true } : null
 }
 
 function timerArguments(actor, input, link, timestampKey) {
   return {
     p_user_id: actor.id,
+    p_actor_role: actor.role,
     p_request_id: input.requestId,
     p_standard_category_id: input.standardCategoryId,
     p_personal_category_id: input.personalCategoryId ?? null,
@@ -49,8 +74,17 @@ function timerArguments(actor, input, link, timestampKey) {
 
 async function runTimer({ supabase, actor, input, rpc, timestampKey }) {
   requireActiveTimeActor(actor)
-  const link = await resolveCrmLink(supabase, input.crmLink)
-  const { data, error } = await supabase.rpc(rpc, timerArguments(actor, input, link, timestampKey))
+  const commandType = rpc === 'time_start_timer' ? 'START' : 'SWITCH'
+  const replay = await getCommandReplay(supabase, actor, input.requestId, commandType, {
+    standardCategoryId: input.standardCategoryId,
+    personalCategoryId: input.personalCategoryId,
+    dailyPlanId: input.dailyPlanId,
+    crmLink: canonicalCrmLink(input.crmLink),
+    commandAt: canonicalTimestamp(input.commandAt),
+    businessTimeZone: DEFAULT_BUSINESS_TIME_ZONE
+  })
+  if (replay) return replay
+  const { data, error } = await supabase.rpc(rpc, timerArguments(actor, input, input.crmLink, timestampKey))
   if (error) throw mapDatabaseError(error)
   return Array.isArray(data) ? data[0] : data
 }
@@ -60,8 +94,14 @@ function switchTimer(args) { return runTimer({ ...args, rpc: 'time_switch_timer'
 
 async function stopTimer({ supabase, actor, input }) {
   requireActiveTimeActor(actor)
+  const replay = await getCommandReplay(supabase, actor, input.requestId, 'STOP', {
+    commandAt: canonicalTimestamp(input.commandAt),
+    businessTimeZone: DEFAULT_BUSINESS_TIME_ZONE
+  })
+  if (replay) return replay
   const { data, error } = await supabase.rpc('time_stop_timer', {
     p_user_id: actor.id,
+    p_actor_role: actor.role,
     p_request_id: input.requestId,
     p_stopped_at: input.commandAt ?? null,
     p_business_time_zone: DEFAULT_BUSINESS_TIME_ZONE
@@ -72,13 +112,23 @@ async function stopTimer({ supabase, actor, input }) {
 
 async function createManualEntry({ supabase, actor, input }) {
   requireActiveTimeActor(actor)
-  const link = await resolveCrmLink(supabase, input.crmLink)
+  const replay = await getCommandReplay(supabase, actor, input.requestId, 'MANUAL', {
+    standardCategoryId: input.standardCategoryId,
+    personalCategoryId: input.personalCategoryId,
+    dailyPlanId: input.dailyPlanId,
+    crmLink: canonicalCrmLink(input.crmLink),
+    startedAt: canonicalTimestamp(input.startedAt),
+    endedAt: canonicalTimestamp(input.endedAt),
+    notes: input.notes,
+    businessTimeZone: DEFAULT_BUSINESS_TIME_ZONE
+  })
+  if (replay) return replay
   const { data, error } = await supabase.rpc('time_create_manual_entry', {
-    p_user_id: actor.id, p_request_id: input.requestId,
+    p_user_id: actor.id, p_actor_role: actor.role, p_request_id: input.requestId,
     p_standard_category_id: input.standardCategoryId,
     p_personal_category_id: input.personalCategoryId ?? null,
     p_daily_plan_id: input.dailyPlanId ?? null,
-    ...linkArguments(link),
+    ...linkArguments(input.crmLink),
     p_started_at: input.startedAt, p_ended_at: input.endedAt,
     p_notes: input.notes ?? null, p_business_time_zone: DEFAULT_BUSINESS_TIME_ZONE
   })
@@ -88,15 +138,26 @@ async function createManualEntry({ supabase, actor, input }) {
 
 async function reviseTimeEntry({ supabase, actor, entryId, input }) {
   requireActiveTimeActor(actor)
-  const link = input.crmLink === undefined ? undefined : await resolveCrmLink(supabase, input.crmLink)
+  const patchFields = [...new Set(Object.keys(input).filter(key => key !== 'requestId'))].sort()
+  const replay = await getCommandReplay(supabase, actor, input.requestId, 'REVISE', {
+    entryId,
+    standardCategoryId: input.standardCategoryId,
+    personalCategoryId: input.personalCategoryId,
+    startedAt: canonicalTimestamp(input.startedAt),
+    endedAt: canonicalTimestamp(input.endedAt),
+    notes: input.notes,
+    patchFields,
+    crmLink: canonicalCrmLink(input.crmLink)
+  })
+  if (replay) return replay
   const args = {
-    p_user_id: actor.id, p_entry_id: entryId, p_request_id: input.requestId,
+    p_user_id: actor.id, p_actor_role: actor.role, p_entry_id: entryId, p_request_id: input.requestId,
     p_standard_category_id: input.standardCategoryId ?? null,
     p_personal_category_id: input.personalCategoryId ?? null,
     p_started_at: input.startedAt ?? null, p_ended_at: input.endedAt ?? null,
     p_notes: input.notes === undefined ? null : input.notes,
-    p_patch_fields: Object.keys(input).filter(key => key !== 'requestId'),
-    ...linkArguments(link)
+    p_patch_fields: patchFields,
+    ...linkArguments(input.crmLink)
   }
   const { data, error } = await supabase.rpc('time_revise_entry', args)
   if (error) throw mapDatabaseError(error)
