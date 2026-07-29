@@ -24,7 +24,9 @@ function createTimeJobPoll({
 }) {
   return async () => {
     try {
-      await scheduleReminders({ supabase })
+      const scheduling = await scheduleReminders({ supabase })
+      const failedCount = scheduling?.outcomes?.filter((outcome) => outcome?.reason === 'SCHEDULE_FAILED').length || 0
+      if (failedCount) logger.warn?.('[Scheduler] reflection reminder user scheduling failures:', failedCount)
     } catch (error) {
       logger.error('[Scheduler] reflection reminder scheduling failed:', error.message)
     }

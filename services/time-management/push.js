@@ -47,13 +47,27 @@ function loadPushKeyring(env = process.env) {
 function validatePushRuntimeConfig(env = process.env, { production = isProductionRuntime(env) } = {}) {
   if (!production) return null
   const keyring = loadPushKeyring(env)
+  legacyKeyIds(env, keyring)
   for (const name of ['VAPID_SUBJECT', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY']) {
     if (!env[name]) throw new Error(`${name} is required in production.`)
   }
   let subject
   try { subject = new URL(env.VAPID_SUBJECT) } catch { throw new Error('VAPID_SUBJECT must be a mailto: or https: URL.') }
   if (!['mailto:', 'https:'].includes(subject.protocol)) throw new Error('VAPID_SUBJECT must be a mailto: or https: URL.')
+  const publicKey = decodeVapidKey(env.VAPID_PUBLIC_KEY, 'VAPID_PUBLIC_KEY', 65)
+  const privateKey = decodeVapidKey(env.VAPID_PRIVATE_KEY, 'VAPID_PRIVATE_KEY', 32)
+  if (publicKey[0] !== 4) throw new Error('VAPID_PUBLIC_KEY must be an uncompressed P-256 public key.')
+  webpush.setVapidDetails(env.VAPID_SUBJECT, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY)
   return { activeKeyId: keyring.activeKeyId }
+}
+
+function decodeVapidKey(value, name, expectedLength) {
+  if (!/^[A-Za-z0-9_-]+$/.test(value || '')) throw new Error(`${name} must use canonical unpadded base64url.`)
+  const decoded = Buffer.from(value, 'base64url')
+  if (decoded.toString('base64url') !== value || decoded.length !== expectedLength) {
+    throw new Error(`${name} has an invalid canonical base64url length.`)
+  }
+  return decoded
 }
 
 function encryptPushKey(value) {

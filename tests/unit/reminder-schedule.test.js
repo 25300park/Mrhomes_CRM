@@ -1,4 +1,5 @@
 const crypto = require('node:crypto')
+const webpush = require('web-push')
 const {
   assertSafePushEndpoint,
   createSafeLookup,
@@ -238,16 +239,21 @@ test('rejects non-canonical or wrong-length encryption keys before encryption', 
 })
 
 test('validates Push keyring and VAPID configuration during production startup', () => {
+  const vapid = webpush.generateVAPIDKeys()
   const valid = {
     NODE_ENV: 'production',
     TIME_PUSH_ACTIVE_KEY_ID: 'current',
     TIME_PUSH_ENCRYPTION_KEYS: `current=${Buffer.alloc(32, 7).toString('base64')}`,
     VAPID_SUBJECT: 'mailto:ops@example.com',
-    VAPID_PUBLIC_KEY: 'public',
-    VAPID_PRIVATE_KEY: 'private'
+    VAPID_PUBLIC_KEY: vapid.publicKey,
+    VAPID_PRIVATE_KEY: vapid.privateKey
   }
   expect(() => validatePushRuntimeConfig({ ...valid, TIME_PUSH_ENCRYPTION_KEYS: 'current=bad' })).toThrow(/canonical base64|32-byte/)
   expect(() => validatePushRuntimeConfig({ ...valid, VAPID_PRIVATE_KEY: '' })).toThrow(/VAPID_PRIVATE_KEY/)
+  expect(() => validatePushRuntimeConfig({ ...valid, VAPID_PUBLIC_KEY: `${vapid.publicKey}=` })).toThrow()
+  expect(() => validatePushRuntimeConfig({ ...valid, VAPID_PUBLIC_KEY: Buffer.alloc(64, 4).toString('base64url') })).toThrow()
+  expect(() => validatePushRuntimeConfig({ ...valid, VAPID_PRIVATE_KEY: Buffer.alloc(31, 4).toString('base64url') })).toThrow()
+  expect(() => validatePushRuntimeConfig({ ...valid, TIME_PUSH_LEGACY_KEY_IDS: 'missing' })).toThrow(/TIME_PUSH_LEGACY_KEY_IDS/)
   expect(validatePushRuntimeConfig(valid)).toMatchObject({ activeKeyId: 'current' })
   expect(validatePushRuntimeConfig({ NODE_ENV: 'test' })).toBeNull()
 })
