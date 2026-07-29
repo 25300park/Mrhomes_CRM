@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken')
 const request = require('supertest')
 const { createTestApp } = require('../helpers/app')
 const { SESSION_COOKIE } = require('../../services/session')
+const { createCsrfToken } = require('../../middleware/csrf')
 
 const ACTOR = { id: '10000000-0000-4000-8000-000000000001', role: 'agent', is_active: true }
 const STANDARD = '20000000-0000-4000-8000-000000000001'
@@ -9,6 +10,29 @@ const ENTRY = '50000000-0000-4000-8000-000000000001'
 const CONTACT = '60000000-0000-4000-8000-000000000001'
 
 function bearer() { return `Bearer ${jwt.sign({ id: ACTOR.id }, process.env.JWT_SECRET)}` }
+
+test('time-management session and CSRF endpoints use the shared CRM cookie session', async () => {
+  const token = jwt.sign({ id: ACTOR.id }, process.env.JWT_SECRET)
+  const supabase = {
+    from() {
+      return {
+        select() { return this },
+        eq() { return this },
+        single() { return Promise.resolve({ data: ACTOR, error: null }) }
+      }
+    }
+  }
+  const app = createTestApp({ supabase })
+
+  const session = await request(app).get('/api/time-management/session').set('Authorization', bearer())
+  const csrf = await request(app).get('/api/time-management/csrf').set('Cookie', `${SESSION_COOKIE}=${token}`)
+  const bearerCsrf = await request(app).get('/api/time-management/csrf').set('Authorization', bearer())
+
+  expect(session.body).toEqual({ role: 'agent' })
+  expect(csrf.body).toEqual({ csrfToken: createCsrfToken(token) })
+  expect(bearerCsrf.status).toBe(400)
+  expect(bearerCsrf.body.error).toMatchObject({ code: 'COOKIE_SESSION_REQUIRED' })
+})
 
 function entrySupabase({ rpcErrors = {}, replay = null, throwRpc = null } = {}) {
   const calls = []

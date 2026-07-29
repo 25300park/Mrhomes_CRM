@@ -2,6 +2,7 @@ const router = require('express').Router()
 const crypto = require('node:crypto')
 const { ZodError } = require('zod')
 const auth = require('../../middleware/auth')
+const { createCsrfToken } = require('../../middleware/csrf')
 const { TimeManagementError } = require('../../services/time-management/errors')
 
 router.use((req, _res, next) => {
@@ -12,6 +13,15 @@ router.use((req, _res, next) => {
   next()
 })
 router.use(auth)
+router.get('/session', (req, res) => {
+  res.json({ role: req.user.role })
+})
+router.get('/csrf', (req, res) => {
+  if (req.auth.method !== 'cookie') {
+    return res.status(400).json({ error: { code: 'COOKIE_SESSION_REQUIRED', message: 'A CRM cookie session is required.', requestId: req.timeRequestId } })
+  }
+  res.json({ csrfToken: createCsrfToken(req.auth.token) })
+})
 router.use('/categories', require('./categories'))
 router.use('/crm-links', require('./crm-links'))
 router.use('/plans', require('./plans'))

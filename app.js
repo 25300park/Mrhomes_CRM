@@ -31,7 +31,7 @@ function createApp({ supabase, schedulerEnabled = true, allowedOrigins, timePush
   app.use(express.json())
   app.use(cookieParser())
   app.use(morgan('combined'))
-  app.use(express.static(path.join(__dirname, 'public')))
+  app.use(express.static(path.join(__dirname, 'public'), { redirect: false }))
   app.use((req, _res, next) => {
     req.supabase = supabase
     next()
@@ -70,6 +70,12 @@ function createApp({ supabase, schedulerEnabled = true, allowedOrigins, timePush
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', ts: new Date().toISOString() })
+  })
+  app.use('/api', (_req, res) => {
+    res.status(404).json({ error: 'API route not found' })
+  })
+  app.get(['/time-management', '/time-management/*'], (_req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'time-management', 'index.html'))
   })
   app.get('*', (_req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'))

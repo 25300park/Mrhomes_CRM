@@ -5,6 +5,8 @@
 
 # 의존성
 node_modules/
+time-management-ui/node_modules/
+.superpowers/sdd/**/task-*-report.md
 
 # 로그
 *.log
