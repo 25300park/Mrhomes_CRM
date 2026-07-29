@@ -3,6 +3,7 @@ require('dotenv').config()
 const { createClient } = require('@supabase/supabase-js')
 const { createApp } = require('./app')
 const { validateRuntimeConfig } = require('./services/runtime-config')
+const { validatePushRuntimeConfig } = require('./services/time-management/push')
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
   console.error('Required environment variables are missing: SUPABASE_URL, SUPABASE_SERVICE_KEY')
@@ -11,6 +12,7 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
 }
 
 const runtimeConfig = validateRuntimeConfig(process.env)
+validatePushRuntimeConfig(process.env, { production: runtimeConfig.production })
 
 const supabase = createClient(
   process.env.SUPABASE_URL,

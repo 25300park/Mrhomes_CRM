@@ -3,7 +3,12 @@ const os = require('node:os')
 const { sendFollowupReminder } = require('./mailer')
 const { processReadyTimeJobs } = require('./time-management/job-queue')
 const { createOpenAiReviewProvider, retryAiReview } = require('./time-management/ai-review')
-const { scheduleReflectionReminders, sendReflectionReminder } = require('./time-management/push')
+const {
+  createSharedPushSender,
+  createVapidPushSender,
+  scheduleReflectionReminders,
+  sendReflectionReminder
+} = require('./time-management/push')
 
 function createTimeJobPoll({
   supabase,
@@ -38,8 +43,12 @@ function startScheduler(supabase, { pushSender, pushSecurity } = {}) {
   const workerId = process.env.TIME_JOB_WORKER_ID || `${os.hostname()}:${process.pid}`
   const intervalMs = Math.max(15_000, Number(process.env.TIME_JOB_POLL_MS) || 60_000)
   const provider = createOpenAiReviewProvider({ apiKey: process.env.OPENAI_API_KEY })
+  const ownedPushSender = pushSender ? null : createSharedPushSender({
+    createSender: () => createVapidPushSender(pushSecurity)
+  })
+  const sharedPushSender = pushSender || ownedPushSender
   let processingJobs = false
-  const pollTimeJobs = createTimeJobPoll({ supabase, workerId, provider, pushSender, pushSecurity })
+  const pollTimeJobs = createTimeJobPoll({ supabase, workerId, provider, pushSender: sharedPushSender, pushSecurity })
   const processJobs = async () => {
     if (processingJobs) return
     processingJobs = true
@@ -132,6 +141,12 @@ function startScheduler(supabase, { pushSender, pushSecurity } = {}) {
   }, { timezone: 'Asia/Manila' })
 
   console.log('📅 팔로업 스케줄러 시작 (매일 오전 8:00 필리핀 시간)')
+  return {
+    stop() {
+      clearInterval(timeJobInterval)
+      ownedPushSender?.destroy()
+    }
+  }
 }
 
 module.exports = { createTimeJobPoll, startScheduler }

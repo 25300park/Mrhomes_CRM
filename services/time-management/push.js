@@ -7,6 +7,7 @@ const { TimeManagementError } = require('./errors')
 const { requireActiveTimeActor } = require('./access-policy')
 const { businessDateAt, DEFAULT_BUSINESS_TIME_ZONE } = require('./time')
 const { enqueueTimeJob } = require('./job-queue')
+const { isProductionRuntime } = require('../runtime-config')
 
 const REMINDER_BODY = '오늘의 시간관리 회고를 작성해 주세요.'
 const REMINDER_URL = '/time-management#reflection'
@@ -43,6 +44,18 @@ function loadPushKeyring(env = process.env) {
   return { activeKeyId, keys }
 }
 
+function validatePushRuntimeConfig(env = process.env, { production = isProductionRuntime(env) } = {}) {
+  if (!production) return null
+  const keyring = loadPushKeyring(env)
+  for (const name of ['VAPID_SUBJECT', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY']) {
+    if (!env[name]) throw new Error(`${name} is required in production.`)
+  }
+  let subject
+  try { subject = new URL(env.VAPID_SUBJECT) } catch { throw new Error('VAPID_SUBJECT must be a mailto: or https: URL.') }
+  if (!['mailto:', 'https:'].includes(subject.protocol)) throw new Error('VAPID_SUBJECT must be a mailto: or https: URL.')
+  return { activeKeyId: keyring.activeKeyId }
+}
+
 function encryptPushKey(value) {
   const { activeKeyId, keys } = loadPushKeyring()
   const iv = crypto.randomBytes(12)
@@ -51,16 +64,51 @@ function encryptPushKey(value) {
   return `v1:${activeKeyId}:${iv.toString('base64url')}:${cipher.getAuthTag().toString('base64url')}:${encrypted.toString('base64url')}`
 }
 
-function decryptPushKey(value) {
+function decodeCanonicalBase64Url(value) {
+  if (!/^[A-Za-z0-9_-]+$/.test(value || '')) throw new Error('Push subscription key ciphertext is invalid.')
+  const decoded = Buffer.from(value, 'base64url')
+  if (decoded.toString('base64url') !== value) throw new Error('Push subscription key ciphertext is invalid.')
+  return decoded
+}
+
+function decryptEnvelope({ key, iv, tag, ciphertext }) {
+  const decodedIv = decodeCanonicalBase64Url(iv)
+  const decodedTag = decodeCanonicalBase64Url(tag)
+  const decodedCiphertext = decodeCanonicalBase64Url(ciphertext)
+  if (decodedIv.length !== 12 || decodedTag.length !== 16) throw new Error('Push subscription key ciphertext is invalid.')
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, decodedIv)
+  decipher.setAuthTag(decodedTag)
+  return Buffer.concat([decipher.update(decodedCiphertext), decipher.final()]).toString('utf8')
+}
+
+function legacyKeyIds(env, keyring) {
+  const configured = env.TIME_PUSH_LEGACY_KEY_IDS
+    ? env.TIME_PUSH_LEGACY_KEY_IDS.split(',')
+    : [keyring.activeKeyId]
+  if (!configured.length || configured.some((keyId) => !/^[A-Za-z0-9._-]{1,64}$/.test(keyId) || !keyring.keys.has(keyId))) {
+    throw new Error('TIME_PUSH_LEGACY_KEY_IDS must name configured keys.')
+  }
+  return [...new Set(configured)]
+}
+
+function decryptPushKey(value, env = process.env) {
   const parts = String(value).split(':')
-  const [version, keyId, iv, tag, ciphertext] = parts
-  if (parts.length !== 5 || version !== 'v1' || !keyId || !iv || !tag || !ciphertext) throw new Error('Push subscription key ciphertext is invalid.')
-  const { keys } = loadPushKeyring()
-  const key = keys.get(keyId)
-  if (!key) throw new Error('Push subscription key id is not configured.')
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(iv, 'base64url'))
-  decipher.setAuthTag(Buffer.from(tag, 'base64url'))
-  return Buffer.concat([decipher.update(Buffer.from(ciphertext, 'base64url')), decipher.final()]).toString('utf8')
+  const keyring = loadPushKeyring(env)
+  if (parts.length === 5 && parts[0] === 'v1') {
+    const [, keyId, iv, tag, ciphertext] = parts
+    const key = keyring.keys.get(keyId)
+    if (!key) throw new Error('Push subscription key id is not configured.')
+    return decryptEnvelope({ key, iv, tag, ciphertext })
+  }
+  if (parts.length === 4 && parts[0] === 'v1') {
+    const [, iv, tag, ciphertext] = parts
+    for (const keyId of legacyKeyIds(env, keyring)) {
+      try { return decryptEnvelope({ key: keyring.keys.get(keyId), iv, tag, ciphertext }) } catch (error) {
+        if (error.message === 'Push subscription key ciphertext is invalid.') throw error
+      }
+    }
+  }
+  throw new Error('Push subscription key ciphertext is invalid.')
 }
 
 function localTimeAt(date, zone = DEFAULT_BUSINESS_TIME_ZONE) {
@@ -222,7 +270,7 @@ function createVapidPushSender({
 } = {}) {
   if (!subject || !publicKey || !privateKey) throw new Error('VAPID_SUBJECT, VAPID_PUBLIC_KEY, and VAPID_PRIVATE_KEY must be configured.')
   const agent = new https.Agent({ keepAlive: true, lookup: createSafeLookup({ resolveAddresses }) })
-  return async ({ endpoint, p256dh, authSecret, payload }) => {
+  const sender = async ({ endpoint, p256dh, authSecret, payload }) => {
     await assertSafePushEndpoint(endpoint, { resolveAddresses })
     return transport({ endpoint, keys: { p256dh, auth: authSecret } }, JSON.stringify(payload), {
       TTL: 300,
@@ -231,6 +279,24 @@ function createVapidPushSender({
       vapidDetails: { subject, publicKey, privateKey }
     })
   }
+  sender.destroy = () => agent.destroy()
+  return sender
+}
+
+function createSharedPushSender({ createSender }) {
+  let sender
+  let destroyed = false
+  const shared = async (message) => {
+    if (destroyed) throw new Error('Push sender has been destroyed.')
+    sender ||= createSender()
+    return sender(message)
+  }
+  shared.destroy = () => {
+    if (destroyed) return
+    destroyed = true
+    sender?.destroy?.()
+  }
+  return shared
 }
 
 function errorStatus(error) {
@@ -284,19 +350,31 @@ async function sendReflectionReminder({ supabase, job, sender, resolveAddresses 
   }
 }
 
-async function getPendingInAppReminders({ supabase, actor }) {
+async function getPendingInAppReminders({ supabase, actor, pageSize = 200 }) {
   requireActiveTimeActor(actor)
-  const jobs = await supabase.from('time_jobs').select('payload, created_at')
-    .eq('user_id', actor.id).eq('job_type', 'REMINDER_PUSH')
-    .order('created_at', { ascending: false }).limit(31)
-  if (jobs.error) throw databaseError('In-app reminders could not be loaded.')
+  const batchSize = Math.min(Math.max(Number(pageSize) || 1, 1), 200)
   const reminders = []
-  for (const job of jobs.data || []) {
-    const businessDate = job.payload?.businessDate
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(businessDate || '')) continue
-    if (!(await findReflection({ supabase, userId: actor.id, businessDate }))) {
-      reminders.push({ businessDate, body: REMINDER_BODY, url: REMINDER_URL })
+  const seenDates = new Set()
+  for (let offset = 0; ; offset += batchSize) {
+    const jobs = await supabase.from('time_jobs').select('payload, created_at')
+      .eq('user_id', actor.id).eq('job_type', 'REMINDER_PUSH')
+      .order('created_at', { ascending: false }).order('id', { ascending: false })
+      .range(offset, offset + batchSize - 1)
+    if (jobs.error) throw databaseError('In-app reminders could not be loaded.')
+    const batch = jobs.data || []
+    const dates = [...new Set(batch.map((job) => job.payload?.businessDate)
+      .filter((businessDate) => /^\d{4}-\d{2}-\d{2}$/.test(businessDate || '') && !seenDates.has(businessDate)))]
+    if (dates.length) {
+      const reflected = await supabase.from('time_reflections').select('business_date')
+        .eq('user_id', actor.id).in('business_date', dates)
+      if (reflected.error) throw databaseError('In-app reminders could not be loaded.')
+      const reflectedDates = new Set((reflected.data || []).map((row) => row.business_date))
+      for (const businessDate of dates) {
+        seenDates.add(businessDate)
+        if (!reflectedDates.has(businessDate)) reminders.push({ businessDate, body: REMINDER_BODY, url: REMINDER_URL })
+      }
     }
+    if (batch.length < batchSize) break
   }
   return { reminders }
 }
@@ -309,7 +387,10 @@ async function scheduleReflectionReminders({ supabase, now = new Date(), schedul
       .order('id', { ascending: true }).range(offset, offset + batchSize - 1)
     if (users.error) throw databaseError('Active users could not be loaded.')
     const batch = users.data || []
-    outcomes.push(...await Promise.all(batch.map((user) => scheduleUser({ supabase, user, now }))))
+    const settled = await Promise.allSettled(batch.map((user) => scheduleUser({ supabase, user, now })))
+    outcomes.push(...settled.map((outcome, index) => outcome.status === 'fulfilled'
+      ? outcome.value
+      : { scheduled: false, reason: 'SCHEDULE_FAILED', userId: batch[index].id }))
     if (batch.length < batchSize) break
   }
   return { scheduled: outcomes.filter((outcome) => outcome.scheduled).length, outcomes }
@@ -320,6 +401,7 @@ module.exports = {
   REMINDER_URL,
   assertSafePushEndpoint,
   createSafeLookup,
+  createSharedPushSender,
   createVapidPushSender,
   decryptPushKey,
   encryptPushKey,
@@ -328,5 +410,6 @@ module.exports = {
   savePushSubscription,
   scheduleReflectionReminder,
   scheduleReflectionReminders,
-  sendReflectionReminder
+  sendReflectionReminder,
+  validatePushRuntimeConfig
 }

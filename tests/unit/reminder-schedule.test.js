@@ -1,12 +1,15 @@
+const crypto = require('node:crypto')
 const {
   assertSafePushEndpoint,
   createSafeLookup,
+  createSharedPushSender,
   decryptPushKey,
   encryptPushKey,
   getPendingInAppReminders,
   scheduleReflectionReminder,
   scheduleReflectionReminders,
-  sendReflectionReminder
+  sendReflectionReminder,
+  validatePushRuntimeConfig
 } = require('../../services/time-management/push')
 
 const USER = { id: '10000000-0000-4000-8000-000000000001', is_active: true }
@@ -16,6 +19,7 @@ const REMINDER_URL = '/time-management#reflection'
 beforeEach(() => {
   process.env.TIME_PUSH_ACTIVE_KEY_ID = 'current'
   process.env.TIME_PUSH_ENCRYPTION_KEYS = `current=${Buffer.alloc(32, 7).toString('base64')}`
+  delete process.env.TIME_PUSH_LEGACY_KEY_IDS
 })
 
 const PUBLIC_DNS = async () => [{ address: '142.250.72.14', family: 4 }]
@@ -90,9 +94,14 @@ test('pages active users in bounded scheduler batches without starving users aft
 
   const result = await scheduleReflectionReminders({
     supabase,
-    scheduleUser: async ({ user }) => ({ scheduled: false, userId: user.id })
+    scheduleUser: async ({ user }) => {
+      if (user.id === 'user-0') throw new Error('one user is malformed')
+      return { scheduled: false, userId: user.id }
+    }
   })
   expect(result.outcomes).toHaveLength(201)
+  expect(result.outcomes[0]).toMatchObject({ scheduled: false, reason: 'SCHEDULE_FAILED', userId: 'user-0' })
+  expect(result.outcomes.at(-1)).toMatchObject({ userId: 'user-200' })
   expect(ranges).toEqual([[0, 199], [200, 399]])
 })
 
@@ -154,15 +163,16 @@ test('decrypts keys only at send time and sends the exact privacy-safe payload',
   expect(JSON.stringify(sent.payload)).not.toMatch(/businessDate|user_id|reflection_text|notes|contact|listing|lead|deal/i)
 })
 
-test('keeps a bounded historical in-app reminder pending only until its reflection exists', async () => {
-  const pending = pendingSupabase({ reflectedDates: [] })
-  await expect(getPendingInAppReminders({ supabase: pending.supabase, actor: USER })).resolves.toEqual({
-    reminders: [{ businessDate: '2026-07-29', body: REMINDER_BODY, url: REMINDER_URL }]
-  })
-  expect(pending.limit).toBe(31)
+test('paginates every historical reminder and batch-loads reflections without dropping unresolved dates', async () => {
+  const dates = Array.from({ length: 35 }, (_, index) => new Date(Date.UTC(2026, 4, index + 1)).toISOString().slice(0, 10))
+  const pending = pendingSupabase({ dates, reflectedDates: [dates[3], dates[32]] })
+  const result = await getPendingInAppReminders({ supabase: pending.supabase, actor: USER, pageSize: 20 })
 
-  const completed = pendingSupabase({ reflectedDates: ['2026-07-29'] })
-  await expect(getPendingInAppReminders({ supabase: completed.supabase, actor: USER })).resolves.toEqual({ reminders: [] })
+  expect(result.reminders).toHaveLength(33)
+  expect(result.reminders.map((item) => item.businessDate)).not.toContain(dates[3])
+  expect(result.reminders.map((item) => item.businessDate)).toContain(dates[34])
+  expect(pending.ranges).toEqual([[0, 19], [20, 39]])
+  expect(pending.reflectionQueries).toHaveLength(2)
 })
 
 test('rejects private resolution on save and on connection-time lookup without network access', async () => {
@@ -196,6 +206,23 @@ test('uses the active encryption key id for new ciphertext while retaining old-k
   expect(encryptPushKey('new-secret')).toMatch(/^v1:new:/)
 })
 
+test('decrypts the legacy four-part v1 envelope with configured legacy keys', () => {
+  const oldKey = Buffer.alloc(32, 3)
+  const currentKey = Buffer.alloc(32, 4)
+  process.env.TIME_PUSH_ACTIVE_KEY_ID = 'current'
+  process.env.TIME_PUSH_ENCRYPTION_KEYS = `current=${currentKey.toString('base64')},old=${oldKey.toString('base64')}`
+  process.env.TIME_PUSH_LEGACY_KEY_IDS = 'old,current'
+
+  expect(decryptPushKey(legacyCiphertext('legacy-secret', oldKey))).toBe('legacy-secret')
+})
+
+test('rejects non-canonical base64url and wrong IV or authentication-tag lengths', () => {
+  const valid = encryptPushKey('secret').split(':')
+  expect(() => decryptPushKey([...valid.slice(0, 2), `${valid[2]}=`, ...valid.slice(3)].join(':'))).toThrow(/ciphertext is invalid/)
+  expect(() => decryptPushKey([valid[0], valid[1], Buffer.alloc(11).toString('base64url'), valid[3], valid[4]].join(':'))).toThrow(/ciphertext is invalid/)
+  expect(() => decryptPushKey([valid[0], valid[1], valid[2], Buffer.alloc(15).toString('base64url'), valid[4]].join(':'))).toThrow(/ciphertext is invalid/)
+})
+
 test('rejects ciphertext envelopes with trailing unverified fields', () => {
   const ciphertext = encryptPushKey('secret')
   expect(() => decryptPushKey(`${ciphertext}:ignored`)).toThrow(/ciphertext is invalid/)
@@ -208,6 +235,40 @@ test('rejects non-canonical or wrong-length encryption keys before encryption', 
 
   process.env.TIME_PUSH_ENCRYPTION_KEYS = `bad=${Buffer.alloc(31, 7).toString('base64')}`
   expect(() => encryptPushKey('secret')).toThrow(/32-byte/)
+})
+
+test('validates Push keyring and VAPID configuration during production startup', () => {
+  const valid = {
+    NODE_ENV: 'production',
+    TIME_PUSH_ACTIVE_KEY_ID: 'current',
+    TIME_PUSH_ENCRYPTION_KEYS: `current=${Buffer.alloc(32, 7).toString('base64')}`,
+    VAPID_SUBJECT: 'mailto:ops@example.com',
+    VAPID_PUBLIC_KEY: 'public',
+    VAPID_PRIVATE_KEY: 'private'
+  }
+  expect(() => validatePushRuntimeConfig({ ...valid, TIME_PUSH_ENCRYPTION_KEYS: 'current=bad' })).toThrow(/canonical base64|32-byte/)
+  expect(() => validatePushRuntimeConfig({ ...valid, VAPID_PRIVATE_KEY: '' })).toThrow(/VAPID_PRIVATE_KEY/)
+  expect(validatePushRuntimeConfig(valid)).toMatchObject({ activeKeyId: 'current' })
+  expect(validatePushRuntimeConfig({ NODE_ENV: 'test' })).toBeNull()
+})
+
+test('shares one lazy Push sender and destroys its keepalive agent once', async () => {
+  let created = 0
+  let destroyed = 0
+  const shared = createSharedPushSender({ createSender() {
+    created++
+    const sender = async (message) => message.endpoint
+    sender.destroy = () => { destroyed++ }
+    return sender
+  } })
+
+  await shared({ endpoint: 'one' })
+  await shared({ endpoint: 'two' })
+  shared.destroy()
+  shared.destroy()
+
+  expect(created).toBe(1)
+  expect(destroyed).toBe(1)
 })
 
 function reminderSupabase({ preference = { work_end_time: '18:00:00', push_enabled: true, in_app_enabled: true }, reflection = null, duplicateJob = false } = {}) {
@@ -239,22 +300,22 @@ function reminderSupabase({ preference = { work_end_time: '18:00:00', push_enabl
   }
 }
 
-function pendingSupabase({ reflectedDates }) {
-  const fixture = { limit: null }
+function pendingSupabase({ dates, reflectedDates }) {
+  const fixture = { ranges: [], reflectionQueries: [] }
   fixture.supabase = {
     from(table) {
       const filters = {}
+      let window = [0, 199]
       const query = {
         select() { return query },
         eq(key, value) { filters[key] = value; return query },
         order() { return query },
-        limit(value) { fixture.limit = value; return query },
-        single: async () => {
-          const found = table === 'time_reflections' && reflectedDates.includes(filters.business_date)
-          return found ? { data: { id: 'reflection-1' }, error: null } : { data: null, error: { code: 'PGRST116' } }
-        },
+        range(start, end) { window = [start, end]; fixture.ranges.push(window); return query },
+        in(key, values) { filters[key] = values; fixture.reflectionQueries.push(values); return query },
         then(resolve, reject) {
-          const data = table === 'time_jobs' ? [{ payload: { businessDate: '2026-07-29' }, created_at: '2026-07-29T09:00:00Z' }] : []
+          const data = table === 'time_jobs'
+            ? dates.slice(window[0], window[1] + 1).map((businessDate) => ({ payload: { businessDate }, created_at: `${businessDate}T09:00:00Z` }))
+            : reflectedDates.filter((businessDate) => filters.business_date.includes(businessDate)).map((business_date) => ({ business_date }))
           return Promise.resolve({ data, error: null }).then(resolve, reject)
         }
       }
@@ -262,6 +323,13 @@ function pendingSupabase({ reflectedDates }) {
     }
   }
   return fixture
+}
+
+function legacyCiphertext(value, key) {
+  const iv = Buffer.alloc(12, 9)
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv)
+  const ciphertext = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()])
+  return `v1:${iv.toString('base64url')}:${cipher.getAuthTag().toString('base64url')}:${ciphertext.toString('base64url')}`
 }
 
 function deliverySupabase({ subscriptions }) {
