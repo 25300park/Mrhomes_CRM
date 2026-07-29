@@ -744,11 +744,13 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
   })
 
   test('writes revision audit before update and rolls it back when the update fails', () => {
-    const entryId = runSql(`SELECT entry_id FROM time_create_manual_entry(
-      '${USER_A}', 'audit-order-entry', '${STANDARD_A}', NULL, NULL,
-      NULL, NULL, NULL, NULL, NULL,
-      '2026-07-21T01:00:00Z', '2026-07-21T02:00:00Z', 'before', 'Asia/Seoul', 'agent');`)
-    runSql(`CREATE FUNCTION time_test_require_audit_before_update() RETURNS trigger
+    const auditResults = runSql(`
+      BEGIN;
+      SELECT 'entry_created|' || count(*) FROM time_create_manual_entry(
+        '${USER_A}', 'audit-order-entry', '${STANDARD_A}', NULL, NULL,
+        NULL, NULL, NULL, NULL, NULL,
+        '2026-07-21T01:00:00Z', '2026-07-21T02:00:00Z', 'before', 'Asia/Seoul', 'agent');
+      CREATE FUNCTION time_test_require_audit_before_update() RETURNS trigger
       LANGUAGE plpgsql AS $$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM ${schemaName}.time_entry_revisions WHERE entry_id = OLD.id) THEN
           RAISE EXCEPTION 'revision audit must exist before update';
@@ -756,28 +758,52 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
         RETURN NEW;
       END $$;
       CREATE TRIGGER time_test_require_audit_before_update_trg
-      BEFORE UPDATE ON time_entries FOR EACH ROW EXECUTE FUNCTION time_test_require_audit_before_update();`)
-    expect(runSql(`SELECT revision_id FROM time_revise_entry(
-      '${USER_A}', '${entryId}', 'audit-before-update', NULL, NULL,
-      NULL, NULL, 'after', ARRAY['notes']::text[],
-      NULL, NULL, NULL, NULL, NULL, 'agent');`)).toMatch(/^[0-9a-f-]{36}$/)
-    runSql(`DROP TRIGGER time_test_require_audit_before_update_trg ON time_entries;
-      DROP FUNCTION time_test_require_audit_before_update();`)
+        BEFORE UPDATE ON time_entries FOR EACH ROW EXECUTE FUNCTION time_test_require_audit_before_update();
+      SELECT 'revision_created|' || count(revision_id) FROM time_revise_entry(
+        '${USER_A}', (SELECT id FROM time_entries
+          WHERE user_id = '${USER_A}' AND request_id = 'audit-order-entry'),
+        'audit-before-update', NULL, NULL, NULL, NULL, 'after', ARRAY['notes']::text[],
+        NULL, NULL, NULL, NULL, NULL, 'agent');
+      DROP TRIGGER time_test_require_audit_before_update_trg ON time_entries;
+      DROP FUNCTION time_test_require_audit_before_update();
 
-    const beforeCount = runSql(`SELECT count(*) FROM time_entry_revisions WHERE entry_id = '${entryId}';`)
-    runSql(`CREATE FUNCTION time_test_fail_after_entry_update() RETURNS trigger
+      CREATE FUNCTION time_test_fail_after_entry_update() RETURNS trigger
       LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'forced update failure'; END $$;
       CREATE TRIGGER time_test_fail_after_entry_update_trg
-      AFTER UPDATE ON time_entries FOR EACH ROW EXECUTE FUNCTION time_test_fail_after_entry_update();`)
-    expectSqlFailure(`SELECT * FROM time_revise_entry(
-      '${USER_A}', '${entryId}', 'audit-rollback', NULL, NULL,
-      NULL, NULL, 'must rollback', ARRAY['notes']::text[],
-      NULL, NULL, NULL, NULL, NULL, 'agent');`, { sqlState: 'P0001' })
-    expect(runSql(`SELECT count(*) FROM time_entry_revisions WHERE entry_id = '${entryId}';`)).toBe(beforeCount)
-    expect(runSql(`SELECT notes FROM time_entries WHERE id = '${entryId}';`)).toBe('after')
-    expect(runSql(`SELECT count(*) FROM time_commands WHERE user_id = '${USER_A}' AND request_id = 'audit-rollback';`)).toBe('0')
-    runSql(`DROP TRIGGER time_test_fail_after_entry_update_trg ON time_entries;
-      DROP FUNCTION time_test_fail_after_entry_update();`)
+        AFTER UPDATE ON time_entries FOR EACH ROW EXECUTE FUNCTION time_test_fail_after_entry_update();
+      DO $time_test$
+      BEGIN
+        BEGIN
+          PERFORM * FROM time_revise_entry(
+            '${USER_A}', (SELECT id FROM time_entries
+              WHERE user_id = '${USER_A}' AND request_id = 'audit-order-entry'),
+            'audit-rollback', NULL, NULL, NULL, NULL, 'must rollback', ARRAY['notes']::text[],
+            NULL, NULL, NULL, NULL, NULL, 'agent');
+          RAISE EXCEPTION USING ERRCODE = 'P0002', MESSAGE = 'forced update unexpectedly succeeded';
+        EXCEPTION WHEN SQLSTATE 'P0001' THEN
+          NULL;
+        END;
+      END
+      $time_test$;
+      SELECT 'revision_count_after_failed_update|' || count(*) FROM time_entry_revisions
+        WHERE entry_id = (SELECT id FROM time_entries
+          WHERE user_id = '${USER_A}' AND request_id = 'audit-order-entry');
+      SELECT 'notes_after_failed_update|' || notes FROM time_entries
+        WHERE user_id = '${USER_A}' AND request_id = 'audit-order-entry';
+      SELECT 'command_count_after_failed_update|' || count(*) FROM time_commands
+        WHERE user_id = '${USER_A}' AND request_id = 'audit-rollback';
+      DROP TRIGGER time_test_fail_after_entry_update_trg ON time_entries;
+      DROP FUNCTION time_test_fail_after_entry_update();
+      COMMIT;
+    `).split(/\r?\n/)
+
+    expect(auditResults).toEqual([
+      'entry_created|1',
+      'revision_created|1',
+      'revision_count_after_failed_update|1',
+      'notes_after_failed_update|after',
+      'command_count_after_failed_update|0'
+    ])
   })
 
   test('keeps Push endpoints globally unique and tracks account reassignment', () => {
