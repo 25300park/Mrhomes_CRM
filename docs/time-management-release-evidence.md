@@ -8,7 +8,8 @@ Status: the local release-candidate gate is complete on the marked isolated exte
 - Branch: `feature/time-management`
 - Task 12 release-candidate commit: `ca43c039c1a3e07e6abdf7bb69173c0c32a5d6da`
 - Release-gate security and DB-test fix commit: `22dc9b1`
-- Final DB-test and full-audit fix commit: `8da60c2dd24b9fefe6dd6867951d7ddfc0154522`
+- DB-test and full-audit fix commit: `8da60c2dd24b9fefe6dd6867951d7ddfc0154522`
+- Real release-boundary fix commit: `583b2d79055c419f105f15fc72111138faa2b928`
 - Verification date/time zone: 2026-07-29, Asia/Seoul
 - Verification runtime: Node `v24.18.0`, PostgreSQL client `18.4`, Chromium `151.0.7922.34`
 
@@ -21,11 +22,12 @@ The following commands were run from the exact final candidate SHA. Every listed
 | `npm ci` | PASS: installed 234 packages; audited 235; 0 vulnerabilities |
 | `npm --prefix time-management-ui ci` | PASS: installed 218 packages; audited 219; 0 vulnerabilities |
 | `npm run test:unit` | PASS: 12 files, 79 tests |
-| `npm run test:integration` | PASS on the marked isolated external database: 11 files, 90 tests, 112.36 seconds |
-| `npm run test:regression` | PASS: 5 files, 10 tests |
+| `npm run test:integration` | PASS on the marked isolated external database: 11 files, 90 tests, 168.50 seconds |
+| `npm run test:regression` | PASS: 5 files, 12 tests |
 | `npm --prefix time-management-ui test -- --run --coverage` | PASS: 14 files, 58 tests; statements 87.4%, branches 80.9%, functions 86.89%, lines 91.87% |
+| `npm run build` | PASS: Railway/Nixpacks root build performed clean UI install and built 102 modules |
 | `npm run build:time` | PASS: 102 modules; generated base-path assets `index-BPiOSMp7.js` and `index-C9r66V34.css` |
-| `npx playwright test` | PASS: 15/15 Chromium tests in 12.8 seconds with deterministic local fixtures and one worker |
+| `npx playwright test` | PASS: 17/17 Chromium tests in 26.7 seconds through the real local Express boundary with stateful Supabase/RPC/storage fixtures and one worker |
 | `npm audit` | PASS: complete root dependency tree, 0 vulnerabilities |
 | `npm audit --omit=dev` | PASS: root production dependency tree, 0 vulnerabilities |
 | `npm --prefix time-management-ui audit --omit=dev` | PASS: UI production dependency tree, 0 vulnerabilities |
