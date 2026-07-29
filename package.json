@@ -12,7 +12,7 @@
     "test:integration": "vitest run tests/integration --passWithNoTests",
     "test:regression": "vitest run tests/regression --passWithNoTests",
     "test:e2e": "playwright test",
-    "build:time": "node -e \"const fs=require('node:fs');const cp=require('node:child_process');if(fs.existsSync('time-management-ui/package.json')){const result=cp.spawnSync(process.platform==='win32'?'npm.cmd':'npm',['--prefix','time-management-ui','run','build'],{stdio:'inherit'});process.exit(result.status??1)}\"",
+    "build:time": "npm --prefix time-management-ui run build",
     "check": "npm test -- --run && npm run build:time"
   },
   "dependencies": {
