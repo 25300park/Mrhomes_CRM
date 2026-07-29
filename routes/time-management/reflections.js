@@ -19,6 +19,15 @@ router.put('/today', async (req, res, next) => {
   } catch (error) { next(error) }
 })
 
+router.post('/today/retry', async (req, res, next) => {
+  try {
+    emptyQuery.parse(req.query)
+    z.object({}).strict().parse(req.body || {})
+    const result = await reflections.retryReflectionAiReview({ supabase: req.supabase, actor: req.user })
+    res.status(result.jobDeduplicated ? 200 : 201).json(result)
+  } catch (error) { next(error) }
+})
+
 router.get('/today', async (req, res, next) => {
   try {
     emptyQuery.parse(req.query)

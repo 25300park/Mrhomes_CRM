@@ -8,6 +8,14 @@ const subscriptionSchema = z.object({
 }).strict()
 const endpointSchema = z.object({ endpoint: z.string().url().refine((value) => new URL(value).protocol === 'https:', 'Push endpoint must use HTTPS.') }).strict()
 
+router.get('/vapid-public-key', (req, res, next) => {
+  try {
+    const publicKey = req.app.locals.timePushSecurity.vapidPublicKey || process.env.VAPID_PUBLIC_KEY
+    if (typeof publicKey !== 'string' || !publicKey) throw new Error('Push VAPID public key is not configured.')
+    res.json({ publicKey })
+  } catch (error) { next(error) }
+})
+
 router.post('/subscriptions', async (req, res, next) => {
   try {
     const result = await push.savePushSubscription({

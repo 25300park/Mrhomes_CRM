@@ -12,6 +12,15 @@ function subscriptionFrom(value: unknown): Subscription | null {
   return typeof json?.endpoint === 'string' && typeof json.keys?.p256dh === 'string' && typeof json.keys.auth === 'string' ? { endpoint: json.endpoint, keys: { p256dh: json.keys.p256dh, auth: json.keys.auth } } : null
 }
 
+function decodeVapidPublicKey(value: unknown): Uint8Array<ArrayBuffer> {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9_-]+$/.test(value)) throw new Error('invalid VAPID public key')
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (value.length % 4)) % 4)
+  const binary = atob(padded)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index)
+  return bytes
+}
+
 export function PushSettingsPage({ api = apiClient, notification = window.Notification, serviceWorker = navigator.serviceWorker }: { api?: Api, notification?: NotificationApi, serviceWorker?: ServiceWorkerApi }) {
   const [reminders, setReminders] = useState<string[]>([])
   const [message, setMessage] = useState('')
@@ -31,7 +40,9 @@ export function PushSettingsPage({ api = apiClient, notification = window.Notifi
     if (permission !== 'granted') return setMessage('Push permission was not granted. In-app reminders remain available.')
     try {
       const registration = await serviceWorker.register('/time-management/sw.js', { scope: '/time-management/' })
-      const subscription = subscriptionFrom((await registration.pushManager.subscribe({ userVisibleOnly: true })).toJSON())
+      const vapid = await api.get('/push/vapid-public-key') as { publicKey?: unknown }
+      const applicationServerKey = decodeVapidPublicKey(vapid.publicKey)
+      const subscription = subscriptionFrom((await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey })).toJSON())
       if (!subscription) throw new Error('invalid subscription')
       await api.post('/push/subscriptions', subscription)
       setMessage('Push reminders are enabled.')

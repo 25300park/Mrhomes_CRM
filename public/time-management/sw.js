@@ -1,7 +1,6 @@
 self.addEventListener('push', event => {
-  const payload = event.data ? event.data.json() : {}
   event.waitUntil(self.registration.showNotification('Time management reminder', {
-    body: typeof payload.body === 'string' ? payload.body : 'Please complete your daily reflection.',
+    body: 'Please complete your daily reflection.',
     data: { url: '/time-management#reflection' }
   }))
 })

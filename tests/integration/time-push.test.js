@@ -13,8 +13,19 @@ beforeEach(() => {
 const PUBLIC_DNS = async () => [{ address: '142.250.72.14', family: 4 }]
 
 function pushApp(fixture) {
-  return createTestApp({ supabase: fixture.supabase, timePushSecurity: { resolveAddresses: PUBLIC_DNS } })
+  return createTestApp({ supabase: fixture.supabase, timePushSecurity: { resolveAddresses: PUBLIC_DNS, vapidPublicKey: 'BElocal-public-vapid-key' } })
 }
+
+test('exposes only the VAPID public key to an authenticated active user', async () => {
+  const fixture = pushRouteSupabase()
+  const response = await request(pushApp(fixture))
+    .get('/api/time-management/push/vapid-public-key')
+    .set('Authorization', bearer(AGENT))
+
+  expect(response.status).toBe(200)
+  expect(response.body).toEqual({ publicKey: 'BElocal-public-vapid-key' })
+  expect(JSON.stringify(response.body)).not.toContain('PRIVATE')
+})
 
 test('an active user can save only their own Push subscription without exposing its keys', async () => {
   const fixture = pushRouteSupabase()

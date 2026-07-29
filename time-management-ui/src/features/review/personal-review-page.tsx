@@ -3,7 +3,11 @@ import { apiClient } from '../../api/client'
 import { ReflectionPanel } from '../reflection/reflection-panel'
 import './personal-review-page.css'
 
-type Api = { get: (path: string) => Promise<unknown>, put?: (path: string, body: { reflectionText: string }) => Promise<unknown> }
+type Api = {
+  get: (path: string) => Promise<unknown>
+  put?: (path: string, body: { reflectionText: string }) => Promise<unknown>
+  post?: (path: string, body: Record<string, never>) => Promise<unknown>
+}
 type Metrics = { completion: { plan: boolean, time: boolean, reflection: boolean }, planVarianceMinutes: number, coreWorkRatio: number | null }
 
 function completionLabel(completion: Metrics['completion']): string {
@@ -34,6 +38,6 @@ export function PersonalReviewPage({ api = apiClient, online = true }: { api?: A
       <article><h2>Plan variance</h2><p>{varianceLabel(metrics.planVarianceMinutes)}</p></article>
       <article><h2>Core-work ratio</h2><p>{metrics.coreWorkRatio === null ? 'No tracked time yet' : `${(metrics.coreWorkRatio * 100).toFixed(1)}% of tracked time`}</p></article>
     </section> : !error && <p role="status">Loading personal review?</p>}
-    <ReflectionPanel api={api as Required<Api>} online={online} />
+    <ReflectionPanel api={{ get: api.get, put: api.put ?? apiClient.put, post: api.post ?? apiClient.post }} online={online} />
   </section>
 }

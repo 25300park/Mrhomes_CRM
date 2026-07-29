@@ -4,7 +4,7 @@ function databaseError(error) {
   return safe
 }
 
-async function enqueueTimeJob({ supabase, userId, jobType, dedupeKey, payload }) {
+async function enqueueTimeJob({ supabase, userId, jobType, dedupeKey, payload, retryFailed = false }) {
   const record = { user_id: userId, job_type: jobType, dedupe_key: dedupeKey, payload }
   const { data, error } = await supabase.from('time_jobs').insert(record).select('*').single()
   if (!error) return { job: data, deduplicated: false }
@@ -13,7 +13,13 @@ async function enqueueTimeJob({ supabase, userId, jobType, dedupeKey, payload })
   const existing = await supabase.from('time_jobs').select('*')
     .eq('job_type', jobType).eq('dedupe_key', dedupeKey).single()
   if (existing.error || !existing.data) throw databaseError(existing.error || error)
-  return { job: existing.data, deduplicated: true }
+  if (!retryFailed || existing.data.status !== 'FAILED') return { job: existing.data, deduplicated: true }
+
+  const revived = await supabase.from('time_jobs').update({
+    status: 'PENDING', attempts: 0, ready_at: new Date().toISOString(), last_error_code: null, result: null
+  }).eq('id', existing.data.id).eq('user_id', userId).eq('status', 'FAILED').select('*').single()
+  if (revived.error || !revived.data) throw databaseError(revived.error || error)
+  return { job: revived.data, deduplicated: true, retried: true }
 }
 
 function isLostLease(error) {
