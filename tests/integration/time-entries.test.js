@@ -272,7 +272,19 @@ test('owner records read returns date-scoped entries with immutable revision met
     .set('Authorization', bearer())
 
   expect(response.status).toBe(200)
-  expect(response.body).toEqual({ entries: [{ ...record, revisions: [revision] }] })
+  expect(response.body).toEqual({ entries: [{ ...record, revisions: [{
+    id: revision.id,
+    entryId: ENTRY,
+    changedAt: revision.changed_at,
+    changedFields: ['notes'],
+    changedBySelf: true
+  }] }] })
+  for (const item of response.body.entries[0].revisions) {
+    expect(item).not.toHaveProperty('changed_by')
+    expect(item).not.toHaveProperty('user_id')
+    expect(item).not.toHaveProperty('before_value')
+    expect(item).not.toHaveProperty('after_value')
+  }
   expect(calls).toContainEqual({ table: 'time_entries', operation: 'eq', column: 'user_id', value: ACTOR.id })
   expect(calls).toContainEqual({ table: 'time_entry_revisions', operation: 'eq', column: 'user_id', value: ACTOR.id })
   expect(calls).toContainEqual({ table: 'time_entry_revisions', operation: 'select', columns: 'id, entry_id, user_id, changed_by, changed_at, before_value, after_value' })

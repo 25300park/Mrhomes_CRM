@@ -10,8 +10,8 @@ const ENTRY = {
   started_at: '2026-07-29T01:00:00.000Z', ended_at: '2026-07-29T02:00:00.000Z', notes: 'Follow up',
   linked_entity_type: 'CONTACT', linked_entity_id: '60000000-0000-4000-8000-000000000001', linked_entity_label: 'Archived contact',
   revisions: [
-    { id: 'revision-1', changed_at: '2026-07-29T03:00:00.000Z', changed_by: '10000000-0000-4000-8000-000000000001', before_value: { notes: 'First note' }, after_value: { notes: 'Follow up' } },
-    { id: 'revision-2', changed_at: '2026-07-29T04:00:00.000Z', changed_by: '10000000-0000-4000-8000-000000000001', before_value: { linkedEntityLabel: 'Old contact' }, after_value: { linkedEntityLabel: 'Archived contact' } }
+    { id: 'revision-1', entryId: '50000000-0000-4000-8000-000000000001', changedAt: '2026-07-29T03:00:00.000Z', changedFields: ['notes'], changedBySelf: true },
+    { id: 'revision-2', entryId: '50000000-0000-4000-8000-000000000001', changedAt: '2026-07-29T04:00:00.000Z', changedFields: ['linkedEntityLabel'], changedBySelf: true }
   ]
 }
 
@@ -26,6 +26,14 @@ describe('records editing', () => {
     render(<RecordsPage api={api} online now={() => new Date('2026-07-29T15:00:00.000Z')} />)
 
     await waitFor(() => expect(api.get).toHaveBeenCalledWith('/entries?businessDate=2026-07-30'))
+  })
+
+  test('uses Asia/Seoul dates for entry headings', async () => {
+    const afterMidnight = { ...ENTRY, id: 'after-midnight', started_at: '2026-07-29T15:00:00.000Z', revisions: [] }
+    const api = { get: vi.fn(async (path: string) => path === '/categories' ? { standard: [] } : { entries: [afterMidnight] }), post: vi.fn(), put: vi.fn(), patch: vi.fn(), delete: vi.fn() }
+    render(<RecordsPage api={api} online />)
+
+    expect(await screen.findByRole('heading', { name: '2026-07-30' })).toBeInTheDocument()
   })
 
   test('shows owner records, revision metadata, and the stored CRM snapshot fallback', async () => {

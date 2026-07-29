@@ -48,4 +48,28 @@ describe('daily planning', () => {
     expect(api.put).not.toHaveBeenCalled()
     expect(screen.getByText('Offline: plan, manual entry, and reflection changes are unavailable.')).toBeInTheDocument()
   })
+
+  test('preserves every valid existing allocation when editing a plan', async () => {
+    const SECOND = { id: '20000000-0000-4000-8000-000000000002', name: 'Admin' }
+    const api = client({
+      get: vi.fn(async (path: string) => path === '/categories'
+        ? { standard: [CATEGORY, SECOND], personal: [] }
+        : { plan: { id: 'plan-1', available_minutes: 480 }, allocations: [
+          { standard_category_id: CATEGORY.id, personal_category_id: null, planned_minutes: 300 },
+          { standard_category_id: SECOND.id, personal_category_id: null, planned_minutes: 180 }
+        ], varianceMinutes: 0 })
+    })
+    render(<TodayPage api={api} online />)
+
+    fireEvent.change(await screen.findByLabelText('Client work planned minutes'), { target: { value: '270' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save plan' }))
+
+    await waitFor(() => expect(api.put).toHaveBeenCalledWith('/plans/today', {
+      availableMinutes: 480,
+      allocations: [
+        { standardCategoryId: CATEGORY.id, plannedMinutes: 270 },
+        { standardCategoryId: SECOND.id, plannedMinutes: 180 }
+      ]
+    }))
+  })
 })

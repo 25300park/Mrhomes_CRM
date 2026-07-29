@@ -1,3 +1,25 @@
-task-10-report.md
+# environment variables (never commit)
+.env
+.env.local
+.env.production
+
+# dependencies and generated development output
 node_modules/
 time-management-ui/node_modules/
+time-management-ui/dist/
+
+# local implementation reports
+.superpowers/sdd/**/task-*-report.md
+task-10-report.md
+
+# logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# editors
+.vscode/
+.idea/

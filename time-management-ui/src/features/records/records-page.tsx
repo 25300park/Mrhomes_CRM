@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { apiClient } from '../../api/client'
+import { useConnectivity } from '../../shared/use-connectivity'
 import './records-page.css'
 
 type Api = {
@@ -10,7 +11,7 @@ type Api = {
   delete: (path: string) => Promise<unknown>
 }
 type Category = { id: string, name: string }
-type Revision = { id: string, changed_at: string, changed_by: string, before_value: Record<string, unknown>, after_value: Record<string, unknown> }
+type Revision = { id: string, entryId: string, changedAt: string, changedFields: string[], changedBySelf: boolean }
 type Entry = {
   id: string
   standard_category_id: string
@@ -35,12 +36,8 @@ export function businessDateInSeoul(date: Date): string {
 
 function newRequestId(): string { return window.crypto.randomUUID?.() ?? `manual-${Date.now()}-${Math.random().toString(36).slice(2)}` }
 
-function changedFields(revision: Revision): string[] {
-  const keys = new Set([...Object.keys(revision.before_value), ...Object.keys(revision.after_value)])
-  return [...keys].filter(key => JSON.stringify(revision.before_value[key]) !== JSON.stringify(revision.after_value[key]))
-}
-
-export function RecordsPage({ api = apiClient, online = window.navigator.onLine, requestId = newRequestId, now = () => new Date() }: RecordsPageProps) {
+export function RecordsPage({ api = apiClient, online, requestId = newRequestId, now = () => new Date() }: RecordsPageProps) {
+  const isOnline = useConnectivity(online)
   const [entries, setEntries] = useState<Entry[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [manualOpen, setManualOpen] = useState(false)
@@ -69,7 +66,7 @@ export function RecordsPage({ api = apiClient, online = window.navigator.onLine,
   }, [api])
 
   async function createManual() {
-    if (!online) return setMessage('Offline: manual entry changes are unavailable.')
+    if (!isOnline) return
     if (!confirming) return setConfirming(true)
     try {
       const endedAt = new Date()
@@ -85,7 +82,7 @@ export function RecordsPage({ api = apiClient, online = window.navigator.onLine,
 
   async function reviseEntry() {
     if (!editing) return
-    if (!online) return setMessage('Offline: manual entry changes are unavailable.')
+    if (!isOnline) return
     if (!revisionConfirming) return setRevisionConfirming(true)
     try {
       await api.patch(`/entries/${editing.id}`, { requestId: requestId(), notes: revisionNotes })
@@ -100,6 +97,7 @@ export function RecordsPage({ api = apiClient, online = window.navigator.onLine,
 
   return <section className="records-page" aria-labelledby="records-heading">
     <h1 id="records-heading">Records</h1>
+    {!isOnline && <p role="status">Offline: manual entry changes are unavailable.</p>}
     {message && <p role="status">{message}</p>}
     {error && <p role="alert">{error}</p>}
     <button onClick={() => { setManualOpen(true); setConfirming(false) }}>Add manual entry</button>
@@ -116,14 +114,14 @@ export function RecordsPage({ api = apiClient, online = window.navigator.onLine,
       <button onClick={() => void reviseEntry()}>{revisionConfirming ? 'Confirm revision' : 'Save revision'}</button>
     </section>}
     <div className="records-list">{entries.map(entry => <article className="record-card" key={entry.id}>
-      <h2>{entry.started_at.slice(0, 10)}</h2>
+      <h2>{businessDateInSeoul(new Date(entry.started_at))}</h2>
       <p>{entry.notes || 'No notes'}</p>
       {entry.linked_entity_label && <><p>{entry.linked_entity_label}</p>{entry.linked_entity_id && <p>CRM link unavailable; showing stored snapshot.</p>}</>}
       <p>{entry.revisions.length} {entry.revisions.length === 1 ? 'revision' : 'revisions'}</p>
       {entry.revisions.length > 0 && <ol aria-label="Revisions">{entry.revisions.map(revision => <li key={revision.id}>
-        <time dateTime={revision.changed_at}>{new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(revision.changed_at))}</time>
-        <p>Changed by you</p>
-        <p>Changed fields: {changedFields(revision).join(', ') || 'No field summary available'}</p>
+        <time dateTime={revision.changedAt}>{new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(revision.changedAt))}</time>
+        <p>{revision.changedBySelf ? 'Changed by you' : 'Changed by another authorized user'}</p>
+        <p>Changed fields: {revision.changedFields.join(', ') || 'No field summary available'}</p>
       </li>)}</ol>}
       <button onClick={() => { setEditing(entry); setRevisionNotes(entry.notes || ''); setRevisionConfirming(false) }}>Edit record</button>
     </article>)}</div>

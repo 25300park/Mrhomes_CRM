@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { TodayPage } from '../src/features/today/today-page'
 
@@ -32,17 +32,18 @@ function client() {
 describe('timer controls', () => {
   test('starts, switches, and stops with one large action and a fresh request ID', async () => {
     const api = client()
-    render(<TodayPage api={api} online requestId={() => 'request-1'} />)
+    const ids = ['request-1', 'request-2', 'request-3']
+    render(<TodayPage api={api} online requestId={() => ids.shift() ?? 'unexpected'} />)
     await screen.findByRole('button', { name: 'Start timer' })
 
     fireEvent.click(screen.getByRole('button', { name: 'Start timer' }))
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/entries/timer/start', expect.objectContaining({ requestId: 'request-1', standardCategoryId: CATEGORY.id })))
 
     fireEvent.click(await screen.findByRole('button', { name: 'Switch timer' }))
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/entries/timer/switch', expect.objectContaining({ requestId: 'request-1' })))
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/entries/timer/switch', expect.objectContaining({ requestId: 'request-2' })))
 
     fireEvent.click(screen.getByRole('button', { name: 'Stop timer' }))
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/entries/timer/stop', { requestId: 'request-1' }))
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/entries/timer/stop', { requestId: 'request-3' }))
   })
 
   test('shows an optional CRM search result by type and label only', async () => {
@@ -51,7 +52,27 @@ describe('timer controls', () => {
     await screen.findByRole('button', { name: 'Start timer' })
 
     fireEvent.change(screen.getByLabelText('Optional CRM link'), { target: { value: 'Alex' } })
-    expect(await screen.findByRole('option', { name: 'CONTACT: Alex Kim' })).toBeInTheDocument()
+    const listbox = await screen.findByRole('listbox', { name: 'CRM search results' })
+    fireEvent.click(within(listbox).getByRole('option', { name: 'CONTACT: Alex Kim' }))
+    expect(screen.getByText('Linked: CONTACT: Alex Kim')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Clear CRM link' }))
+    expect(screen.queryByText('Linked: CONTACT: Alex Kim')).not.toBeInTheDocument()
     expect(screen.queryByText(ENTRY.linked_entity_id)).not.toBeInTheDocument()
+  })
+
+  test('disables timer actions while a command is in flight', async () => {
+    let resolveStart: (() => void) | undefined
+    const api = client()
+    api.post.mockImplementationOnce(async () => ({ matches: true, authoritativeEntry: null }))
+      .mockImplementationOnce(() => new Promise(resolve => { resolveStart = () => resolve({ started_entry_id: ENTRY.id }) }))
+    render(<TodayPage api={api} online />)
+    const start = await screen.findByRole('button', { name: 'Start timer' })
+
+    fireEvent.click(start)
+    fireEvent.click(start)
+
+    expect(start).toBeDisabled()
+    expect(api.post.mock.calls.filter(([path]) => path === '/entries/timer/start')).toHaveLength(1)
+    resolveStart?.()
   })
 })

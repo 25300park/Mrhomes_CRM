@@ -197,7 +197,23 @@ async function listTimeEntries({ supabase, actor, businessDate }) {
     existing.push(revision)
     byEntry.set(revision.entry_id, existing)
   }
-  return { entries: records.map(entry => ({ ...entry, revisions: byEntry.get(entry.id) || [] })) }
+  return { entries: records.map(entry => ({
+    ...entry,
+    revisions: (byEntry.get(entry.id) || []).map(revision => {
+      const before = revision.before_value || {}
+      const after = revision.after_value || {}
+      const changedFields = [...new Set([...Object.keys(before), ...Object.keys(after)])]
+        .filter(key => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
+        .sort()
+      return {
+        id: revision.id,
+        entryId: revision.entry_id,
+        changedAt: revision.changed_at,
+        changedFields,
+        changedBySelf: revision.changed_by === actor.id
+      }
+    })
+  })) }
 }
 
 module.exports = { startTimer, switchTimer, stopTimer, createManualEntry, reviseTimeEntry, reconcileActiveTimer, listTimeEntries, mapDatabaseError }
