@@ -3,8 +3,9 @@ const os = require('node:os')
 const { sendFollowupReminder } = require('./mailer')
 const { processReadyTimeJobs } = require('./time-management/job-queue')
 const { createOpenAiReviewProvider, retryAiReview } = require('./time-management/ai-review')
+const { scheduleReflectionReminders, sendReflectionReminder } = require('./time-management/push')
 
-function startScheduler(supabase) {
+function startScheduler(supabase, { pushSender } = {}) {
   const workerId = process.env.TIME_JOB_WORKER_ID || `${os.hostname()}:${process.pid}`
   const intervalMs = Math.max(15_000, Number(process.env.TIME_JOB_POLL_MS) || 60_000)
   const provider = createOpenAiReviewProvider({ apiKey: process.env.OPENAI_API_KEY })
@@ -13,10 +14,14 @@ function startScheduler(supabase) {
     if (processingJobs) return
     processingJobs = true
     try {
+      await scheduleReflectionReminders({ supabase })
       await processReadyTimeJobs({
         supabase,
         workerId,
-        handlers: { AI_REVIEW: (job) => retryAiReview({ supabase, job, provider }) }
+        handlers: {
+          AI_REVIEW: (job) => retryAiReview({ supabase, job, provider }),
+          REMINDER_PUSH: (job) => sendReflectionReminder({ supabase, job, ...(pushSender ? { sender: pushSender } : {}) })
+        }
       })
     } catch (error) {
       console.error('[Scheduler] time job processing failed:', error.message)

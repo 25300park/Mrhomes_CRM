@@ -18,6 +18,7 @@ router.use('/plans', require('./plans'))
 router.use('/entries', require('./entries'))
 router.use('/reflections', require('./reflections'))
 router.use('/analytics', require('./analytics'))
+router.use('/push', require('./push'))
 
 router.use((req, res) => {
   res.status(404).json({
