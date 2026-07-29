@@ -1,7 +1,32 @@
 const cron = require('node-cron')
+const os = require('node:os')
 const { sendFollowupReminder } = require('./mailer')
+const { processReadyTimeJobs } = require('./time-management/job-queue')
+const { createOpenAiReviewProvider, retryAiReview } = require('./time-management/ai-review')
 
 function startScheduler(supabase) {
+  const workerId = process.env.TIME_JOB_WORKER_ID || `${os.hostname()}:${process.pid}`
+  const intervalMs = Math.max(15_000, Number(process.env.TIME_JOB_POLL_MS) || 60_000)
+  const provider = createOpenAiReviewProvider({ apiKey: process.env.OPENAI_API_KEY })
+  let processingJobs = false
+  const processJobs = async () => {
+    if (processingJobs) return
+    processingJobs = true
+    try {
+      await processReadyTimeJobs({
+        supabase,
+        workerId,
+        handlers: { AI_REVIEW: (job) => retryAiReview({ supabase, job, provider }) }
+      })
+    } catch (error) {
+      console.error('[Scheduler] time job processing failed:', error.message)
+    } finally {
+      processingJobs = false
+    }
+  }
+  const timeJobInterval = setInterval(processJobs, intervalMs)
+  timeJobInterval.unref?.()
+
   // ── 매일 오전 8시 (필리핀 시간 Asia/Manila = UTC+8) ──────
   cron.schedule('0 8 * * *', async () => {
     console.log('[Scheduler] 팔로업 리마인더 실행 시작...')
