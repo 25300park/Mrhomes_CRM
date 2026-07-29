@@ -17,6 +17,7 @@ router.use('/crm-links', require('./crm-links'))
 router.use('/plans', require('./plans'))
 router.use('/entries', require('./entries'))
 router.use('/reflections', require('./reflections'))
+router.use('/analytics', require('./analytics'))
 
 router.use((req, res) => {
   res.status(404).json({
