@@ -591,6 +591,12 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
   })
 
   test('enforces non-overlap for direct writes, timer commands, manual entries, and revisions', () => {
+    const overlapConstraintCount = () => runSql(`SELECT count(*)
+      FROM pg_catalog.pg_constraint
+      WHERE conrelid = 'time_entries'::regclass
+        AND conname = 'time_entries_user_time_overlap';`)
+    expect(overlapConstraintCount()).toBe('1')
+
     runSql(`DELETE FROM time_commands WHERE user_id = '${USER_C}'; DELETE FROM time_entries WHERE user_id = '${USER_C}';`)
     runSql(`INSERT INTO time_entries
       (user_id, business_date, standard_category_id, entry_type, started_at, ended_at, duration_seconds)
@@ -626,19 +632,25 @@ describe('time-management SQL on a marked isolated Supabase/PostgreSQL database'
     expect(runSql(`SELECT started_at FROM time_entries WHERE id = '${boundaryId}';`)).toBe('2026-07-16 02:00:00+00')
     expect(runSql(`SELECT count(*) FROM time_entry_revisions WHERE entry_id = '${boundaryId}';`)).toBe('0')
 
-    runSql(`DELETE FROM time_commands WHERE user_id = '${USER_C}'; DELETE FROM time_entries WHERE user_id = '${USER_C}';
-      ALTER TABLE time_entries DROP CONSTRAINT time_entries_user_time_overlap;
-      INSERT INTO time_entries
-        (user_id, business_date, standard_category_id, entry_type, started_at, ended_at, duration_seconds)
-      VALUES
-        ('${USER_C}', '2026-07-18', '${STANDARD_A}', 'MANUAL', '2026-07-18T01:00:00Z', '2026-07-18T03:00:00Z', 7200),
-        ('${USER_C}', '2026-07-18', '${STANDARD_A}', 'MANUAL', '2026-07-18T02:00:00Z', '2026-07-18T04:00:00Z', 7200);`)
-    const conflictingMigration = psql(migrationSql().schema)
-    expect(conflictingMigration.status).not.toBe(0)
-    expect(conflictingMigration.stderr).toContain('time_entries_user_time_overlap')
-    runSql(`DELETE FROM time_entries WHERE user_id = '${USER_C}' AND business_date = '2026-07-18';`)
-    const restoredMigration = psql(migrationSql().schema)
-    expect(restoredMigration.status).toBe(0)
+    try {
+      runSql(`DELETE FROM time_commands WHERE user_id = '${USER_C}'; DELETE FROM time_entries WHERE user_id = '${USER_C}';
+        ALTER TABLE time_entries DROP CONSTRAINT time_entries_user_time_overlap;
+        INSERT INTO time_entries
+          (user_id, business_date, standard_category_id, entry_type, started_at, ended_at, duration_seconds)
+        VALUES
+          ('${USER_C}', '2026-07-18', '${STANDARD_A}', 'MANUAL', '2026-07-18T01:00:00Z', '2026-07-18T03:00:00Z', 7200),
+          ('${USER_C}', '2026-07-18', '${STANDARD_A}', 'MANUAL', '2026-07-18T02:00:00Z', '2026-07-18T04:00:00Z', 7200);`)
+      const conflictingMigration = psql(migrationSql().schema)
+      expect(conflictingMigration.status).not.toBe(0)
+      expect(conflictingMigration.stderr).toContain('time_entries_user_time_overlap')
+    } finally {
+      runSql(`DELETE FROM time_entries WHERE user_id = '${USER_C}' AND business_date = '2026-07-18';`)
+      const restoredMigration = psql(migrationSql().schema)
+      if (restoredMigration.status !== 0) {
+        throw new Error('Could not restore time_entries_user_time_overlap after conflict probe.')
+      }
+    }
+    expect(overlapConstraintCount()).toBe('1')
   }, 40_000)
 
   test('replays canonical CRM commands before actor and mutable source checks', () => {
