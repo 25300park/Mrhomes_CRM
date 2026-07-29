@@ -101,6 +101,7 @@ export function TodayPage({ api = apiClient, online, requestId = commandId, now 
         setPlanAllocations(loadedAllocations.length > 0 ? loadedAllocations : (categoryData.standard[0] ? [{ standardCategoryId: categoryData.standard[0].id, plannedMinutes: 0 }] : []))
         setVariance(planData.varianceMinutes || null)
         if (isOnline) await reconcile()
+        if (!cancelled) setError('')
       } catch {
         if (!cancelled) setError('Today data could not be loaded. Try again when the CRM connection is available.')
       } finally {

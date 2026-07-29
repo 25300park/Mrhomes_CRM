@@ -60,6 +60,17 @@ describe('records editing', () => {
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/entries/manual', expect.objectContaining({ requestId: 'manual-1' })))
   })
 
+  test('does not allow manual entry submission without a standard category', async () => {
+    const api = { get: vi.fn(async (path: string) => path === '/categories' ? { standard: [] } : { entries: [] }), post: vi.fn(), put: vi.fn(), patch: vi.fn(), delete: vi.fn() }
+    render(<RecordsPage api={api} online />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Add manual entry' }))
+
+    const save = screen.getByRole('button', { name: 'Save manual entry' })
+    expect(save).toBeDisabled()
+    fireEvent.click(save)
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
   test('requires an explicit confirmation before revising a record', async () => {
     const api = { get: vi.fn(async (path: string) => path === '/categories' ? { standard: [{ id: ENTRY.standard_category_id, name: 'Client work' }] } : { entries: [ENTRY] }), post: vi.fn(), put: vi.fn(), patch: vi.fn(async () => ({ entry_id: ENTRY.id })), delete: vi.fn() }
     render(<RecordsPage api={api} online requestId={() => 'revise-1'} />)

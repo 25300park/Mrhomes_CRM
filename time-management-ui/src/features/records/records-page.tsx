@@ -61,12 +61,14 @@ export function RecordsPage({ api = apiClient, online, requestId = newRequestId,
       setEntries(recordData.entries)
       setCategories(categoryDataTyped.standard)
       setCategoryId(categoryDataTyped.standard[0]?.id ?? '')
+      setError('')
     }).catch(() => !cancelled && setError('Records could not be loaded. Try again when the CRM connection is available.'))
     return () => { cancelled = true }
-  }, [api])
+  }, [api, isOnline])
 
   async function createManual() {
     if (!isOnline) return
+    if (!categoryId) return setError('Choose a category before saving a manual entry.')
     if (!confirming) return setConfirming(true)
     try {
       const endedAt = new Date()
@@ -105,7 +107,7 @@ export function RecordsPage({ api = apiClient, online, requestId = newRequestId,
       <h2 id="manual-heading">Manual entry</h2>
       <label>Category<select value={categoryId} onChange={event => setCategoryId(event.target.value)}>{categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
       <p>Creates a 30-minute entry ending now. Confirm before saving.</p>
-      <button onClick={() => void createManual()}>{confirming ? 'Confirm manual entry' : 'Save manual entry'}</button>
+      <button disabled={!categoryId || !isOnline} onClick={() => void createManual()}>{confirming ? 'Confirm manual entry' : 'Save manual entry'}</button>
     </section>}
     {editing && <section className="record-card" aria-labelledby="revision-heading">
       <h2 id="revision-heading">Revise record</h2>
