@@ -1,12 +1,25 @@
-# 환경변수 (절대 업로드 금지)
+# environment variables (never commit)
 .env
 .env.local
 .env.production
 
-# 의존성
+# dependencies and generated development output
 node_modules/
+time-management-ui/node_modules/
+time-management-ui/dist/
+time-management-ui/coverage/
 
-# 로그
+# local implementation reports
+.superpowers/sdd/**/task-*-report.md
+task-10-report.md
+task-11-report.md
+task-12-report.md
+
+# Playwright local evidence (CI should archive separately)
+playwright-report/
+test-results/
+
+# logs
 *.log
 npm-debug.log*
 
@@ -14,6 +27,6 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# 에디터
+# editors
 .vscode/
 .idea/

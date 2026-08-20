@@ -1,0 +1,3 @@
+.review-metrics { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
+.review-metrics article { background: #fff; border: 1px solid #eae6df; border-radius: .75rem; padding: 1rem; }
+.review-metrics h2 { font-size: 1rem; margin-top: 0; }

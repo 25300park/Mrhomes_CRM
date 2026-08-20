@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--N:#1C3553;--ND:#0F2238;--A:#C8892A;--AL:#FDF0DC;--G:#19846B;--GL:#E0F3ED;--R:#DC4A4A;--RL:#FDEAEA;--bg:#F4F1EC;--w:#fff;--b:#EAE6DF;--m:#8B8680;--sw:192px}
+:root{--N:#1C3553;--ND:#0F2238;--A:#C8892A;--AL:#FDF0DC;--G:#19846B;--GL:#E0F3ED;--R:#DC4A4A;--RL:#FDEAEA;--bg:#F4F1EC;--w:#fff;--b:#EAE6DF;--m:#625E59;--sw:192px}
 body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--N);font-size:13px}
 input,select,button,textarea{font-family:inherit;font-size:13px}
 
@@ -196,7 +196,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 <div id="login-screen">
   <div class="login-box">
     <div style="text-align:center;margin-bottom:20px">
-      <img src="https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logo%20white-15.png" style="height:64px;object-fit:contain;display:block;margin:0 auto 8px">
+      <img src="https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logo%20white-15.png" alt="RBS Homes CRM" style="height:64px;object-fit:contain;display:block;margin:0 auto 8px">
     </div>
     <form id="lf">
       <label class="ll">Email</label>
@@ -205,12 +205,6 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <label class="ll">Password</label>
       <input class="li" type="password" id="lpw" placeholder="Password"
         autocomplete="current-password" required>
-      <!-- 아이디/비밀번호 저장 -->
-      <div style="display:flex;align-items:center;gap:8px;margin:8px 0 14px;font-size:12px;color:var(--m)">
-        <input type="checkbox" id="remember-me" style="width:15px;height:15px;cursor:pointer"
-          onchange="toggleRememberMe(this.checked)">
-        <label for="remember-me" style="cursor:pointer;user-select:none">아이디/비밀번호 저장</label>
-      </div>
       <button type="submit" class="login-btn" id="lbtn">Sign In</button>
       <div id="login-err">Email 또는 Password가 올바르지 않습니다</div>
     </form>
@@ -221,7 +215,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 <div id="app">
   <aside id="sidebar">
     <div class="sb-logo" style="text-align:center;padding:12px 16px">
-      <img src="https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logo%20white-15.png" style="height:40px;object-fit:contain;max-width:100%">
+      <img src="https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/public/property-photos/logos/logo%20white-15.png" alt="RBS Homes CRM" style="height:40px;object-fit:contain;max-width:100%">
     </div>
     <div style="flex:1;overflow-y:auto;padding-top:6px">
       <div class="nav-sec">Main</div>
@@ -233,6 +227,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <button class="nav-it" id="nav-deals" onclick="nav('deals')" data-v="deals" style="display:none"><i class="ti ti-file-text"></i><span>Deals & Commission</span></button>
       <button class="nav-it" onclick="nav('tenants')" data-v="tenants"><i class="ti ti-building-community"></i><span>Tenants</span></button>
       <button class="nav-it" onclick="nav('documents')" data-v="documents"><i class="ti ti-file-certificate"></i><span>Documents</span></button>
+      <a class="nav-it" href="/time-management/"><i class="ti ti-clock"></i><span>Time Management</span></a>
       <div class="nav-sec">PMS</div>
       <button class="nav-it" onclick="nav('pms-payments')" data-v="pms-payments"><i class="ti ti-receipt-2"></i><span>납부 검토</span></button>
       <button class="nav-it" onclick="nav('pms-care')" data-v="pms-care"><i class="ti ti-tool"></i><span>홈케어 관리</span></button>
@@ -952,7 +947,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 
 <script>
 // ═══════════ STATE ═══════════
-let token = null, me = null, _dType = 'RENT', _dPrice = 0
+let me = null, csrfToken = null, _dType = 'RENT', _dPrice = 0
 let _contacts = [], _leads = [], _listings = [], _staff = [], _deals = []
 let _cQ = '', _cTypeF = 'ALL', _cf = { agent: '', status: '', type: '' }
 let _cPage = 0, _cLimit = 30, _lPage = 0, _lLimit = 30
@@ -960,14 +955,30 @@ let _cPage = 0, _cLimit = 30, _lPage = 0, _lLimit = 30
 
 // ═══════════ API ═══════════
 async function api(method, path, body) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) headers['X-CSRF-Token'] = await getCsrfToken()
   const r = await fetch(path, {
     method,
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    credentials: 'same-origin',
+    headers,
     body: body ? JSON.stringify(body) : undefined
   })
   const d = await r.json()
   if (!r.ok) throw new Error(d.error || 'API Error')
   return d
+}
+
+async function getCsrfToken() {
+  if (csrfToken) return csrfToken
+  const response = await fetch('/api/auth/csrf', { credentials: 'same-origin' })
+  const data = await response.json()
+  if (!response.ok) throw new Error(data.error || 'CSRF token error')
+  csrfToken = data.csrfToken
+  return csrfToken
+}
+
+async function uploadHeaders() {
+  return { 'X-CSRF-Token': await getCsrfToken() }
 }
 
 // ═══════════ HELPERS ═══════════
@@ -1028,71 +1039,60 @@ function vc(html) { document.getElementById('vc').innerHTML = html }
 function err(e) { vc(`<div class="loading" style="color:var(--R)"><i class="ti ti-alert-circle"></i> Error: ${e.message}</div>`) }
 
 // ═══════════ AUTH ═══════════
-// Remember login credentials
-function toggleRememberMe(checked) {
-  if (checked) {
-    const email = document.getElementById('lem').value
-    const pw    = document.getElementById('lpw').value
-    if (email) localStorage.setItem('crm_saved_email', email)
-    if (pw)    localStorage.setItem('crm_saved_pw', pw)
-  } else {
-    localStorage.removeItem('crm_saved_email')
-    localStorage.removeItem('crm_saved_pw')
-    localStorage.removeItem('crm_remember')
-  }
-  localStorage.setItem('crm_remember', checked ? '1' : '0')
-}
+// Forced re-login rollout: delete all legacy credential persistence without migrating it.
+Object.keys(localStorage)
+  .filter(key => /^crm_(?:saved_|remember)/.test(key))
+  .forEach(key => localStorage.removeItem(key))
 
-// Auto-fill saved credentials
-;(function() {
-  const rem = localStorage.getItem('crm_remember') === '1'
-  const chk = document.getElementById('remember-me')
-  if (chk) chk.checked = rem
-  if (rem) {
-    const email = localStorage.getItem('crm_saved_email')
-    const pw    = localStorage.getItem('crm_saved_pw')
-    const eEl   = document.getElementById('lem')
-    const pEl   = document.getElementById('lpw')
-    if (email && eEl) eEl.value = email
-    if (pw    && pEl) pEl.value = pw
-  }
-})()
+function startSession(user) {
+  me = user
+  csrfToken = null
+  document.getElementById('login-screen').style.display = 'none'
+  document.getElementById('app').style.display = 'block'
+  document.getElementById('sb-user').textContent = me.name + (me.role==='admin'?' · Admin':' · Staff')
+  document.querySelectorAll('.admin-only').forEach(el => el.style.display = me.role==='admin' ? '' : 'none')
+  const dealsNav = document.getElementById('nav-deals')
+  if (dealsNav) dealsNav.style.display = me.role==='admin' ? '' : 'none'
+  nav('dashboard')
+  setTimeout(loadNotifications, 1200)
+  setInterval(loadNotifications, 5*60*1000)
+}
 
 document.getElementById('lf').addEventListener('submit', async e => {
   e.preventDefault()
-  // Update saved values on login
-  if (localStorage.getItem('crm_remember') === '1') {
-    localStorage.setItem('crm_saved_email', document.getElementById('lem').value)
-    localStorage.setItem('crm_saved_pw',    document.getElementById('lpw').value)
-  }
   const btn = document.getElementById('lbtn')
   const er  = document.getElementById('login-err')
   btn.textContent = 'Sign In 중...'; btn.disabled = true; er.style.display = 'none'
   try {
     const d = await fetch('/api/auth/login', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: document.getElementById('lem').value, password: document.getElementById('lpw').value })
     }).then(r => r.json())
-    if (!d.token) throw new Error(d.error || 'Sign In 실패')
-    token = d.token; me = d.user
-    document.getElementById('login-screen').style.display = 'none'
-    document.getElementById('app').style.display = 'block'
-    document.getElementById('sb-user').textContent = me.name + (me.role==='admin'?' · Admin':' · Staff')
-    // 역할 기반 메뉴
-    document.querySelectorAll('.admin-only').forEach(el => el.style.display = me.role==='admin' ? '' : 'none')
-    // Deals & Commission: Admin만 표시
-    const dealsNav = document.getElementById('nav-deals')
-    if (dealsNav) dealsNav.style.display = me.role==='admin' ? '' : 'none'
-    nav('dashboard')
-    setTimeout(loadNotifications, 1200)
-    setInterval(loadNotifications, 5*60*1000)
+    if (!d.user) throw new Error(d.error || 'Sign In 실패')
+    startSession(d.user)
   } catch(e) { er.style.display = 'block'; btn.textContent = 'Sign In'; btn.disabled = false }
 })
-function doLogout() {
-  token = null; me = null
+async function doLogout() {
+  try {
+    await api('POST', '/api/auth/logout')
+  } catch (error) {
+    console.warn('Logout request failed:', error.message)
+  }
+  csrfToken = null; me = null
   document.getElementById('app').style.display = 'none'
   document.getElementById('login-screen').style.display = 'flex'
+  const loginButton = document.getElementById('lbtn')
+  loginButton.disabled = false
+  loginButton.textContent = 'Sign In'
 }
+
+;(async function restoreSession() {
+  try {
+    const response = await fetch('/api/auth/me', { credentials: 'same-origin' })
+    if (!response.ok) return
+    startSession(await response.json())
+  } catch (_) {}
+})()
 
 // ── Mobile Sidebar ──────────────────────────
 function toggleSidebar() {
@@ -2821,7 +2821,7 @@ async function saveListingFromAI() {
           const fd = new FormData()
           fd.append('photo', p.file)
           fd.append('folder', 'listings')
-          const res = await fetch('/api/upload/photo', { method:'POST', headers:{'Authorization':'Bearer '+token}, body:fd })
+          const res = await fetch('/api/upload/photo', { method:'POST', credentials:'same-origin', headers:await uploadHeaders(), body:fd })
           const d   = await res.json()
           if (res.ok) {
             if (!mainUrl) mainUrl = d.url
@@ -3164,7 +3164,7 @@ function restoreScroll(view) {
 // 브라우저 뒤로가기 처리
 // F5/Ctrl+R 새로고침 → 현재 탭 데이터만 재로드
 window.addEventListener('keydown', e => {
-  if (!token) return  // 로그인 전은 정상 새로고침
+  if (!me) return  // 로그인 전은 정상 새로고침
   const isF5    = e.key === 'F5'
   const isCtrlR = (e.ctrlKey || e.metaKey) && e.key === 'r'
   if (isF5 || isCtrlR) {
@@ -3195,7 +3195,7 @@ window.addEventListener('keydown', e => {
 
 window.addEventListener('popstate', e => {
   const v = e.state?.view
-  if (!token) return
+  if (!me) return
   if (!v) {
     // state 없으면 hash로 판단
     const hash = location.hash
@@ -3613,7 +3613,7 @@ async function onPhotoSelected(input) {
         const formData = new FormData()
         formData.append('photo', file)
         formData.append('folder', 'listings')
-        const res = await fetch('/api/upload/photo', { method:'POST', headers:{'Authorization':'Bearer '+token}, body:formData })
+        const res = await fetch('/api/upload/photo', { method:'POST', credentials:'same-origin', headers:await uploadHeaders(), body:formData })
         const d = await res.json()
         if (!res.ok) throw new Error(d.error)
         if (!mainUrl) { mainUrl = d.url }  // 첫 번째가 Main
@@ -3638,7 +3638,7 @@ async function onPhotoSelected(input) {
     formData.append('folder', 'listings')
     toast('사진 업로드 중...')
     try {
-      const res = await fetch('/api/upload/photo', { method:'POST', headers:{'Authorization':'Bearer '+token}, body:formData })
+      const res = await fetch('/api/upload/photo', { method:'POST', credentials:'same-origin', headers:await uploadHeaders(), body:formData })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error)
       await api('PATCH', `/api/listings/${_photoListingId}`, { photo_url: d.url })

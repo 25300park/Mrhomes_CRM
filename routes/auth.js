@@ -1,7 +1,8 @@
 const router  = require('express').Router()
 const bcrypt  = require('bcryptjs')
-const jwt     = require('jsonwebtoken')
 const auth    = require('../middleware/auth')
+const { createCsrfToken } = require('../middleware/csrf')
+const { clearSessionCookie, issueSessionCookie } = require('../services/session')
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
@@ -20,16 +21,22 @@ router.post('/login', async (req, res) => {
   const ok = await bcrypt.compare(password, user.password_hash)
   if (!ok) return res.status(401).json({ error: '이메일 또는 비밀번호가 올바르지 않습니다' })
 
-  const token = jwt.sign(
-    { id: user.id, name: user.name, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: '7d' }
-  )
+  const token = issueSessionCookie(res, user)
 
   res.json({
     token,
     user: { id: user.id, name: user.name, email: user.email, role: user.role, work_mode: user.work_mode, mobile: user.mobile || null }
   })
+})
+
+router.get('/csrf', auth, (req, res) => {
+  if (req.auth.method !== 'cookie') return res.status(400).json({ error: '쿠키 세션이 필요합니다' })
+  res.json({ csrfToken: createCsrfToken(req.auth.token) })
+})
+
+router.post('/logout', (req, res) => {
+  clearSessionCookie(res)
+  res.json({ message: '로그아웃되었습니다' })
 })
 
 // GET /api/auth/me

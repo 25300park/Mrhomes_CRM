@@ -1,7 +1,70 @@
 const cron = require('node-cron')
+const os = require('node:os')
 const { sendFollowupReminder } = require('./mailer')
+const { processReadyTimeJobs } = require('./time-management/job-queue')
+const { createOpenAiReviewProvider, retryAiReview } = require('./time-management/ai-review')
+const {
+  createSharedPushSender,
+  createVapidPushSender,
+  scheduleReflectionReminders,
+  sendReflectionReminder
+} = require('./time-management/push')
 
-function startScheduler(supabase) {
+function createTimeJobPoll({
+  supabase,
+  workerId,
+  provider,
+  pushSender,
+  pushSecurity,
+  scheduleReminders = scheduleReflectionReminders,
+  processJobs = processReadyTimeJobs,
+  retryReview = retryAiReview,
+  sendReminder = sendReflectionReminder,
+  logger = console
+}) {
+  return async () => {
+    try {
+      const scheduling = await scheduleReminders({ supabase })
+      const failedCount = scheduling?.outcomes?.filter((outcome) => outcome?.reason === 'SCHEDULE_FAILED').length || 0
+      if (failedCount) logger.warn?.('[Scheduler] reflection reminder user scheduling failures:', failedCount)
+    } catch (error) {
+      logger.error('[Scheduler] reflection reminder scheduling failed:', error.message)
+    }
+    await processJobs({
+      supabase,
+      workerId,
+      handlers: {
+        AI_REVIEW: (job) => retryReview({ supabase, job, provider }),
+        REMINDER_PUSH: (job) => sendReminder({ supabase, job, ...(pushSender ? { sender: pushSender } : {}), ...pushSecurity })
+      }
+    })
+  }
+}
+
+function startScheduler(supabase, { pushSender, pushSecurity } = {}) {
+  const workerId = process.env.TIME_JOB_WORKER_ID || `${os.hostname()}:${process.pid}`
+  const intervalMs = Math.max(15_000, Number(process.env.TIME_JOB_POLL_MS) || 60_000)
+  const provider = createOpenAiReviewProvider({ apiKey: process.env.OPENAI_API_KEY })
+  const ownedPushSender = pushSender ? null : createSharedPushSender({
+    createSender: () => createVapidPushSender(pushSecurity)
+  })
+  const sharedPushSender = pushSender || ownedPushSender
+  let processingJobs = false
+  const pollTimeJobs = createTimeJobPoll({ supabase, workerId, provider, pushSender: sharedPushSender, pushSecurity })
+  const processJobs = async () => {
+    if (processingJobs) return
+    processingJobs = true
+    try {
+      await pollTimeJobs()
+    } catch (error) {
+      console.error('[Scheduler] time job processing failed:', error.message)
+    } finally {
+      processingJobs = false
+    }
+  }
+  const timeJobInterval = setInterval(processJobs, intervalMs)
+  timeJobInterval.unref?.()
+
   // ── 매일 오전 8시 (필리핀 시간 Asia/Manila = UTC+8) ──────
   cron.schedule('0 8 * * *', async () => {
     console.log('[Scheduler] 팔로업 리마인더 실행 시작...')
@@ -80,6 +143,12 @@ function startScheduler(supabase) {
   }, { timezone: 'Asia/Manila' })
 
   console.log('📅 팔로업 스케줄러 시작 (매일 오전 8:00 필리핀 시간)')
+  return {
+    stop() {
+      clearInterval(timeJobInterval)
+      ownedPushSender?.destroy()
+    }
+  }
 }
 
-module.exports = { startScheduler }
+module.exports = { createTimeJobPoll, startScheduler }

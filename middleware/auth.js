@@ -1,12 +1,66 @@
 const jwt = require('jsonwebtoken')
+const { SESSION_COOKIE } = require('../services/session')
 
-module.exports = function auth(req, res, next) {
-  const token = req.headers.authorization?.split(' ')[1]
-  if (!token) return res.status(401).json({ error: '인증 토큰이 필요합니다' })
+async function authenticateRequest(req) {
+  const cookieToken = req.cookies?.[SESSION_COOKIE]
+  const authorization = req.headers.authorization || ''
+  const bearerMatch = authorization.match(/^Bearer\s+(.+)$/i)
+  const token = cookieToken || bearerMatch?.[1]
+  if (!token) {
+    const error = new Error('인증이 필요합니다')
+    error.status = 401
+    throw error
+  }
+
+  let claims
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET)
-    next()
+    claims = jwt.verify(token, process.env.JWT_SECRET)
   } catch {
-    res.status(401).json({ error: '유효하지 않은 토큰입니다' })
+    const error = new Error('유효하지 않은 세션입니다')
+    error.status = 401
+    throw error
+  }
+
+  if (process.env.AUTH_INVALID_BEFORE) {
+    const cutoff = Date.parse(process.env.AUTH_INVALID_BEFORE)
+    const issuedAt = Number(claims.iat) * 1000
+    if (!Number.isFinite(cutoff) || !Number.isFinite(issuedAt) || issuedAt < cutoff) {
+      const error = new Error('다시 로그인해 주세요')
+      error.status = 401
+      throw error
+    }
+  }
+
+  const { data: user, error: lookupError } = await req.supabase
+    .from('users')
+    .select('id, name, email, role, is_active')
+    .eq('id', claims.id)
+    .eq('is_active', true)
+    .single()
+
+  if (lookupError || !user || user.is_active !== true) {
+    const error = new Error('활성 사용자를 찾을 수 없습니다')
+    error.status = 401
+    throw error
+  }
+
+  return { user, method: cookieToken ? 'cookie' : 'bearer', token }
+}
+
+async function auth(req, res, next) {
+  try {
+    req.auth = await authenticateRequest(req)
+    req.user = req.auth.user
+    next()
+  } catch (error) {
+    if (req.timeRequestId) {
+      return res.status(error.status || 401).json({
+        error: { code: 'UNAUTHENTICATED', message: error.message, requestId: req.timeRequestId }
+      })
+    }
+    res.status(error.status || 401).json({ error: error.message })
   }
 }
+
+module.exports = auth
+module.exports.authenticateRequest = authenticateRequest

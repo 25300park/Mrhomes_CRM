@@ -52,15 +52,25 @@ schema.sql에 초기 직원 데이터가 등록되어 있습니다.
 비밀번호는 초기 설정이 필요합니다:
 
 ```bash
-# Supabase SQL Editor에서 실행 (비밀번호: rbs2026!)
-UPDATE users SET password_hash = '$2b$10$YQz7J3W.xR8oP5nKe9tLUeJy0MmX3QvY8zN4oP6sK7mL2nJ8vR5Oa' WHERE true;
+# Use the approved administrator provisioning procedure; no default password is provided.
+Do not use blanket password-update SQL. Provision the first administrator through an approved secret-management and password-reset procedure.
 ```
 
 초기 로그인:
-- **Admin**: admin@rbshomes.ph / rbs2026!
-- **May**: may@rbshomes.ph / rbs2026!
-- **Rai**: rai@rbshomes.ph / rbs2026!
-- **Grace**: grace@rbshomes.ph / rbs2026!
+- Never commit, share, or document default passwords.
+
+## Time-management release checks
+
+Use Node.js 22.22 or newer. Install the root and UI lockfiles separately, build the React client into `/public/time-management`, then run the browser suite against local in-memory fixtures:
+
+```powershell
+npm ci
+npm --prefix time-management-ui ci
+npm run build
+npm run test:e2e
+```
+
+The E2E server is local-only, disables the scheduler, blocks external browser requests, and uses deterministic fake AI/Push/API state. It does not contact Supabase, AI, email, Push, Railway, staging, or production. Read `docs/time-management-operations.md`, `docs/time-management-privacy.md`, and `docs/time-management-release-evidence.md` before any rollout.
 
 ---
 
