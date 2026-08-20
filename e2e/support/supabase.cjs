@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs')
+const { businessDateAt } = require('../../services/time-management/time')
 
 const IDS = Object.freeze({
   user: '10000000-0000-4000-8000-000000000001',
@@ -25,9 +26,10 @@ function uuid(counter) { return `90000000-0000-4000-8000-${String(counter).padSt
 
 async function initialState(options = {}) {
   const password_hash = await bcrypt.hash('fixture-password', 4)
-  const businessDate = '2026-07-29'
+  const businessDate = businessDateAt(new Date())
   return {
     options,
+    businessDate,
     counter: 1,
     calls: [], logs: [], outbound: [], controls: { failures: {}, delays: {} }, replay: {}, statusPolls: 0,
     tables: {
@@ -167,7 +169,7 @@ class FakeSupabase {
     if (['time_start_timer', 'time_switch_timer'].includes(name)) {
       const stopped = state.tables.time_entries.find(entry => entry.user_id === args.p_user_id && entry.entry_type === 'TIMER' && entry.ended_at === null)
       if (stopped) { stopped.ended_at = args.p_started_at || new Date().toISOString(); stopped.duration_seconds = 60 }
-      const entry = { id: uuid(state.counter++), user_id: args.p_user_id, business_date: '2026-07-29', daily_plan_id: args.p_daily_plan_id, standard_category_id: args.p_standard_category_id, personal_category_id: args.p_personal_category_id, entry_type: 'TIMER', started_at: args.p_started_at || new Date().toISOString(), ended_at: null, duration_seconds: null, notes: null, linked_entity_type: args.p_contact_id ? 'CONTACT' : null, linked_entity_id: args.p_contact_id, linked_entity_label: args.p_contact_id ? 'Safe Fixture Contact' : null }
+      const entry = { id: uuid(state.counter++), user_id: args.p_user_id, business_date: state.businessDate, daily_plan_id: args.p_daily_plan_id, standard_category_id: args.p_standard_category_id, personal_category_id: args.p_personal_category_id, entry_type: 'TIMER', started_at: args.p_started_at || new Date().toISOString(), ended_at: null, duration_seconds: null, notes: null, linked_entity_type: args.p_contact_id ? 'CONTACT' : null, linked_entity_id: args.p_contact_id, linked_entity_label: args.p_contact_id ? 'Safe Fixture Contact' : null }
       state.tables.time_entries.push(entry)
       const result = { stopped_entry_id: stopped?.id || null, started_entry_id: entry.id, replayed: false }
       state.replay[`${args.p_user_id}:${args.p_request_id}`] = result
@@ -181,7 +183,7 @@ class FakeSupabase {
       return { data: [result], error: null }
     }
     if (name === 'time_create_manual_entry') {
-      const entry = { id: uuid(state.counter++), user_id: args.p_user_id, business_date: '2026-07-29', standard_category_id: args.p_standard_category_id, personal_category_id: args.p_personal_category_id, entry_type: 'MANUAL', started_at: args.p_started_at, ended_at: args.p_ended_at, duration_seconds: Math.round((Date.parse(args.p_ended_at) - Date.parse(args.p_started_at)) / 1000), notes: args.p_notes, linked_entity_type: null, linked_entity_id: null, linked_entity_label: null }
+      const entry = { id: uuid(state.counter++), user_id: args.p_user_id, business_date: state.businessDate, standard_category_id: args.p_standard_category_id, personal_category_id: args.p_personal_category_id, entry_type: 'MANUAL', started_at: args.p_started_at, ended_at: args.p_ended_at, duration_seconds: Math.round((Date.parse(args.p_ended_at) - Date.parse(args.p_started_at)) / 1000), notes: args.p_notes, linked_entity_type: null, linked_entity_id: null, linked_entity_label: null }
       state.tables.time_entries.push(entry); const result = { entry_id: entry.id, replayed: false }; state.replay[`${args.p_user_id}:${args.p_request_id}`] = result
       return { data: [result], error: null }
     }

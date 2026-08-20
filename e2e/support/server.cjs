@@ -38,7 +38,7 @@ async function startServer() {
         ...timer,
         id: String(timer.id).includes('-0000-4000-') ? timer.id : '50000000-0000-4000-8000-000000000099',
         user_id: IDS.user,
-        business_date: '2026-07-29', entry_type: 'TIMER',
+        business_date: fixture.state.businessDate, entry_type: 'TIMER',
         standard_category_id: timer.standard_category_id === 'category-client' ? IDS.client : timer.standard_category_id,
         ended_at: null, duration_seconds: null
       })
