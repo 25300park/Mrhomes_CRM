@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RBS Homes CRM</title>
+<title>MrHomes CRM</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -205,6 +205,11 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <label class="ll">Password</label>
       <input class="li" type="password" id="lpw" placeholder="Password"
         autocomplete="current-password" required>
+      <div style="display:flex;align-items:center;gap:8px;margin:8px 0 14px;font-size:12px;color:var(--m)">
+        <input type="checkbox" id="remember-me" style="width:15px;height:15px;cursor:pointer"
+          onchange="toggleRememberMe(this.checked)">
+        <label for="remember-me" style="cursor:pointer;user-select:none">Save ID / Password</label>
+      </div>
       <button type="submit" class="login-btn" id="lbtn">Sign In</button>
       <div id="login-err">Email 또는 Password가 올바르지 않습니다</div>
     </form>
@@ -280,7 +285,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-profile" style="display:none" onclick="if(event.target===this)closeModal('modal-profile')">
+<div class="modal-overlay" id="modal-profile" style="display:none">
   <div class="modal" style="max-width:420px">
     <div class="modal-hd">
       <div>
@@ -348,7 +353,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
   </div>
 </div>
 <!-- ── AI Quick Input 모달 (고객) ── -->
-<div class="modal-overlay" id="modal-quick-contact" style="display:none" onclick="if(event.target===this)closeModal('modal-quick-contact')">
+<div class="modal-overlay" id="modal-quick-contact" style="display:none">
   <div class="modal" style="max-width:520px">
     <div class="modal-hd">
       <div><h2>✨ Quick Input — Contact</h2><p>Paste KakaoTalk message → AI auto-fills the form</p></div>
@@ -454,7 +459,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 </div>
 
 <!-- ── AI Quick Input 모달 (매물) ── -->
-<div class="modal-overlay" id="modal-quick-listing" style="display:none" onclick="if(event.target===this)closeModal('modal-quick-listing')">
+<div class="modal-overlay" id="modal-quick-listing" style="display:none">
   <div class="modal" style="max-width:540px">
     <div class="modal-hd">
       <div><h2>✨ Quick Input — Listing</h2><p>Paste property message → AI auto-fills the form</p></div>
@@ -565,7 +570,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 </div>
 
 <!-- ── New Contract 모달 (Tenants 탭) ── -->
-<div class="modal-overlay" id="modal-new-contract" style="display:none" onclick="if(event.target===this)closeModal('modal-new-contract')">
+<div class="modal-overlay" id="modal-new-contract" style="display:none">
   <div class="modal" style="max-width:520px">
     <div class="modal-hd">
       <div><h2>Register New Contract</h2><p>Create a rental contract record</p></div>
@@ -624,7 +629,12 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <!-- 날짜 / 기간 -->
       <div class="mf-row">
         <div class="mf">
-          <label>Move-in Date *</label>
+          <label>Contract Date *</label>
+          <input type="date" id="nc-contract-date" class="fi"
+            oninput="suggestMoveInDate()">
+        </div>
+        <div class="mf">
+          <label>Move-in Date * <span style="font-size:10px;color:var(--m)">(usually +7 days)</span></label>
           <input type="date" id="nc-movein" class="fi">
         </div>
         <div class="mf">
@@ -661,7 +671,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 <div id="print-frame"></div>
 
 <!-- ── Contact Add 모달 ── -->
-<div class="modal-overlay" id="modal-contact" style="display:none" onclick="if(event.target===this)closeModal('modal-contact')">
+<div class="modal-overlay" id="modal-contact" style="display:none">
   <div class="modal">
     <div class="modal-hd">
       <div>
@@ -760,7 +770,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 </div>
 
 <!-- ── Listing Add 모달 ── -->
-<div class="modal-overlay" id="modal-listing" style="display:none" onclick="if(event.target===this)closeModal('modal-listing')">
+<div class="modal-overlay" id="modal-listing" style="display:none">
   <div class="modal">
     <div class="modal-hd">
       <div>
@@ -946,6 +956,38 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 </div>
 
 <script>
+// ── Image Compression ──────────────────────────────────────
+async function compressImage(file, maxWidth=1200, maxHeight=1200, quality=0.80) {
+  return new Promise((resolve) => {
+    if (file.type === 'image/gif') { resolve(file); return }
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      let w = img.naturalWidth, h = img.naturalHeight
+      if (w <= maxWidth && h <= maxHeight && file.size < 500*1024) { resolve(file); return }
+      if (w > maxWidth)  { h = Math.round(h * maxWidth / w);  w = maxWidth  }
+      if (h > maxHeight) { w = Math.round(w * maxHeight / h); h = maxHeight }
+      const canvas = document.createElement('canvas')
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+      canvas.toBlob(blob => {
+        if (!blob || blob.size >= file.size) { resolve(file); return }
+        const compressed = new File([blob], file.name, { type:'image/jpeg', lastModified:Date.now() })
+        console.log('[Image]', file.name, (file.size/1024).toFixed(0)+'KB →', (blob.size/1024).toFixed(0)+'KB')
+        resolve(compressed)
+      }, 'image/jpeg', quality)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
+    img.src = url
+  })
+}
+async function compressImages(files, maxWidth=1200, maxHeight=1200, quality=0.80) {
+  const results = []
+  for (const file of files) results.push(await compressImage(file, maxWidth, maxHeight, quality))
+  return results
+}
+
 // ═══════════ STATE ═══════════
 let me = null, csrfToken = null, _dType = 'RENT', _dPrice = 0
 let _contacts = [], _leads = [], _listings = [], _staff = [], _deals = []
@@ -2816,7 +2858,9 @@ async function saveListingFromAI() {
       toast(`Uploading ${_qlPhotos.length} photo(s)...`)
       let mainUrl  = null
       const extras = []
-      for (const p of _qlPhotos) {
+      const qlFiles = await compressImages(_qlPhotos.map(p => p.file))
+      const qlToUpload = _qlPhotos.map((p,i) => ({...p, file: qlFiles[i]}))
+      for (const p of qlToUpload) {
         try {
           const fd = new FormData()
           fd.append('photo', p.file)
@@ -3600,7 +3644,8 @@ async function onPhotoSelected(input) {
     const oversize = files.filter(f => f.size > 10*1024*1024)
     if (oversize.length) { alert(`10MB 초과 파일이 있습니다: ${oversize.map(f=>f.name).join(', ')}`); input.value=''; return }
 
-    toast(`사진 ${files.length}장 업로드 중...`)
+    toast(`Compressing ${files.length} photo(s)...`)
+    const compressedFiles = await compressImages(files)
 
     // 기존 photos 배열 조회
     let listing = await api('GET', `/api/listings/${_galleryListingId}`)
@@ -3608,7 +3653,7 @@ async function onPhotoSelected(input) {
     let mainUrl = listing.photo_url || null
 
     let success = 0
-    for (const file of files) {
+    for (const file of compressedFiles) {
       try {
         const formData = new FormData()
         formData.append('photo', file)
@@ -3631,8 +3676,10 @@ async function onPhotoSelected(input) {
   } else {
     // ── Listing Back에서 Main 사진 1장 교체 ─────────────────
     if (!input.files[0] || !_photoListingId) return
-    const file = input.files[0]
-    if (file.size > 10*1024*1024) { alert('10MB 초과'); input.value=''; return }
+    const rawFile = input.files[0]
+    if (rawFile.size > 10*1024*1024) { alert('File exceeds 10MB limit'); input.value=''; return }
+    toast('Compressing photo...')
+    const file = await compressImage(rawFile)
     const formData = new FormData()
     formData.append('photo', file)
     formData.append('folder', 'listings')
@@ -3813,11 +3860,14 @@ function renderListView(allData) {
                                '(function(n){_lLimit=n;_lPage=0;renderListView(_listings)})')}
 </div>`)
 }
-function fLS(val,field,btn) {
-  document.querySelectorAll('.tabs .tab').forEach(b=>b.classList.remove('on')); btn.classList.add('on')
-  document.querySelectorAll('#ltbl tr[data-ltype]').forEach(tr=>{
-    tr.style.display=(val==='ALL'||tr.dataset[field==='type'?'ltype':'lstatus']===val)?'':'none'
-  })
+function fLS(val, field, btn) {
+  document.querySelectorAll('.tabs .tab').forEach(b => b.classList.remove('on'))
+  btn.classList.add('on')
+  if (field === 'mine') { renderListView(_listings.filter(l => l.assigned_user_id === me?.id)); return }
+  let filtered = _listings
+  if (field === 'type'   && val !== 'ALL') filtered = _listings.filter(l => l.transaction_type === val)
+  if (field === 'status')                  filtered = _listings.filter(l => l.status === val)
+  renderListView(filtered)
 }
 // addListing → 모달로 처리 (아래 MODAL 섹션 참고)
 // ── Condo Name Autocomplete ─────────────────────────────────
@@ -3959,7 +4009,7 @@ async function openNewContract() {
     document.getElementById('nc-tenant-agent').value = me.id
   }
   // 폼 초기화
-  ;['nc-listing-search','nc-tenant-search','nc-lessor-search','nc-movein','nc-months','nc-rent','nc-deposit','nc-notes']
+  ;['nc-listing-search','nc-tenant-search','nc-lessor-search','nc-contract-date','nc-movein','nc-months','nc-rent','nc-deposit','nc-notes']
     .forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
   ;['nc-listing-selected','nc-tenant-selected','nc-lessor-selected'].forEach(id => {
     document.getElementById(id).style.display='none'
@@ -4029,8 +4079,9 @@ function selectNcContact(id, name, role, type) {
 }
 
 async function saveNewContract() {
-  const movein  = document.getElementById('nc-movein').value
-  const months  = parseInt(document.getElementById('nc-months').value)
+  const contractDate = document.getElementById('nc-contract-date')?.value || ''
+  const movein       = document.getElementById('nc-movein').value
+  const months       = parseInt(document.getElementById('nc-months').value)
   const rent    = parseFloat(document.getElementById('nc-rent').value)
   const deposit = parseFloat(document.getElementById('nc-deposit').value) || null
 
@@ -4045,7 +4096,7 @@ async function saveNewContract() {
     const deal = await api('POST', '/api/deals', {
       listing_id:           _ncListingId,
       contract_type:        'RENT',
-      contract_date:        movein,
+      contract_date:        contractDate || movein,
       move_in_date:         movein,
       contract_months:      months,
       monthly_rent:         rent,
@@ -4218,6 +4269,23 @@ async function buildReportPanel() {
     </div>
   </div>
 </div>`
+}
+
+let _reportArchiveMode = false
+
+function refreshReportSavedList() {
+  const el = document.getElementById('rp-saved-list')
+  if (el) el.innerHTML = renderReportSavedList()
+}
+
+async function archiveReport(id) {
+  if (!confirm('Archive this report?')) return
+  try {
+    await api('PATCH', '/api/listing-reports/' + id, { is_archived: true })
+    _reportDocs = await api('GET', '/api/listing-reports?include_shared=1').catch(()=>[])
+    refreshReportSavedList()
+    toast('Report archived')
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 function renderReportSavedList() {
@@ -5845,7 +5913,7 @@ async function openNewContractFromLead(lead) {
   document.getElementById('nc-owner-agent').innerHTML  = '<option value="">Unassigned</option>' + staffOpts
 
   // 폼 초기화
-  ;['nc-listing-search','nc-tenant-search','nc-lessor-search','nc-movein','nc-months','nc-rent','nc-deposit','nc-notes']
+  ;['nc-listing-search','nc-tenant-search','nc-lessor-search','nc-contract-date','nc-movein','nc-months','nc-rent','nc-deposit','nc-notes']
     .forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
   ;['nc-listing-selected','nc-tenant-selected','nc-lessor-selected'].forEach(id => {
     document.getElementById(id).style.display='none'
@@ -6343,17 +6411,36 @@ async function careCancel(id) {
   } catch(e) { alert('오류: ' + e.message) }
 }
 
+let _tenantShowInactive = false
+
 async function vTenants() {
   try {
     const data = await api('GET', '/api/tenants')
     const today = new Date()
+    const tenants = _tenantShowInactive
+      ? data.filter(d => d.is_inactive)
+      : data.filter(d => !d.is_inactive)
     vc(`
 <div class="ph">
-  <div><div class="ph-title">Tenants</div>
-  <div class="ph-sub">${data.length} active contracts</div></div>
-  <button class="btn btn-g" onclick="openNewContract()">
-    <i class="ti ti-plus"></i> New Contract
-  </button>
+  <div>
+    <div class="ph-title">Tenants</div>
+    <div class="ph-sub">${data.length} total contracts</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div style="display:flex;gap:2px;background:var(--b2);border-radius:20px;padding:3px">
+      <button onclick="setTenantView(false)"
+        style="padding:4px 14px;border-radius:16px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${!_tenantShowInactive?'#fff':'transparent'};color:${!_tenantShowInactive?'var(--N)':'var(--m)'};box-shadow:${!_tenantShowInactive?'0 1px 4px rgba(0,0,0,.12)':'none'}">
+        Active
+      </button>
+      <button onclick="setTenantView(true)"
+        style="padding:4px 14px;border-radius:16px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${_tenantShowInactive?'#fff':'transparent'};color:var(--m);box-shadow:${_tenantShowInactive?'0 1px 4px rgba(0,0,0,.12)':'none'}">
+        Inactive
+      </button>
+    </div>
+    <button class="btn btn-n" onclick="openNewContract()">
+      <i class="ti ti-plus"></i> New Contract
+    </button>
+  </div>
 </div>
 <div class="pb">
   <div class="card"><div class="scroll-x"><table class="tbl">
@@ -6404,6 +6491,20 @@ async function vTenants() {
   } catch(e) { err(e) }
 }
 
+function setTenantView(showInactive) {
+  _tenantShowInactive = showInactive
+  vTenants()
+}
+
+async function toggleTenantActive(dealId, makeInactive) {
+  if (!confirm(makeInactive ? 'Set this tenant as Inactive?' : 'Restore this tenant to Active?')) return
+  try {
+    await api('PATCH', `/api/deals/${dealId}`, { is_inactive: makeInactive })
+    toast(makeInactive ? 'Tenant set as Inactive' : 'Tenant restored to Active')
+    vTenants()
+  } catch(e) { alert('Error: ' + e.message) }
+}
+
 async function vTenantDetail(dealId) {
   try {
     saveScroll('tenants')
@@ -6448,11 +6549,36 @@ async function vTenantDetail(dealId) {
       <div class="card-h"><i class="ti ti-pencil"></i> Edit Contract</div>
       <div class="card-b">
         <div class="fg2">
+          <div class="ff"><label class="fl">Contract Date</label>
+            <input class="fi" id="tc-contract-date" type="date" value="${deal.contract_date||''}"
+              oninput="calcTcEndDate()"></div>
           <div class="ff"><label class="fl">Move-in Date</label>
             <input class="fi" id="tc-movein" type="date" value="${deal.move_in_date||''}"></div>
-          <div class="ff"><label class="fl">Contract Duration (months)</label>
-            <input class="fi" id="tc-months" type="number" min="1" max="120" value="${deal.contract_months||''}" placeholder="e.g. 12"></div>
         </div>
+        <div class="fg2">
+          <div class="ff"><label class="fl">Duration (months)</label>
+            <select class="fi" id="tc-months" onchange="calcTcEndDate()">
+              ${[1,2,3,6,9,12,18,24,36,48,60].map(m=>
+                '<option value="'+m+'"'+(deal.contract_months==m?' selected':'')+'>'+m+' month'+(m>1?'s':'')+'</option>'
+              ).join('')}
+            </select></div>
+          <div class="ff"><label class="fl">End of Contract <span style="font-size:9px;color:var(--m)">(auto)</span></label>
+            <input class="fi" id="tc-end-date" type="date" readonly style="background:var(--b2);cursor:not-allowed"
+              value="${deal.move_in_date&&deal.contract_months?new Date(new Date(deal.move_in_date).setMonth(new Date(deal.move_in_date).getMonth()+parseInt(deal.contract_months))).toISOString().slice(0,10):''}"></div>
+        </div>
+        <div class="fg2">
+          <div class="ff"><label class="fl">Monthly Rent (PHP)</label>
+            <input class="fi" id="tc-rent" type="number" value="${deal.monthly_rent||''}"></div>
+          <div class="ff"><label class="fl">Security Deposit (PHP)</label>
+            <input class="fi" id="tc-deposit" type="number" value="${deal.security_deposit||''}"></div>
+        </div>
+        <div class="fg2">
+          <div class="ff"><label class="fl">Advances (PHP)</label>
+            <input class="fi" id="tc-advance" type="number" value="${deal.advance_payment||''}" placeholder="e.g. 1 month"></div>
+          <div class="ff"></div>
+        </div>
+        <div class="ff"><label class="fl">Other Requests / Remarks</label>
+          <textarea class="fi" id="tc-remarks" rows="2" style="resize:vertical">${deal.remarks||''}</textarea></div>
         <div class="fg2">
           <div class="ff"><label class="fl">Monthly Rent (PHP)</label>
             <input class="fi" id="tc-rent" type="number" value="${deal.monthly_rent||''}"></div>
@@ -6583,15 +6709,32 @@ async function vTenantDetail(dealId) {
 }
 
 async function saveContractEdit(dealId) {
-  const move_in_date    = document.getElementById('tc-movein').value   || null
-  const contract_months = parseInt(document.getElementById('tc-months').value) || null
-  const monthly_rent    = parseFloat(document.getElementById('tc-rent').value) || null
-  const remarks         = document.getElementById('tc-remarks').value   || null
+  const payload = {
+    contract_date:    document.getElementById('tc-contract-date')?.value || null,
+    move_in_date:     document.getElementById('tc-movein')?.value        || null,
+    contract_months:  parseInt(document.getElementById('tc-months')?.value)    || null,
+    monthly_rent:     parseFloat(document.getElementById('tc-rent')?.value)    || null,
+    security_deposit: parseFloat(document.getElementById('tc-deposit')?.value) || null,
+    advance_payment:  parseFloat(document.getElementById('tc-advance')?.value) || null,
+    remarks:          document.getElementById('tc-remarks')?.value        || null,
+  }
   try {
-    await api('PATCH', `/api/deals/${dealId}`, { move_in_date, contract_months, monthly_rent, remarks })
+    await api('PATCH', `/api/deals/${dealId}`, payload)
     toast('✓ Contract info saved')
     vTenantDetail(dealId)
   } catch(e) { alert('Error: ' + e.message) }
+}
+
+function calcTcEndDate() {
+  const cdEl  = document.getElementById('tc-contract-date')
+  const moEl  = document.getElementById('tc-months')
+  const endEl = document.getElementById('tc-end-date')
+  if (!cdEl || !moEl || !endEl) return
+  const base = cdEl.value || document.getElementById('tc-movein')?.value
+  if (!base || !moEl.value) { endEl.value = ''; return }
+  const d = new Date(base)
+  d.setMonth(d.getMonth() + parseInt(moEl.value))
+  endEl.value = d.toISOString().slice(0,10)
 }
 
 async function saveTenantInfo(dealId) {
@@ -7722,7 +7865,7 @@ async function vStaff() {
 }
 </script>
 <!-- Create User Modal (Admin Only) -->
-<div class="modal-overlay" id="modal-create-user" style="display:none" onclick="if(event.target===this)closeModal('modal-create-user')">
+<div class="modal-overlay" id="modal-create-user" style="display:none">
   <div class="modal" style="max-width:420px">
     <div class="modal-hd">
       <div><h2><i class="ti ti-user-plus"></i> Create New User</h2></div>
@@ -7755,7 +7898,7 @@ async function vStaff() {
 
 <!-- ── Add Lead Modal ─────────────────────────────── -->
 <div class="modal-overlay" id="modal-add-lead" style="display:none"
-  onclick="if(event.target===this)closeModal('modal-add-lead')">
+ >
   <div class="modal" style="max-width:520px">
     <div class="modal-hd">
       <div>

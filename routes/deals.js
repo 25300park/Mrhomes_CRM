@@ -107,13 +107,20 @@ router.post('/', auth, async (req, res) => {
 
 // PATCH /api/deals/:id (상태·비고 수정 + 연동된 Listing 상태 자동 변경)
 router.patch('/:id', auth, async (req, res) => {
-  const { remarks, status, move_in_date, contract_months, monthly_rent } = req.body
+  const {
+    remarks, status, move_in_date, contract_months, monthly_rent,
+    contract_date, security_deposit, advance_payment, is_inactive
+  } = req.body
   const updates = { updated_at: new Date().toISOString() }
-  if (remarks         !== undefined) updates.remarks         = remarks
-  if (status          !== undefined) updates.status          = status
-  if (move_in_date    !== undefined) updates.move_in_date    = move_in_date
-  if (contract_months !== undefined) updates.contract_months = contract_months
-  if (monthly_rent    !== undefined) updates.monthly_rent    = monthly_rent
+  if (remarks          !== undefined) updates.remarks          = remarks
+  if (status           !== undefined) updates.status           = status
+  if (move_in_date     !== undefined) updates.move_in_date     = move_in_date
+  if (contract_date    !== undefined) updates.contract_date    = contract_date
+  if (contract_months  !== undefined) updates.contract_months  = contract_months
+  if (monthly_rent     !== undefined) updates.monthly_rent     = monthly_rent
+  if (security_deposit !== undefined) updates.security_deposit = security_deposit
+  if (advance_payment  !== undefined) updates.advance_payment  = advance_payment
+  if (is_inactive      !== undefined) updates.is_inactive      = is_inactive
 
   const { data, error } = await req.supabase
     .from('deals').update(updates)
