@@ -95,7 +95,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 /* TOAST */
 #toast{position:fixed;top:14px;right:14px;z-index:999;background:var(--G);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;display:none;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.15)}
 
-/* ── 모달 ── */
+/* ── modal ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:800;display:flex;align-items:center;justify-content:center;padding:20px}
 .modal{background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)}
 .modal-hd{padding:22px 24px 6px;display:flex;align-items:flex-start;justify-content:space-between}
@@ -211,7 +211,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
         <label for="remember-me" style="cursor:pointer;user-select:none">Save ID / Password</label>
       </div>
       <button type="submit" class="login-btn" id="lbtn">Sign In</button>
-      <div id="login-err">Email 또는 Password가 올바르지 않습니다</div>
+      <div id="login-err">Email 또는 Password 올바르지 않습니다</div>
     </form>
   </div>
 </div>
@@ -234,8 +234,8 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <button class="nav-it" onclick="nav('documents')" data-v="documents"><i class="ti ti-file-certificate"></i><span>Documents</span></button>
       <a class="nav-it" href="/time-management/"><i class="ti ti-clock"></i><span>Time Management</span></a>
       <div class="nav-sec">PMS</div>
-      <button class="nav-it" onclick="nav('pms-payments')" data-v="pms-payments"><i class="ti ti-receipt-2"></i><span>납부 검토</span></button>
-      <button class="nav-it" onclick="nav('pms-care')" data-v="pms-care"><i class="ti ti-tool"></i><span>홈케어 관리</span></button>
+      <button class="nav-it" onclick="nav('pms-payments')" data-v="pms-payments"><i class="ti ti-receipt-2"></i><span>Payment Review</span></button>
+      <button class="nav-it" onclick="nav('pms-care')" data-v="pms-care"><i class="ti ti-tool"></i><span>Home Care 관리</span></button>
       <div class="nav-sec admin-only">Management</div>
       <button class="nav-it admin-only" onclick="nav('accounting')" data-v="accounting"><i class="ti ti-coin"></i><span>Accounting</span></button>
       <button class="nav-it admin-only" onclick="nav('staff')" data-v="staff"><i class="ti ti-chart-bar"></i><span>Staff Performance</span></button>
@@ -278,7 +278,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
   <main id="main"><div id="vc"><div class="loading">로딩 중...</div></div></main>
 </div>
 
-<!-- ── 프로필 Edit 모달 ── -->
+<!-- ── 프로필 Edit modal ── -->
 <div class="modal-overlay" id="modal-dynamic" style="display:none" onclick="if(event.target===this)closeDynModal()">
   <div class="modal" style="max-width:520px;max-height:85vh;overflow-y:auto">
     <div id="modal-dynamic-content"></div>
@@ -332,7 +332,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 
       <div style="background:#FDF0DC;border-radius:9px;padding:12px 14px;margin-top:4px">
         <div style="font-size:11px;color:#854F0B;font-weight:600;margin-bottom:8px">
-          <i class="ti ti-lock"></i> 현재 Password 확인 (필수)
+          <i class="ti ti-lock"></i> Current Password Confirm (Required)
         </div>
         <div style="position:relative">
           <input type="password" id="prof-curr-pw" placeholder="Enter current password"
@@ -352,7 +352,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
     </div>
   </div>
 </div>
-<!-- ── AI Quick Input 모달 (고객) ── -->
+<!-- ── AI Quick Input modal (고객) ── -->
 <div class="modal-overlay" id="modal-quick-contact" style="display:none">
   <div class="modal" style="max-width:520px">
     <div class="modal-hd">
@@ -458,7 +458,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
   </div>
 </div>
 
-<!-- ── AI Quick Input 모달 (매물) ── -->
+<!-- ── AI Quick Input modal (매물) ── -->
 <div class="modal-overlay" id="modal-quick-listing" style="display:none">
   <div class="modal" style="max-width:540px">
     <div class="modal-hd">
@@ -517,7 +517,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       </div>
       <div class="mf"><label>ADDRESS</label><input class="fi" id="ql-addr" placeholder="e.g. 1st Ave, BGC, Taguig"></div>
 
-      <!-- 임대인 정보 -->
+      <!-- 임대인 Info -->
       <div id="ql-owner-section" style="display:none;background:#F8F5F0;border-radius:10px;padding:14px;margin-top:4px">
         <div style="font-size:11px;font-weight:600;color:var(--m);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Owner / Lessor Info (auto-detected)</div>
         <div class="mf-row">
@@ -537,7 +537,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
         <textarea class="fi" id="ql-private-notes" rows="2" style="resize:vertical;margin-top:6px;background:#FFFDF0" placeholder="비밀 메모..."></textarea>
       </div>
 
-      <!-- 사진 업로드 -->
+      <!-- Photo uploading -->
       <div class="mf" style="margin-top:10px">
         <label>PHOTOS <span style="font-weight:400;text-transform:none;color:var(--m)">(optional — multiple allowed)</span></label>
         <div id="ql-photo-drop"
@@ -569,7 +569,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
   </div>
 </div>
 
-<!-- ── New Contract 모달 (Tenants 탭) ── -->
+<!-- ── New Contract modal (Tenants 탭) ── -->
 <div class="modal-overlay" id="modal-new-contract" style="display:none">
   <div class="modal" style="max-width:520px">
     <div class="modal-hd">
@@ -577,7 +577,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
       <button class="modal-close" onclick="closeModal('modal-new-contract')"><i class="ti ti-x"></i></button>
     </div>
     <div class="modal-body">
-      <!-- Listing 검색 -->
+      <!-- Listing Search -->
       <div class="mf">
         <label>Property *</label>
         <div style="position:relative">
@@ -588,7 +588,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
         <input type="hidden" id="nc-listing-id">
         <div id="nc-listing-selected" style="display:none;font-size:11px;color:#0F6E56;margin-top:4px"></div>
       </div>
-      <!-- Tenant / Lessor 검색 -->
+      <!-- Tenant / Lessor Search -->
       <div class="mf-row">
         <div class="mf">
           <label>Tenant (Lessee) *</label>
@@ -670,7 +670,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
 <input type="file" id="photo-input" accept="image/*" multiple style="display:none" onchange="onPhotoSelected(this)">
 <div id="print-frame"></div>
 
-<!-- ── Contact Add 모달 ── -->
+<!-- ── Contact Add modal ── -->
 <div class="modal-overlay" id="modal-contact" style="display:none">
   <div class="modal">
     <div class="modal-hd">
@@ -769,7 +769,7 @@ input,select,button,textarea{font-family:inherit;font-size:13px}
   </div>
 </div>
 
-<!-- ── Listing Add 모달 ── -->
+<!-- ── Listing Add modal ── -->
 <div class="modal-overlay" id="modal-listing" style="display:none">
   <div class="modal">
     <div class="modal-hd">
@@ -1110,7 +1110,7 @@ document.getElementById('lf').addEventListener('submit', async e => {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: document.getElementById('lem').value, password: document.getElementById('lpw').value })
     }).then(r => r.json())
-    if (!d.user) throw new Error(d.error || 'Sign In 실패')
+    if (!d.user) throw new Error(d.error || 'Sign In Failed')
     startSession(d.user)
   } catch(e) { er.style.display = 'block'; btn.textContent = 'Sign In'; btn.disabled = false }
 })
@@ -1175,7 +1175,7 @@ async function loadNotifications() {
     // 패널 내용 업데이트
     const list = document.getElementById('notif-list')
     if (list) list.innerHTML = renderNotifList(data)
-  } catch(e) { /* 조용히 실패 */ }
+  } catch(e) { /* 조용히 Failed */ }
 }
 
 function renderNotifList(items) {
@@ -1223,7 +1223,7 @@ function goToContact(contactId) {
   nav('contacts')
 }
 
-// 패널 외부 클릭 시 닫기
+// 패널 외부 클릭 시 Close
 document.addEventListener('click', e => {
   if (_notifOpen && !e.target.closest('#notif-btn') && !e.target.closest('#notif-panel')) {
     _notifOpen = false
@@ -1278,7 +1278,7 @@ async function vDashAdmin() {
     <div class="kpi"><div class="kpi-l">Operating Profit</div><div class="kpi-v" style="color:${kpi.operating_profit>=0?'var(--G)':'var(--R)'}">${fmtK(kpi.operating_profit)}</div><div class="kpi-s">Net − expenses</div></div>
   </div>
 
-  <!-- 메인 2컬럼 (좌: 정보 패널 / 우: Activity History) -->
+  <!-- 메인 2컬럼 (좌: Info 패널 / 우: Activity History) -->
   <div style="display:grid;grid-template-columns:340px 1fr;gap:12px;flex:1;overflow:hidden;padding:0 16px 16px;min-height:0">
 
     <!-- 좌측: Follow-ups + Pipeline + Deals + Listings (스크롤) -->
@@ -1342,15 +1342,15 @@ async function vDashAdmin() {
       </div>
     </div>
 
-    <!-- 우측: Activity History (필터 + 시계열 + 스크롤) -->
+    <!-- 우측: Activity History (Filter + 시계열 + 스크롤) -->
     <div class="card" style="display:flex;flex-direction:column;overflow:hidden;min-height:0">
-      <!-- 헤더 + 필터 -->
+      <!-- 헤더 + Filter -->
       <div style="flex-shrink:0;border-bottom:1px solid var(--b);padding:10px 14px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <span style="font-weight:700;font-size:13px"><i class="ti ti-history"></i> Activity History</span>
           <span id="dash-act-count" style="font-size:11px;color:var(--m)"></span>
         </div>
-        <!-- Contact 검색 -->
+        <!-- Contact Search -->
         <div style="position:relative;margin-bottom:8px">
           <i class="ti ti-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--m);font-size:13px"></i>
           <input id="dash-act-search" type="text" placeholder="Contact Search by name..."
@@ -1358,14 +1358,14 @@ async function vDashAdmin() {
             oninput="filterDashActivity()"
             onfocus="this.style.borderColor='var(--A)'" onblur="this.style.borderColor='var(--b)'">
         </div>
-        <!-- 타입 필터 탭 -->
+        <!-- 타입 Filter 탭 -->
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">
           ${['All','Call','Message','Site Visit','Listing Offer','LOI','Contract','Other'].map((t,i)=>
             `<button onclick="setDashActType(this,'${t}')"
               style="padding:3px 10px;border-radius:14px;border:1px solid var(--b);background:${i===0?'var(--N)':'transparent'};color:${i===0?'#fff':'var(--m)'};font-size:10px;cursor:pointer;transition:all .1s">${t}</button>`
           ).join('')}
         </div>
-        <!-- 시계열 필터 -->
+        <!-- 시계열 Filter -->
         <div style="display:flex;gap:4px;flex-wrap:wrap">
           ${[['today','Today'],['yesterday','Yesterday'],['week','This Week'],['month','This Month'],['year','This Year'],['all','All Time']].map(([v,l],i)=>
             `<button onclick="setDashActPeriod(this,'${v}')"
@@ -1373,7 +1373,7 @@ async function vDashAdmin() {
           ).join('')}
         </div>
       </div>
-      <!-- Activity 목록 (스크롤) -->
+      <!-- Activity List (스크롤) -->
       <div id="dash-act-list" style="flex:1;overflow-y:auto;min-height:0">
         <div style="padding:20px;text-align:center;color:var(--m)">Loading...</div>
       </div>
@@ -1433,15 +1433,15 @@ function renderDashActivity() {
 
   let filtered = _dashActAll.filter(function(a) {
     const d = (a.created_at || '').slice(0,10)
-    // 시계열 필터
+    // 시계열 Filter
     if (_dashActPeriod === 'today'     && d !== today)      return false
     if (_dashActPeriod === 'yesterday' && d !== yesterday)  return false
     if (_dashActPeriod === 'week'      && d < weekAgo)      return false
     if (_dashActPeriod === 'month'     && d < monthAgo)     return false
     if (_dashActPeriod === 'year'      && d < yearAgo)      return false
-    // 타입 필터
+    // 타입 Filter
     if (_dashActType !== 'All' && a.activity_type !== typeKeyMap[_dashActType]) return false
-    // 검색
+    // Search
     if (q && !(a.contact?.name||'').toLowerCase().includes(q)
           && !(a.notes||'').toLowerCase().includes(q)
           && !(a.listing?.name||'').toLowerCase().includes(q)) return false
@@ -1546,7 +1546,7 @@ async function vDashAgent() {
     const myFU     = myActive.filter(l => l.next_followup_at && l.next_followup_at <= tod())
     const today    = new Date()
 
-    // 전역 데이터 저장
+    // 전역 데이터 Save
     _dashData = { myLeads, myActive, myFU, listings, activities, today }
     _dashLayout = getDashLayout()
 
@@ -1559,7 +1559,7 @@ async function vDashAgent() {
   <div style="font-size:11px;color:var(--m)">${new Date().toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric'})}</div>
 </div>
 <div class="pb">
-  <!-- Summary Bar (고정, 이동 불가) -->
+  <!-- Summary Bar (고정, Go 불가) -->
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
     <div class="kpi">
       <div class="kpi-l">Active Leads</div>
@@ -1602,7 +1602,7 @@ function renderDashGrid() {
   _dashLayout.left.forEach(id  => { const el = buildDashCard(id);  if (el) left.appendChild(el) })
   _dashLayout.right.forEach(id => { const el = buildDashCard(id); if (el) right.appendChild(el) })
 
-  // Drop zones 설정
+  // Drop zones Settings
   ;['dash-col-left','dash-col-right'].forEach(colId => {
     const col = document.getElementById(colId)
     col.addEventListener('dragover', onDashDragOver)
@@ -1698,7 +1698,7 @@ function buildDashCardBody(cardId) {
   }
 
   if (cardId === 'recent-deals') {
-    // recent deals는 API 데이터가 필요하므로 비동기 로드
+    // recent deals는 API 데이터가 필요하므로 비동기 Loading
     setTimeout(loadAgentRecentDeals, 100)
     return '<div id="agent-deals-list"><div style="padding:16px;text-align:center;color:var(--m)">Loading...</div></div>'
   }
@@ -1738,7 +1738,7 @@ function buildDashCardBody(cardId) {
   return '<div style="padding:20px;text-align:center;color:var(--m)">No data</div>'
 }
 
-// ── Activity 필터 ──────────────────────────────────────────
+// ── Activity Filter ──────────────────────────────────────────
 let _agentActType = 'All'
 
 function setAgentActType(btn, type) {
@@ -1878,7 +1878,7 @@ function onDashDrop(e) {
   const colId = targetCol.id === 'dash-col-left' ? 'left' : 'right'
   const otherColId = colId === 'left' ? 'right' : 'left'
 
-  // 현재 레이아웃에서 카드 제거
+  // Current 레이아웃에서 카드 제거
   _dashLayout.left  = _dashLayout.left.filter(c => c !== _dashDragCard)
   _dashLayout.right = _dashLayout.right.filter(c => c !== _dashDragCard)
 
@@ -1887,7 +1887,7 @@ function onDashDrop(e) {
   const afterEl = getDragAfterElement(targetCol, e.clientY)
 
   if (afterEl == null) {
-    // 맨 아래에 추가
+    // 맨 아래에 Add
     _dashLayout[colId].push(_dashDragCard)
   } else {
     const afterCardId = afterEl.dataset.cardId
@@ -1943,7 +1943,7 @@ async function vContactDetail(id) {
 
   <!-- 왼쪽: Contact Info + 빠른 활동 -->
   <div>
-    <!-- Contact 정보 (보기) -->
+    <!-- Contact Info (보기) -->
     <div class="card" id="contact-view-${id}">
       <div class="card-h"><i class="ti ti-user" aria-hidden="true"></i> Contact Info</div>
       <div class="card-b">
@@ -1966,7 +1966,7 @@ async function vContactDetail(id) {
 
     <!-- Edit 폼 (숨김) -->
     <div class="card" id="contact-edit-${id}" style="display:none">
-      <div class="card-h"><i class="ti ti-edit" aria-hidden="true"></i> Contact 정보 Edit</div>
+      <div class="card-h"><i class="ti ti-edit" aria-hidden="true"></i> Contact Info Edit</div>
       <div class="card-b">
         <div class="fg2">
           <div class="ff"><label class="fl">Name</label><input class="fi" id="ce-name" value="${contact.name}"></div>
@@ -2027,7 +2027,7 @@ async function vContactDetail(id) {
         ${activeLeads.length?`
         <div class="ff"><label class="fl">Related Lead</label>
           <select class="fs" id="cact-lead" onchange="onCActLeadChange()">
-            <option value="">Select (Select사항)</option>
+            <option value="">Select (optional)</option>
             ${activeLeads.map(l=>`<option value="${l.id}">${LEAD_STATUS_LABELS[l.status]} · ${fmt(l.budget)}${l.request_type==='RENT'?'/Month':''} · ${l.location_pref||''}</option>`).join('')}
           </select></div>
         <div class="ff" id="cact-status-wrap" style="display:none;padding:10px 12px;background:#F8F5F0;border-radius:8px">
@@ -2065,7 +2065,7 @@ async function vContactDetail(id) {
     </div>
   </div>
 
-  <!-- 오른쪽: 리드 + 계약 + 활동이력 -->
+  <!-- 오른쪽: 리드 + Contract + 활동이력 -->
   <div>
     <!-- Lead Status -->
     <div class="card" style="margin-bottom:12px">
@@ -2104,7 +2104,7 @@ async function vContactDetail(id) {
           <div style="font-weight:600;font-size:12px">${d.listing?.name||'-'}</div>
           <div style="font-size:11px;color:var(--m);margin-top:2px">${d.contract_date} · ${d.contract_type==='RENT'?'Rent':'Sale'}</div>
           <div style="margin-top:4px;display:flex;gap:5px">
-            ${d.owner_contact_id===id?bdg('Rent인측','#E6F1FB','#185FA5'):''}
+            ${d.owner_contact_id===id?bdg('Lessor side','#E6F1FB','#185FA5'):''}
             ${d.tenant_contact_id===id?bdg('Lessee Side','#E1F5EE','#0F6E56'):''}
           </div>
         </div>
@@ -2148,7 +2148,7 @@ async function vContactDetail(id) {
 }
 
 let _cActType = 'CALL'
-// ── Listing 검색 (사진 포함) ──────────────────────────────
+// ── Listing Search (Photo 포함) ──────────────────────────────
 let _cactListingTimer = null
 function searchCActListing(q) {
   const res = document.getElementById('cact-listing-results')
@@ -2192,7 +2192,7 @@ function selectCActListing(id, name, photo) {
   if (inp) inp.value = name
   const res = document.getElementById('cact-listing-results')
   if (res) res.style.display = 'none'
-  // 선택 표시
+  // Select 표시
   const sel = document.getElementById('cact-listing-selected')
   const thumb = document.getElementById('cact-listing-thumb')
   const label = document.getElementById('cact-listing-label')
@@ -2228,7 +2228,7 @@ document.addEventListener('click', e => {
 })
 
 function setCActType(type) {
-  // OFFER → Listing Report 페이지 이동
+  // OFFER → Listing Report 페이지 Go
   if (type === 'OFFER') {
     const contactName = document.querySelector('.ph-title')?.textContent?.trim() || ''
     nav('documents')
@@ -2243,7 +2243,7 @@ function setCActType(type) {
     return
   }
 
-  // LOI → LOI 페이지 이동 + 임차인 자동채움
+  // LOI → LOI 페이지 Go + Tenant auto-fill
   if (type === 'LOI') {
     const hash = location.hash
     const contactId = hash.startsWith('#contact/') ? hash.replace('#contact/','') : null
@@ -2257,7 +2257,7 @@ function setCActType(type) {
     setTimeout(() => {
       switchDocTab('loi', document.getElementById('dt-loi'))
       setTimeout(() => {
-        // 임차인 자동채움
+        // Tenant auto-fill
         if (contactName) {
           const ts = document.getElementById('loi-tenant-search')
           const th = document.getElementById('loi-tenant')
@@ -2269,7 +2269,7 @@ function setCActType(type) {
           const re = document.getElementById('loi-rent')
           if (re) re.value = lead.budget
         }
-        // 선택된 Listing 자동채움
+        // selected Listing auto-fill
         if (listingId) {
           const ls = document.getElementById('loi-listing-search')
           const lh = document.getElementById('loi-listing')
@@ -2341,7 +2341,7 @@ async function saveContactActivity(contactId) {
     await api('POST','/api/activities',{type:_cActType,contact_id:contactId,lead_id:leadId,listing_id:listing,notes,next_followup_at:followup,created_by:me?.id})
     if (leadId&&newStat) await api('PATCH',`/api/leads/${leadId}`,{status:newStat,...(followup?{next_followup_at:followup}:{})})
     else if (leadId&&followup) await api('PATCH',`/api/leads/${leadId}`,{next_followup_at:followup})
-    toast('Activity saved'+(newStat?` · 리드 → ${LEAD_STATUS_LABELS[newStat]}`:''))
+    toast('Activity saved'+(newStat?` · Lead → ${LEAD_STATUS_LABELS[newStat]}`:''))
     vContactDetail(contactId)
   } catch(e) { alert('Save Error: '+e.message) }
 }
@@ -2371,9 +2371,9 @@ function renderLeadAction(l, contactId) {
 
 
 
-// Lead → Tenants 이동 (계약 생성 모달 자동 오픈)
+// Lead → Tenants Go (Contract Create modal Auto 오픈)
 async function goToTenantsFromLead(leadId, contactId) {
-  if (!confirm('이 Lead를 Tenants로 이동하시겠습니까? 계약 등록 창이 열리며 Lead 정보가 자동으로 채워집니다. 등록 완료 후 이 Lead는 삭제됩니다.')) return
+  if (!confirm('Move this Lead to Tenants?\nThe contract form will open with lead info pre-filled.')) return
   try {
     const lead = await api('GET', '/api/leads/' + leadId)
     if (!_contacts.length) {
@@ -2388,16 +2388,16 @@ async function goToTenantsFromLead(leadId, contactId) {
         try {
           await api('DELETE', '/api/leads/' + window._pendingDeleteLeadId)
           window._pendingDeleteLeadId = null
-          toast('Lead가 삭제되고 Tenants로 이동되었습니다')
+          toast('Lead moved to Tenants successfully')
         } catch(e2) {
-          console.warn('Lead 삭제 실패:', e2.message)
+          console.warn('Lead Delete Failed:', e2.message)
         }
       }
       window.saveNewContract = _origSave
       setTimeout(function() { nav('tenants') }, 500)
     }
   } catch(e) {
-    alert('오류: ' + e.message)
+    alert('Error: ' + e.message)
   }
 }
 
@@ -2409,7 +2409,7 @@ async function quickLeadStatusChange(leadId, contactId, status) {
   } catch(e) { alert(e.message) }
 }
 function addLeadForContact(contactId, contactName) {
-  // 폼 초기화
+  // 폼 Reset
   ;['al-budget','al-location','al-remarks','al-min-price','al-bedrooms','al-bathrooms','al-area-sqm'].forEach(id => {
     const el = document.getElementById(id)
     if (el) el.value = ''
@@ -2418,16 +2418,16 @@ function addLeadForContact(contactId, contactName) {
   const furEl  = document.getElementById('al-furnished'); if (furEl) furEl.value = ''
   const petEl  = document.getElementById('al-pet'); if (petEl) petEl.value = ''
 
-  // Staff 목록 채우기
+  // Staff List 채우기
   const agentEl = document.getElementById('al-agent')
   if (agentEl) {
     const opts = (_staff||[]).map(s => '<option value="' + s.id + '">' + s.name + '</option>').join('')
     agentEl.innerHTML = '<option value="">-- Select --</option>' + opts
     agentEl.value = me?.id || ''
   }
-  // Contact 정보 표시
+  // Contact Info 표시
   const label = document.getElementById('al-contact-label')
-  if (label) label.textContent = contactName + '의 Lead 추가'
+  if (label) label.textContent = contactName + '의 Lead Add'
   document.getElementById('al-contact-id').value   = contactId
   document.getElementById('al-contact-name').value = contactName
   document.getElementById('modal-add-lead').style.display = 'flex'
@@ -2448,8 +2448,8 @@ async function saveAddLead() {
   const pet        = petVal === 'true' ? true : petVal === 'false' ? false : null
   const agentId    = document.getElementById('al-agent')?.value || me?.id
 
-  if (!contactId) { alert('Contact 정보가 없습니다'); return }
-  if (!type)      { alert('Lead Type을 선택해주세요'); return }
+  if (!contactId) { alert('No contact info found'); return }
+  if (!type)      { alert('Please select a lead type'); return }
   try {
     await api('POST', '/api/leads', {
       contact_id:       contactId,
@@ -2474,12 +2474,12 @@ async function saveAddLead() {
 
 async function vCust() {
   try {
-    // 본인 Contact만 표시 (admin은 전체)
+    // 본인 contacts only 표시 (admin은 All)
     let url = '/api/contacts?limit=300'
     if (_cf.agent)  url += `&agent=${_cf.agent}`
     if (_cf.status) url += `&status=${_cf.status}`
     if (_cf.type)   url += `&type=${_cf.type}`
-    // 일반 직원: 본인이 입력한 Contact만
+    // 일반 Staff: 본인이 Input한 contacts only
     if (me?.role !== 'admin') url += `&agent=${me.id}`
     const [c, l, st] = await Promise.all([
       api('GET', url),
@@ -2509,12 +2509,12 @@ function renderCustView() {
     <button class="tab" onclick="custTab('p',this)">Lead Pipeline</button>
     <button class="tab" onclick="custTab('a',this)">Activity History</button>
   </div>
-  <!-- 검색창: cc 밖에 고정 배치 (innerHTML 교체해도 포커스 유지) -->
+  <!-- search bar: cc 밖에 고정 배치 (innerHTML 교체해도 포커스 유지) -->
   <div style="display:flex;gap:8px;margin:8px 0;align-items:center">
     <div style="position:relative;flex:1;max-width:280px">
       <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--m);font-size:14px"></i>
       <input type="text" id="c-search-input"
-        placeholder="Name, Contact, 이메일 검색..."
+        placeholder="Name, Contact, 이메일 Search..."
         value="${_cQ}"
         style="width:100%;padding:8px 12px 8px 32px;border:1px solid var(--b);border-radius:8px;font-size:12px;outline:none;background:#fff"
         oninput="_cQ=this.value;_cPage=0;refreshContacts()"
@@ -2536,7 +2536,7 @@ function refreshContacts() {
   if (el) el.innerHTML = renderContacts()
   const cnt = document.getElementById('c-search-count')
   if (cnt) {
-    const q = _cQ.toLowerCase()  // 공백 포함 검색
+    const q = _cQ.toLowerCase()  // 공백 포함 Search
     const n = _contacts.filter(c =>
       (!q || c.name.toLowerCase().includes(q) || (c.mobile||'').includes(q) || (c.email||'').toLowerCase().includes(q)) &&
       (!_cf.agent  || c.assigned_user_id === _cf.agent) &&
@@ -2698,7 +2698,7 @@ function qlReset() {
   document.getElementById('ql-step2').style.display = 'none'
   document.getElementById('ql-loading').style.display = 'none'
   const e = document.getElementById('ql-error'); if(e) e.style.display = 'none'
-  // 사진 초기화
+  // Photo Reset
   _qlPhotos.forEach(p => URL.revokeObjectURL(p.url))
   _qlPhotos = []
   renderQLPhotoPreview()
@@ -2782,7 +2782,7 @@ async function parseListingAI() {
       set('ql-owner-mobile', d.owner.mobile||'')
     } else if(ownerSec) ownerSec.style.display = 'none'
 
-    // ── 콘도 DB에서 주소 자동입력 (AI가 주소를 못 찾은 경우) ──
+    // ── 콘도 DB에서 주소 AutoInput (AI가 주소를 못 찾은 경우) ──
     if (d.name && !d.address) {
       try {
         const condos = await api('GET', `/api/condos?q=${encodeURIComponent(d.name.split(' ').slice(0,3).join(' '))}`)
@@ -2791,7 +2791,7 @@ async function parseListingAI() {
           if (match.address) set('ql-addr', match.address)
           if (match.property_type && ptEl) ptEl.value = match.property_type
         }
-      } catch(e) { /* 콘도 검색 실패 시 무시 */ }
+      } catch(e) { /* 콘도 Search Failed 시 무시 */ }
     }
 
     document.getElementById('ql-loading').style.display = 'none'
@@ -2831,7 +2831,7 @@ async function saveListingFromAI() {
       }
     }
 
-    // 매물 저장
+    // 매물 Save
     const listing = await api('POST', '/api/listings', {
       name,
       transaction_type: document.getElementById('ql-trade').value,
@@ -2853,7 +2853,7 @@ async function saveListingFromAI() {
       status: 'ACTIVE'
     })
 
-    // 사진 업로드
+    // Photo uploading
     if (_qlPhotos.length > 0) {
       toast(`Uploading ${_qlPhotos.length} photo(s)...`)
       let mainUrl  = null
@@ -2893,23 +2893,23 @@ function togglePwVis(inputId, btn) {
 }
 
 async function openProfile() {
-  // 현재 Mine: 정보 불러오기
+  // Current Mine: Info 불러오기
   try {
     const data = await api('GET', '/api/auth/me')
     document.getElementById('prof-name').value      = data.name    || me.name || ''
     document.getElementById('prof-email').value     = data.email   || ''
     document.getElementById('prof-mobile').value    = data.mobile  || ''
-    document.getElementById('prof-subtitle').textContent = `${me.name} · ${me.role==='admin'?'관리자':'직원'}`
+    document.getElementById('prof-subtitle').textContent = `${me.name} · ${me.role==='admin'?'Admin':'Staff'}`
   } catch(e) {
     document.getElementById('prof-name').value  = me.name || ''
     document.getElementById('prof-email').value = ''
   }
   ;['prof-curr-pw','prof-new-pw','prof-confirm-pw'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = ''
-    // Password 입력 타입 초기화
+    // Password Input 타입 Reset
     if(el) el.type = 'password'
   })
-  // 눈 아이콘 초기화
+  // 눈 아이콘 Reset
   document.querySelectorAll('#modal-profile .ti-eye-off').forEach(i => {
     i.className = 'ti ti-eye'
   })
@@ -2941,7 +2941,7 @@ async function saveProfile() {
     return
   }
   if (newPassword && newPassword !== confirmPassword) {
-    errEl.textContent = '새 Password가 일치하지 않습니다'
+    errEl.textContent = '새 Password 일치하지 않습니다'
     errEl.style.display = 'block'
     document.getElementById('prof-confirm-pw').focus()
     return
@@ -2953,7 +2953,7 @@ async function saveProfile() {
       newPassword:     newPassword     || undefined,
       confirmPassword: confirmPassword || undefined
     })
-    toast('✓ 개인정보가 Edit되었습니다')
+    toast('✓ Profile info updated')
     // 화면의 사용자 Name 업데이트
     if(result.user?.email) me.email = result.user.email
     closeModal('modal-profile')
@@ -2990,7 +2990,7 @@ async function parseContactAI() {
     set('qc-email',       d.email||'')
     set('qc-platform',    d.platform||'')
     set('qc-nationality', d.nationality||'Filipino')
-    // AI 파싱 결과 + 원본 텍스트를 Notes에 저장
+    // AI 파싱 결과 + 원본 텍스트를 Notes에 Save
     const existingRemark = d.remarks || ''
     const sourceNote = `[Quick Input]\n${text}`
     set('qc-remarks', existingRemark ? `${existingRemark}\n\n${sourceNote}` : sourceNote)
@@ -3050,7 +3050,7 @@ function closeModal(id) {
   document.getElementById(id).style.display = 'none'
 }
 
-// PMS 동적 모달 헬퍼
+// PMS 동적 modal 헬퍼
 function showModal(html) {
   document.getElementById('modal-dynamic-content').innerHTML = html
   document.getElementById('modal-dynamic').style.display = 'flex'
@@ -3068,7 +3068,7 @@ async function addContact() {
     st.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.name}</option>`)
     if (!_staff.length) _staff = st
   } catch(e) {}
-  // 로그인 계정을 기본 Assigned로 설정
+  // 로그인 account 기본 Assigned로 Settings
   sel.value = me?.id || ''
   ;['mc-name','mc-mobile','mc-email','mc-remarks','mc-nickname'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = ''
@@ -3104,7 +3104,7 @@ async function saveNewContact() {
     }
   } catch(e) {}
 
-  // ── 저장 ───────────────────────────────────────────────
+  // ── Save ───────────────────────────────────────────────
   try {
     await api('POST', '/api/contacts', {
       name, nickname: nickname||null,
@@ -3126,7 +3126,7 @@ async function saveNewContact() {
 
 
 async function addListing() {
-  // Member 목록 + 기본값을 로그인 계정으로
+  // Member List + 기본값을 로그인 Account으로
   const sel = document.getElementById('ml-agent')
   sel.innerHTML = '<option value="">Unassigned</option>'
   try {
@@ -3134,7 +3134,7 @@ async function addListing() {
     if (!_staff.length) _staff = st
     st.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.name}</option>`)
     sel.value = me?.id || ''
-    // Contacts 로드 (검색용)
+    // Contacts Loading (Search용)
     if (!_contacts.length) {
       const cl = await api('GET', '/api/contacts?limit=300')
       _contacts = cl.data || cl.contacts || (Array.isArray(cl)?cl:[])
@@ -3185,16 +3185,16 @@ async function saveNewListing() {
       lng:               parseFloat(document.getElementById('ml-lng').value) || null,
       status: 'ACTIVE'
     })
-    toast(`✓ ${name} Listing이 Added`)
+    toast(`✓ ${name} listing saved`)
     closeModal('modal-listing')
     vList()
   } catch(e) { alert('Save Error: ' + e.message) }
 }
 
-// ESC 키 → 모달 닫지 않음 (모달 Mine: 작업 유지)
-// (사용자 요청: ESC로 모달 밖으로 나가지 않도록)
+// ESC 키 → modal 닫지 않음 (modal Mine: 작업 유지)
+// (사용자 요청: ESC로 modal 밖으로 나가지 않도록)
 
-// ── 스크롤 위치 저장 ────────────────────────────────────────
+// ── 스크롤 위치 Save ────────────────────────────────────────
 let _scrollPos = {}
 function saveScroll(view) {
   _scrollPos[view] = window.scrollY || document.documentElement.scrollTop
@@ -3206,17 +3206,17 @@ function restoreScroll(view) {
 }
 
 // 브라우저 뒤로가기 처리
-// F5/Ctrl+R 새로고침 → 현재 탭 데이터만 재로드
+// F5/Ctrl+R Refresh → Current 탭 데이터만 reloading
 window.addEventListener('keydown', e => {
-  if (!me) return  // 로그인 전은 정상 새로고침
+  if (!me) return  // 로그인 전은 정상 Refresh
   const isF5    = e.key === 'F5'
   const isCtrlR = (e.ctrlKey || e.metaKey) && e.key === 'r'
   if (isF5 || isCtrlR) {
     e.preventDefault()
-    // 현재 활성 탭 재로드
+    // Current Active 탭 reloading
     const activeBtn = document.querySelector('.nav-it.active, .nav-it[style*="background"]')
     const activeView = document.querySelector('#app [data-view]')
-    // URL hash 기반으로 현재 위치 파악
+    // URL hash 기반으로 Current 위치 파악
     const hash = location.hash
     if (hash.startsWith('#contact/')) {
       const id = hash.replace('#contact/', '')
@@ -3228,12 +3228,12 @@ window.addEventListener('keydown', e => {
       const id = hash.replace('#tenant/', '')
       if (id) vTenantDetail(id)
     } else {
-      // 현재 nav 상태로 재로드
+      // Current nav 상태로 reloading
       const cur = Array.from(document.querySelectorAll('.nav-it')).find(b => b.classList.contains('active') || b.style.background)
       const curView = cur?.dataset?.v || 'dashboard'
       nav(curView)
     }
-    toast('새로고침 완료')
+    toast('Refresh Done')
   }
 })
 
@@ -3329,10 +3329,10 @@ async function vListingDetail(id) {
 <div class="pb">
 <div class="g2">
 
-  <!-- 왼쪽: 사진 + 기본정보 -->
+  <!-- 왼쪽: Photo + 기본Info -->
   <div>
 
-    <!-- 사진 갤러리 -->
+    <!-- Photo 갤러리 -->
     <div class="card" style="margin-bottom:12px">
       <div class="card-h">
         <span><i class="ti ti-photo" aria-hidden="true"></i> Pictures</span>
@@ -3340,7 +3340,7 @@ async function vListingDetail(id) {
       </div>
       <div class="card-b" style="padding:12px">
         ${allPhotos.length ? `
-        <!-- Main 사진 (클릭 → 원본 보기) -->
+        <!-- Main Photo (클릭 → 원본 보기) -->
         <div style="margin-bottom:10px;border-radius:10px;overflow:hidden;background:#111;max-height:300px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative" onclick="viewPhoto('${allPhotos[0]}','${listing.name}')">
           <img src="${allPhotos[0]}" style="width:100%;max-height:300px;object-fit:cover">
           <div style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;padding:3px 8px;border-radius:20px">
@@ -3352,13 +3352,13 @@ async function vListingDetail(id) {
           ${allPhotos.map((p,i)=>`
           <div style="position:relative;border-radius:7px;overflow:hidden;aspect-ratio:1;cursor:pointer;border:${i===0?'2.5px solid var(--A)':'1.5px solid var(--b)'}"
             onclick="${i===0?`viewPhoto('${p}','${listing.name}')`:`setMainPhoto('${id}','${p}')`}"
-            title="${i===0?'Main 사진 (클릭=원본)':'클릭하여 Main으로 설정'}">
+            title="${i===0?'Main Photo (클릭=원본)':'클릭하여 as main Settings'}">
             <img src="${p}" style="width:100%;height:100%;object-fit:cover">
             ${i===0?`<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(200,137,42,.75);color:#fff;font-size:9px;text-align:center;padding:2px;font-weight:700">Main</div>`:''}
             <button onclick="event.stopPropagation();removeGalleryPhoto('${id}','${p}')"
               style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center">✕</button>
           </div>`).join('')}
-          <!-- + 사진 Add 버튼 -->
+          <!-- + Photo Add 버튼 -->
           <div onclick="triggerGalleryPhoto('${id}')"
             style="border-radius:7px;border:1.5px dashed #C8C3BA;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--m);font-size:10px;gap:3px;background:#F8F5F0"
             title="Add Photos (multiple)">
@@ -3488,7 +3488,7 @@ async function vListingDetail(id) {
     </div>
   </div>
 
-  <!-- 오른쪽: 활동 + 계약 -->
+  <!-- 오른쪽: 활동 + Contract -->
   <div>
 
     <!-- Related Deals -->
@@ -3543,7 +3543,7 @@ async function quickStatusChange(id, status) {
     await api('PATCH', `/api/listings/${id}`, { status })
     toast('Status updated: ' + (SLS[status]?.l || status))
     vListingDetail(id)
-    // CONTRACTED 선택 시 → Deal 등록 유도
+    // CONTRACTED Select 시 → Deal Register 유도
     if (status === 'CONTRACTED') {
       setTimeout(() => {
         if (confirm('✅ Listing marked as Contracted.\n\nWould you like to register a deal now?')) {
@@ -3626,19 +3626,19 @@ async function saveListingEdit(id) {
   } catch(e) { alert('Save Error: ' + e.message) }
 }
 
-// 갤러리 사진 업로드 트리거
+// 갤러리 Photo uploading 트리거
 function triggerGalleryPhoto(listingId) {
   _photoMode = 'gallery'
   _galleryListingId = listingId
   document.getElementById('photo-input').click()
 }
 
-// 갤러리 사진 Add 처리
+// 갤러리 Photo Add 처리
 async function onPhotoSelected(input) {
   if (!input.files.length) return
 
   if (_photoMode === 'gallery') {
-    // ── 다중 사진 업로드 ──────────────────────────────────
+    // ── 다중 Photo uploading ──────────────────────────────────
     if (!_galleryListingId) return
     const files = Array.from(input.files)
     const oversize = files.filter(f => f.size > 10*1024*1024)
@@ -3664,17 +3664,17 @@ async function onPhotoSelected(input) {
         if (!mainUrl) { mainUrl = d.url }  // 첫 번째가 Main
         else          { photos.push(d.url) }
         success++
-      } catch(e) { console.error('업로드 실패:', file.name, e.message) }
+      } catch(e) { console.error('uploading Failed:', file.name, e.message) }
     }
 
     await api('PATCH', `/api/listings/${_galleryListingId}`, { photo_url: mainUrl, photos })
-    toast(`✓ 사진 ${success}/${files.length}장 업로드 완료`)
+    toast(`✓ ${success}/${files.length} photo(s) uploaded`)
     vListingDetail(_galleryListingId)
     input.value = ''
     _photoMode = 'main'
 
   } else {
-    // ── Listing Back에서 Main 사진 1장 교체 ─────────────────
+    // ── Listing Back에서 Main Photo 1장 교체 ─────────────────
     if (!input.files[0] || !_photoListingId) return
     const rawFile = input.files[0]
     if (rawFile.size > 10*1024*1024) { alert('File exceeds 10MB limit'); input.value=''; return }
@@ -3683,42 +3683,42 @@ async function onPhotoSelected(input) {
     const formData = new FormData()
     formData.append('photo', file)
     formData.append('folder', 'listings')
-    toast('사진 업로드 중...')
+    toast('Uploading photo...')
     try {
       const res = await fetch('/api/upload/photo', { method:'POST', credentials:'same-origin', headers:await uploadHeaders(), body:formData })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error)
       await api('PATCH', `/api/listings/${_photoListingId}`, { photo_url: d.url })
-      toast('✓ 사진이 Saved')
+      toast('✓ Photo saved')
       vList()
-    } catch(e) { alert('업로드 Error: ' + e.message) }
+    } catch(e) { alert('Upload error: ' + e.message) }
     input.value = ''
   }
 }
 
-// 갤러리에서 사진 Delete
+// 갤러리에서 Photo Delete
 async function removeGalleryPhoto(listingId, photoUrl) {
-  if (!confirm('이 사진을 Delete하시겠습니까?')) return
+  if (!confirm('Delete this photo?')) return
   try {
     const listing = await api('GET', `/api/listings/${listingId}`)
     const photos  = Array.isArray(listing.photos) ? listing.photos : []
     if (listing.photo_url === photoUrl) {
-      // Main 사진 Delete → 다음 사진을 Main으로
+      // Main Photo Delete → Next photo as main
       const next = photos.find(p => p !== photoUrl) || null
       await api('PATCH', `/api/listings/${listingId}`, { photo_url: next, photos: photos.filter(p=>p!==photoUrl) })
     } else {
       await api('PATCH', `/api/listings/${listingId}`, { photos: photos.filter(p=>p!==photoUrl) })
     }
-    toast('사진이 Deleted')
+    toast('Photo deleted')
     vListingDetail(listingId)
   } catch(e) { alert(e.message) }
 }
 
-// 사진을 Main으로 설정
+// photo as main Settings
 async function setMainPhoto(listingId, photoUrl) {
   try {
     await api('PATCH', `/api/listings/${listingId}`, { photo_url: photoUrl })
-    toast('Main 사진으로 설정되었습니다')
+    toast('✓ Main photo updated')
     vListingDetail(listingId)
   } catch(e) { alert(e.message) }
 }
@@ -3752,7 +3752,7 @@ async function vList() {
 let _listingSearchQ = ''
 
 function filterListings(q) {
-  _listingSearchQ = q.toLowerCase()  // trim() 제거 — 공백 포함 검색
+  _listingSearchQ = q.toLowerCase()  // trim() 제거 — 공백 포함 Search
   let filtered = _listings
   if (_listingSearchQ) {
     filtered = _listings.filter(l =>
@@ -3762,7 +3762,7 @@ function filterListings(q) {
       (l.property_type||'').toLowerCase().includes(_listingSearchQ)
     )
   }
-  // 현재 탭 필터도 적용
+  // Current 탭 Filter도 Apply
   const activeTab = document.querySelector('.tab.on')
   if (activeTab) {
     const tabText = activeTab.textContent.trim()
@@ -3773,7 +3773,7 @@ function filterListings(q) {
     else if (tabText === 'Contracted') filtered = filtered.filter(l => l.status === 'CONTRACTED')
   }
   renderListView(filtered)
-  // vc() 후 검색창 포커스 + 커서 복원
+  // vc() 후 search bar 포커스 + 커서 복원
   setTimeout(() => {
     const inp = document.getElementById('listing-search-input')
     if (inp) {
@@ -3806,12 +3806,12 @@ function renderListView(allData) {
   </div>
 </div>
 <div class="pb">
-  <!-- 검색바: value="${_listingSearchQ}" 로 유지 -->
+  <!-- Search바: value="${_listingSearchQ}" 로 유지 -->
   <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
     <div style="position:relative;flex:1;max-width:320px">
       <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--m);font-size:14px"></i>
       <input type="text" id="listing-search-input"
-        placeholder="매물명, 주소, 유닛번호 검색..."
+        placeholder="매물명, 주소, 유닛번호 Search..."
         value="${_listingSearchQ}"
         style="width:100%;padding:8px 12px 8px 32px;border:1px solid var(--b);border-radius:8px;font-size:12px;outline:none;background:#fff"
         oninput="filterListings(this.value)"
@@ -3869,7 +3869,7 @@ function fLS(val, field, btn) {
   if (field === 'status')                  filtered = _listings.filter(l => l.status === val)
   renderListView(filtered)
 }
-// addListing → 모달로 처리 (아래 MODAL 섹션 참고)
+// addListing → modal로 처리 (아래 MODAL 섹션 참고)
 // ── Condo Name Autocomplete ─────────────────────────────────
 let _condoTimer = null
 function searchCondoName(q) {
@@ -3897,7 +3897,7 @@ function searchCondoName(q) {
 }
 
 function selectCondo(condo) {
-  // Name 입력 (기존 입력값 뒤에 유닛번호가 있으면 유지)
+  // Name Input (기존 Input값 뒤에 유닛번호가 있으면 유지)
   const nameEl = document.getElementById('ml-name')
   const currentVal = nameEl.value.trim()
   // 콘도 Name이 이미 포함되어 있으면 유지, 아니면 교체
@@ -3905,20 +3905,20 @@ function selectCondo(condo) {
     nameEl.value = condo.name
   }
 
-  // 주소 자동입력
+  // 주소 AutoInput
   const addrEl = document.getElementById('ml-addr')
   if (addrEl && !addrEl.value.trim() && condo.address) {
     addrEl.value = condo.address
   }
 
-  // Property Type 자동설정
+  // Property Type AutoSettings
   const ptypeEl = document.getElementById('ml-ptype')
   if (ptypeEl && condo.property_type) ptypeEl.value = condo.property_type
 
-  // 드롭다운 닫기
+  // 드롭다운 Close
   document.getElementById('ml-name-results').style.display = 'none'
 
-  // Unit No. 필드로 포커스 이동 (편의)
+  // Unit No. 필드로 포커스 Go (편의)
   setTimeout(() => document.getElementById('ml-unit')?.focus(), 50)
 }
 
@@ -3966,7 +3966,7 @@ function clearListingContact() {
   document.getElementById('ml-source-search').value = ''
   document.getElementById('ml-source-selected').style.display = 'none'
 }
-// 외부 클릭 시 검색 결과 닫기
+// 외부 클릭 시 Search 결과 Close
 document.addEventListener('click', e => {
   if (!e.target.closest('#ml-source-search') && !e.target.closest('#ml-source-results')) {
     const r = document.getElementById('ml-source-results')
@@ -3983,7 +3983,7 @@ async function deleteListing(id, name) {
   } catch(e) { alert('Error: ' + e.message) }
 }
 
-// 상세 페이지에서 삭제 (Admin only) — 삭제 후 목록으로 이동
+// 상세 페이지에서 Delete (Admin only) — Delete 후 List으로 Go
 async function confirmDeleteListing(id, name) {
   if (me?.role !== 'admin') { alert('Admin only'); return }
   if (!confirm(`Delete "${name}"?\n\n⚠️ This will permanently remove this listing.\nThis cannot be undone.`)) return
@@ -3999,7 +3999,7 @@ let _ncListingId = null, _ncTenantId = null, _ncLessorId = null
 
 async function openNewContract() {
   _ncListingId = null; _ncTenantId = null; _ncLessorId = null
-  // 직원 목록 로드
+  // Staff List Loading
   const staffOpts = (_staff.length ? _staff : await api('GET','/api/staff'))
     .map(s=>`<option value="${s.id}">${s.name}</option>`).join('')
   document.getElementById('nc-tenant-agent').innerHTML = '<option value="">Unassigned</option>' + staffOpts
@@ -4008,7 +4008,7 @@ async function openNewContract() {
   if (me?.id) {
     document.getElementById('nc-tenant-agent').value = me.id
   }
-  // 폼 초기화
+  // 폼 Reset
   ;['nc-listing-search','nc-tenant-search','nc-lessor-search','nc-contract-date','nc-movein','nc-months','nc-rent','nc-deposit','nc-notes']
     .forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
   ;['nc-listing-selected','nc-tenant-selected','nc-lessor-selected'].forEach(id => {
@@ -4017,7 +4017,7 @@ async function openNewContract() {
   document.getElementById('modal-new-contract').style.display = 'flex'
 }
 
-// Listing 검색
+// Listing Search
 let _ncLTimer = null
 function searchNcListing(q) {
   const res = document.getElementById('nc-listing-results')
@@ -4046,7 +4046,7 @@ function selectNcListing(id, name, addr) {
   sel.textContent = `✓ ${addr}`; sel.style.display = ''
 }
 
-// Contact 검색 (tenant / lessor)
+// Contact Search (tenant / lessor)
 let _ncCTimer = null
 function searchNcContact(q, role) {
   const res = document.getElementById(`nc-${role}-results`)
@@ -4092,7 +4092,7 @@ async function saveNewContract() {
   if (!rent)         { alert('Monthly rent is required'); return }
 
   try {
-    // 1. Deal 생성 (커미션은 0으로 초기화, 나중에 Admin이 설정)
+    // 1. Deal Create (커미션은 0으로 Reset, 나중에 Admin이 Settings)
     const deal = await api('POST', '/api/deals', {
       listing_id:           _ncListingId,
       contract_type:        'RENT',
@@ -4108,14 +4108,24 @@ async function saveNewContract() {
       remarks:              document.getElementById('nc-notes').value || null
     })
 
-    // 2. Tenant info 생성 (보증금)
+    // 2. Tenant info Create (보증금)
     if (deposit) {
       await api('POST', `/api/tenants/${deal.id}/info`, { deposit })
     }
 
-    toast(`✓ Contract registered`)
+    toast('✓ Contract registered')
     closeModal('modal-new-contract')
-    vTenants()
+
+    // Go to Tenants에서 왔으면 Lead → CLOSED_WON 처리
+    if (_pendingLeadDeleteId) {
+      try {
+        await api('PATCH', '/api/leads/' + _pendingLeadDeleteId, { status: 'CLOSED_WON' })
+        toast('✓ Lead marked as Closed Won')
+      } catch(e2) { console.warn('Lead update failed:', e2.message) }
+      _pendingLeadDeleteId = null
+    }
+
+    nav('tenants')
   } catch(e) { alert('Error: ' + e.message) }
 }
 
@@ -4136,10 +4146,10 @@ const LOGO_URL = 'https://ecylpaxzjzvoowcwnacf.supabase.co/storage/v1/object/pub
 const COMPANY  = { name: 'Mr. Homes Philippines', web: 'rbs-homes.com', email: 'maymrhomes082023@gmail.com', phone: '+63 XXX XXX XXXX' }
 
 let _docListings = [], _docSelected = new Set(), _docClient = ''
-let _allContributions = {}  // { userId: [listingId, ...] } — Total: Assigned별 선택
+let _allContributions = {}  // { userId: [listingId, ...] } — Total: Assigned별 Select
 
 async function vDocuments() {
-  // 탭 열 때 listings 캐시 초기화 → buildReportPanel/buildLOIPanel에서 새로 조회
+  // 탭 열 때 listings 캐시 Reset → buildReportPanel/buildLOIPanel에서 새로 조회
   _docListings = []
   vc(`
 <div class="ph">
@@ -4172,15 +4182,15 @@ let _reportEditId = null
 let _rpListingSearch = ''
 
 async function buildReportPanel() {
-  // 항상 최신 listings 조회 (삭제/변경 즉시 반영)
+  // 항상 최신 listings 조회 (Delete/변경 즉시 반영)
   const data = await api('GET', '/api/listings?limit=200').catch(() => [])
   _docListings = data
   _reportDocs = await api('GET', '/api/listing-reports?include_shared=1').catch(()=>[])
   return `
 <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:flex-start">
-  <!-- 왼쪽: 설정 패널 -->
+  <!-- 왼쪽: Settings 패널 -->
   <div>
-    <!-- 저장된 리포트 목록 -->
+    <!-- saved 리포트 List -->
     <div class="card" style="margin-bottom:10px">
       <div class="card-h" style="justify-content:space-between">
         <span><i class="ti ti-history"></i> Saved Reports</span>
@@ -4210,14 +4220,14 @@ async function buildReportPanel() {
           <input class="fi" id="rp-date" type="date" value="${tod()}">
         </div>
         <div class="mf">
-          <label>Prepared by <span style="font-size:10px;color:var(--m)">(자동입력)</span></label>
+          <label>Prepared by <span style="font-size:10px;color:var(--m)">(AutoInput)</span></label>
           <input class="fi" id="rp-agent" value="${me?.name||''}" readonly
             style="background:var(--b2);cursor:not-allowed">
         </div>
       </div>
     </div>
 
-    <!-- 리스팅 검색 + 선택 -->
+    <!-- 리스팅 Search + Select -->
     <div class="card" style="margin-top:10px">
       <div class="card-h" style="justify-content:space-between">
         <span><i class="ti ti-building"></i> Add Listings</span>
@@ -4246,9 +4256,9 @@ async function buildReportPanel() {
     </div>
   </div>
 
-  <!-- 오른쪽: 선택된 리스팅 + 미리보기 -->
+  <!-- 오른쪽: selected 리스팅 + 미리보기 -->
   <div>
-    <!-- 선택된 리스팅 카드 -->
+    <!-- selected 리스팅 카드 -->
     <div class="card" style="margin-bottom:10px">
       <div class="card-h" style="justify-content:space-between">
         <span><i class="ti ti-list-check"></i> Selected Listings <span style="font-size:10px;font-weight:400;color:var(--m)">(고객에게 보여줄 매물)</span></span>
@@ -4292,7 +4302,7 @@ function renderReportSavedList() {
   if (!_reportDocs.length) return '<div style="padding:12px;text-align:center;font-size:11px;color:var(--m)">No saved reports</div>'
   const myId = me?.id
   const isAdmin = me?.role === 'admin'
-  // Mine: 것 + 공유된 것 필터
+  // Mine: 것 + 공유된 것 Filter
   const visible = _reportDocs.filter(d => d.created_by === myId || d.is_shared || isAdmin)
   if (!visible.length) return '<div style="padding:12px;text-align:center;font-size:11px;color:var(--m)">No reports yet. Shared reports will appear here.</div>'
   return visible.map(d => {
@@ -4300,8 +4310,8 @@ function renderReportSavedList() {
     const isMine   = d.created_by === myId
     const shared   = d.is_shared
     const sharedBadge = shared
-      ? '<span style="font-size:9px;background:#E0F3ED;color:#19846B;padding:1px 5px;border-radius:4px;margin-left:4px">공유됨</span>'
-      : (isMine ? '<span style="font-size:9px;background:#F1EFE8;color:#5F5E5A;padding:1px 5px;border-radius:4px;margin-left:4px">비공개</span>' : '')
+      ? '<span style="font-size:9px;background:#E0F3ED;color:#19846B;padding:1px 5px;border-radius:4px;margin-left:4px">Shared</span>'
+      : (isMine ? '<span style="font-size:9px;background:#F1EFE8;color:#5F5E5A;padding:1px 5px;border-radius:4px;margin-left:4px">Private</span>' : '')
     return `
     <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--b);cursor:pointer"
       onclick="loadReport('${d.id}')"
@@ -4367,7 +4377,7 @@ function renderSelectedListings() {
       ? '<button onclick="removeFromReport(' + JSON.stringify(l.id) + ',' + JSON.stringify(whoStr) + ')" '
         + 'style="background:none;border:none;cursor:pointer;color:#DC4A4A;padding:4px;flex-shrink:0">'
         + '<i class="ti ti-x" style="font-size:13px"></i></button>'
-      : '<span title="' + ownerName + '가 추가한 매물" style="font-size:9px;color:var(--m);padding:4px;flex-shrink:0">&#x1F512;</span>'
+      : '<span title="' + ownerName + '가 Add한 매물" style="font-size:9px;color:var(--m);padding:4px;flex-shrink:0">&#x1F512;</span>'
 
     return '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--b);' + (isMine?'':'background:#FAFAF8') + '">'
       + (l.photo_url
@@ -4393,7 +4403,7 @@ function removeFromReport(listingId, who) {
     // Mine: 것 제거
     _docSelected.delete(listingId)
   } else if (isAdmin) {
-    // Admin: 다른 직원 것도 제거 가능
+    // Admin: 다른 Staff 것도 제거 가능
     for (const uid of Object.keys(_allContributions)) {
       if (_allContributions[uid]) {
         _allContributions[uid] = _allContributions[uid].filter(id => id !== listingId)
@@ -4414,7 +4424,7 @@ function searchRpListing(q) {
   const myListings = _docListings.filter(l =>
     l.assigned_user_id === me?.id || me?.role === 'admin'
   )
-  const qLow = q.toLowerCase()  // trim() 없이 공백 포함 검색
+  const qLow = q.toLowerCase()  // trim() 없이 공백 포함 Search
   const filtered = myListings.filter(l =>
     !q || l.name.toLowerCase().includes(qLow) ||
     (l.address && l.address.toLowerCase().includes(qLow)) ||
@@ -4443,7 +4453,7 @@ function toggleRpListing(id) {
   // Only toggle own listings
   const listing = _docListings.find(l => l.id === id)
   if (listing && listing.assigned_user_id !== me?.id && me?.role !== 'admin') {
-    toast('본인이 등록한 매물만 추가/삭제할 수 있습니다')
+    toast('You can only add/remove your own listings')
     return
   }
   if (_docSelected.has(id)) _docSelected.delete(id)
@@ -4463,12 +4473,12 @@ function updateRpCount() {
     if (totalAll > _docSelected.size) {
       el.textContent = 'Mine: ' + _docSelected.size + '개 · Total: ' + totalAll + '개'
     } else {
-      el.textContent = _docSelected.size + '개 선택'
+      el.textContent = _docSelected.size + '개 Select'
     }
   }
 }
 
-// 화면용 미리보기 HTML (반응형, mm 단위 없음)
+// 화면용 미리보기 HTML (반응형, mm 단위 None)
 function _buildReportCard(l, forPrint) {
   const RBS_BASE = 'https://rbs-homes.com'
   const detailUrl = l.rbs_unit_id ? RBS_BASE + '/properties/detail-id' + l.rbs_unit_id : ''
@@ -4561,7 +4571,7 @@ function getReportPreviewHtml() {
 }
 
 function getReportPrintHtml() {
-  // 전체 contributions 합산 (내 선택 + 다른 직원 선택)
+  // All contributions 합산 (내 Select + 다른 Staff Select)
   const allPrintIds = new Set([
     ...Array.from(_docSelected),
     ...Object.values(_allContributions).flat()
@@ -4602,7 +4612,7 @@ function previewReport() {
     ...Array.from(_docSelected),
     ...Object.values(_allContributions).flat()
   ])
-  // 로드된 Report 또는 직접 선택한 매물이 있으면 Preview 허용
+  // Loading된 Report 또는 직접 Select한 매물이 있으면 Preview 허용
   if (!allIds.size && !_reportEditId) {
     alert('Please load a saved report or add listings before previewing')
     return
@@ -4624,15 +4634,15 @@ function printReport() {
 
   const printHtml = getReportPrintHtml()
 
-  // window.open 방식 — 이미지 CORS 문제 없음, 다중 페이지 완벽 지원
+  // window.open 방식 — Image CORS 문제 None, 다중 페이지 완벽 지원
   const printWin = window.open('', '_blank', 'width=900,height=700')
-  if (!printWin) { alert('팝업이 차단됐습니다. 팝업을 허용해주세요.'); return }
+  if (!printWin) { alert('Popup blocked. Please allow popups for this site.'); return }
 
   printWin.document.open()
   printWin.document.write(printHtml)
   printWin.document.close()
 
-  // 모든 이미지 로드 완료 후 인쇄
+  // 모든 Image Loading Done 후 인쇄
   printWin.onload = function() {
     const imgs = printWin.document.querySelectorAll('img')
     if (!imgs.length) {
@@ -4663,7 +4673,7 @@ async function saveReport() {
   const contactId = _reportContactId || null
   const myId      = me?.id || 'unknown'
 
-  // contributions: Mine: 선택만 업데이트 (다른 Assigned 것 유지)
+  // contributions: Mine: selected only 업데이트 (다른 Assigned 것 유지)
   const newContributions = Object.assign({}, _allContributions, {
     [myId]: Array.from(_docSelected)
   })
@@ -4693,7 +4703,7 @@ async function saveReport() {
       _reportEditId = report?.id || null
       toast('✓ Report Saved')
 
-      // 고객 연결 시 Offer activity 자동 기록
+      // 고객 Connect 시 Offer activity Auto 기록
       if (contactId && _docSelected.size > 0) {
         for (const lid of _docSelected) {
           await api('POST', '/api/activities', {
@@ -4704,12 +4714,12 @@ async function saveReport() {
       }
     }
     _allContributions = newContributions
-    // Report 저장 시 Activity 자동 기록
+    // Report Save 시 Activity Auto 기록
     if (contactId) {
       await api('POST', '/api/activities', {
         type:       'OFFER',
         contact_id: contactId,
-        notes:      'Listing Report 작성 완료 · ' + (client||'') + ' · ' + allIds.length + '개 매물',
+        notes:      'Listing Report 작성 Done · ' + (client||'') + ' · ' + allIds.length + '개 매물',
         created_by: me?.id
       }).catch(() => {})
     }
@@ -4726,7 +4736,7 @@ async function loadReport(id) {
   _reportEditId = id
   const isOwner = d.created_by === me?.id || me?.role === 'admin'
 
-  // 공유된 Report는 client/date readonly (작성자만 수정 가능)
+  // 공유된 Report는 client/date readonly (작성자만 Edit 가능)
   const clientEl = document.getElementById('rp-client')
   const dateEl   = document.getElementById('rp-date')
   clientEl.value    = d.client_name || ''
@@ -4748,7 +4758,7 @@ async function loadReport(id) {
   } else {
     _allContributions = {}
   }
-  // Mine: 선택만 _docSelected에
+  // Mine: selected only _docSelected에
   _docSelected = new Set(_allContributions[myId] || [])
 
   renderSelectedListings()
@@ -4763,10 +4773,10 @@ async function loadReport(id) {
     if (totalAll > 0) {
       cntEl.textContent = 'Mine: ' + _docSelected.size + '개 · Total: ' + totalAll + '개'
     } else {
-      cntEl.textContent = '0개 선택'
+      cntEl.textContent = '0개 Select'
     }
   }
-  toast(isOwner ? 'Report loaded (' + totalAll + '개 매물)' : '공유 Report 로드 완료 — 매물을 추가하거나 Preview로 확인하세요')
+  toast(isOwner ? 'Report loaded (' + totalAll + ' listings)' : '공유 Report Loading Done — 매물을 Add하거나 Preview로 Confirm하세요')
 }
 
 async function toggleShareReport(id, currentShared) {
@@ -4838,7 +4848,7 @@ function toggleDocListing(id) {
 let _rpClientTimer = null
 function searchRpClient(q) {
   _docClient = q
-  if (!q) _reportContactId = null  // 검색어 지우면 contact 연결 해제
+  if (!q) _reportContactId = null  // Search어 지우면 contact Connect Disconnect
   const res = document.getElementById('rp-client-results')
   if (!q || q.length < 1) { res.style.display='none'; return }
   clearTimeout(_rpClientTimer)
@@ -4862,12 +4872,12 @@ let _rpClientMobile = ''
 function selectRpClient(id, name, nat, mobile, type) {
   _docClient = name
   _rpClientMobile = mobile || ''
-  _reportContactId = id || null  // ← contact_id 저장
+  _reportContactId = id || null  // ← contact_id Save
   document.getElementById('rp-client').value = name
   document.getElementById('rp-client-results').style.display = 'none'
   const info = document.getElementById('rp-client-info')
   if (info) {
-    const linkedBadge = id ? ' <span style="background:#E0F3ED;color:#0F6E56;font-size:9px;padding:1px 6px;border-radius:20px;font-weight:700">✓ CRM 연결</span>' : ''
+    const linkedBadge = id ? ' <span style="background:#E0F3ED;color:#0F6E56;font-size:9px;padding:1px 6px;border-radius:20px;font-weight:700">✓ CRM Connect</span>' : ''
     info.innerHTML = type + (nat?' · '+nat:'') + (mobile?' · '+mobile:'') + linkedBadge
   }
 }
@@ -4886,7 +4896,7 @@ let _loiEditId = null
 
 async function buildLOIPanel() {
   const contacts = _contacts.length ? _contacts : await api('GET', '/api/contacts?limit=300').then(d => d.data||d).catch(()=>[])
-  // _docListings는 vDocuments에서 이미 초기화됨 → buildReportPanel이 먼저 호출되면 최신 데이터 있음
+  // _docListings는 vDocuments에서 이미 Reset됨 → buildReportPanel이 먼저 호출되면 최신 데이터 Available
   // LOI 탭만 열리는 경우 대비해 listings 조회
   if (!_docListings.length) {
     _docListings = await api('GET', '/api/listings?limit=200').catch(() => [])
@@ -4894,9 +4904,9 @@ async function buildLOIPanel() {
   _loiDocs = await api('GET', '/api/loi').catch(()=>[])
   return `
 <div style="display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:flex-start">
-  <!-- 왼쪽: LOI Details 입력 폼 -->
+  <!-- 왼쪽: LOI Details Input 폼 -->
   <div>
-    <!-- 저장된 LOI 목록 -->
+    <!-- saved LOI List -->
     <div class="card" style="margin-bottom:10px">
       <div class="card-h" style="justify-content:space-between">
         <span><i class="ti ti-history"></i> Saved LOIs</span>
@@ -4954,7 +4964,7 @@ async function buildLOIPanel() {
         </div>
         <div class="mf">
           <label>Nationality
-            <span id="loi-nat-hint" style="font-size:10px;color:var(--m)">(contact 선택 시 자동입력)</span>
+            <span id="loi-nat-hint" style="font-size:10px;color:var(--m)">(contact Select 시 AutoInput)</span>
           </label>
           <input class="fi" id="loi-nat" value="Korean" placeholder="e.g. Korean, Filipino...">
         </div>
@@ -5057,7 +5067,7 @@ function renderLOISavedList() {
     </div>`).join('')
 }
 
-// Property 검색
+// Property Search
 let _loiListingTimer = null
 function searchLOIListing(q) {
   const res = document.getElementById('loi-listing-results')
@@ -5097,7 +5107,7 @@ function selectLOIListing(id, name, addr, unitNo, area, furType, isFur, pet, pri
   if (petEl) petEl.value = pet==='true' ? 'Yes' : 'No'
 }
 
-// Tenant 검색
+// Tenant Search
 let _loiTenantTimer = null
 function searchLOITenant(q) {
   const res = document.getElementById('loi-tenant-results')
@@ -5281,14 +5291,14 @@ async function saveLOI() {
       await api('POST', '/api/loi', payload)
       toast('✓ LOI Saved')
     }
-    // LOI 저장 시 Activity 자동 기록
+    // LOI Save 시 Activity Auto 기록
     const loiContactId = document.getElementById('loi-tenant')?.value
     if (loiContactId) {
       await api('POST', '/api/activities', {
         type:       'LOI',
         contact_id: loiContactId,
         listing_id: document.getElementById('loi-listing')?.value || null,
-        notes:      'LOI 작성 완료 · ' + (document.getElementById('loi-tenant-search')?.value||''),
+        notes:      'LOI 작성 Done · ' + (document.getElementById('loi-tenant-search')?.value||''),
         created_by: me?.id
       }).catch(() => {})
     }
@@ -5331,7 +5341,7 @@ async function loadLOI(id) {
   set('loi-movein',           d.movein_date?.slice(0,10) || '')
   set('loi-pet',              d.pet_allowed || 'No')
   set('loi-special',          d.special || '')
-  // html 편집기 로드
+  // html 편집기 Loading
   const wrap = document.getElementById('loi-editor-wrap')
   if (wrap && d.html_content) {
     wrap.innerHTML = `<div id="loi-editable" contenteditable="true"
@@ -5385,9 +5395,9 @@ async function buildAckPanel() {
   _ackDocs = await api('GET', '/api/ack').catch(() => [])
   return `
 <div style="display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:flex-start">
-  <!-- 왼쪽: 입력 폼 -->
+  <!-- 왼쪽: Input 폼 -->
   <div>
-    <!-- 저장된 목록 -->
+    <!-- saved List -->
     <div class="card" style="margin-bottom:10px">
       <div class="card-h" style="justify-content:space-between">
         <span><i class="ti ti-history"></i> Saved</span>
@@ -5420,7 +5430,7 @@ async function buildAckPanel() {
 
         <div class="sep"></div>
         <div style="font-size:11px;font-weight:600;color:var(--m);margin-bottom:8px">CONFIRMER</div>
-        <div class="mf"><label>확인자 (Prepared by)</label>
+        <div class="mf"><label>Confirm자 (Prepared by)</label>
           <input class="fi" id="ack-confirmer" value="${me?.name||''}" readonly
             style="background:var(--b2);cursor:not-allowed"></div>
 
@@ -5436,10 +5446,10 @@ async function buildAckPanel() {
           </select></div>
         <div class="mf"><label>내용 *</label>
           <textarea class="fi" id="ack-content" rows="6" style="resize:vertical"
-            placeholder="확인/수령 내용을 상세히 입력하세요..."></textarea></div>
-        <div class="mf"><label>Amount (PHP) <span style="font-weight:normal;color:var(--m)">(선택)</span></label>
+            placeholder="Confirm/수령 내용을 상세히 Input하세요..."></textarea></div>
+        <div class="mf"><label>Amount (PHP) <span style="font-weight:normal;color:var(--m)">(Select)</span></label>
           <input class="fi" id="ack-amount" type="number" placeholder="e.g. 50000"></div>
-        <div class="mf"><label>Reference No. <span style="font-weight:normal;color:var(--m)">(선택)</span></label>
+        <div class="mf"><label>Reference No. <span style="font-weight:normal;color:var(--m)">(Select)</span></label>
           <input class="fi" id="ack-ref" placeholder="e.g. OR No., Check No."></div>
       </div>
     </div>
@@ -5497,7 +5507,7 @@ function renderAckSavedList() {
     </div>`).join('')
 }
 
-// Client 검색
+// Client Search
 let _ackClientTimer = null
 function searchAckClient(q) {
   const res = document.getElementById('ack-client-results')
@@ -5598,7 +5608,7 @@ function printAck() {
 async function saveAck() {
   const g = id => document.getElementById(id)?.value || ''
   const clientName = g('ack-client-search')
-  if (!clientName) { alert('Client/Payor를 입력해주세요'); return }
+  if (!clientName) { alert('Please enter Client/Payor name'); return }
   const el = document.getElementById('ack-editable')
   const htmlContent = el ? el.innerHTML : getAckHtml()
   const payload = {
@@ -5692,8 +5702,8 @@ function resetAckForm() {
 
 // ═══════════ PMS DOCUMENTS (복원) ═══════════
 async function createProspectivePmsAccount(contactId) {
-  // 모든 CRM 직원(agent/admin) 계정 생성 가능
-  if (!confirm('이 고객에게 PMS 예비 고객(Prospective) 계정을 생성하시겠습니까?')) return
+  // 모든 CRM Staff(agent/admin) Account Create 가능
+  if (!confirm('Create a PMS prospective account for this client?')) return
   try {
     const res = await api('POST', '/api/pms-accounts/create', {
       contact_id: contactId,
@@ -5710,28 +5720,28 @@ async function createProspectivePmsAccount(contactId) {
       + '<div style="background:#FDF0DC;border-radius:8px;padding:10px;font-size:11px;color:#7A4F00;margin-bottom:16px">'
       + '⚠️ 이 Temporary Password를 ' + res.name + '.'
       + '</div>'
-      + '<div style="text-align:right"><button onclick="closeDynModal()" class="btn btn-g">확인</button></div>'
+      + '<div style="text-align:right"><button onclick="closeDynModal()" class="btn btn-g">Confirm</button></div>'
     showModal(html)
   } catch(e) { alert('Error: ' + e.message) }
 }
 
 async function sendReportToPms() {
   if (!_reportContactId) {
-    alert('먼저 고객(Prepared For)을 선택해주세요.')
+    alert('Please enter the client name (Prepared For) first.')
     return
   }
   if (!_reportEditId) {
     const saved = await saveReportAndGetId()
     if (!saved) return
   }
-  if (!confirm('이 Listing Report를 고객의 PMS 앱으로 전송하시겠습니까?\n고객 이메일로도 동시 발송됩니다.')) return
+  if (!confirm('Send this Listing Report to the client PMS app?\nAn email will also be sent to the client.')) return
   try {
     const res = await api('POST', '/api/pms-documents/send-listing-report', {
       report_id:  _reportEditId,
       contact_id: _reportContactId,
     })
-    toast('✓ Send to PMS Completed' + (res.email_sent ? ' · 이메일 발송됨' : ''))
-  } catch(e) { alert('전송 Error: ' + e.message) }
+    toast('✓ Sent to PMS' + (res.email_sent ? ' · Email sent' : ''))
+  } catch(e) { alert('Send error: ' + e.message) }
 }
 
 async function sendLoiToPms() {
@@ -5740,17 +5750,17 @@ async function sendLoiToPms() {
     return
   }
 
-  // LOI에서 tenant_name으로 contact 자동 검색
+  // LOI에서 tenant_by name contact Auto Search
   const loiData = _loiDocs?.find(d => d.id === _loiEditId)
   if (!loiData) { alert('LOI data not found.'); return }
 
-  // _contacts가 없으면 먼저 로드
+  // _contacts가 없으면 먼저 Loading
   if (!_contacts.length) {
     const cl = await api('GET', '/api/contacts?limit=300').catch(() => ({ data: [] }))
     _contacts = cl.data || cl.contacts || (Array.isArray(cl) ? cl : [])
   }
 
-  // contacts에서 tenant_name으로 검색
+  // contacts에서 tenant_by name Search
   const tenantName = loiData.tenant_name || ''
   let contactId = null
 
@@ -5762,7 +5772,7 @@ async function sendLoiToPms() {
     if (matched.length === 1) {
       contactId = matched[0].id
     } else if (matched.length > 1) {
-      // 여러 명 매칭 시 선택 모달
+      // 여러 명 매칭 시 Select modal
       const html = '<div style="font-size:15px;font-weight:700;margin-bottom:12px">Select Contact for LOI</div>'
         + '<div style="font-size:12px;color:var(--m);margin-bottom:12px">Tenant: <strong>' + tenantName + '</strong></div>'
         + matched.map(function(c) {
@@ -5777,7 +5787,7 @@ async function sendLoiToPms() {
   }
 
   if (!contactId) {
-    // 직접 검색
+    // 직접 Search
     const html = '<div style="font-size:15px;font-weight:700;margin-bottom:12px">Select Contact for LOI</div>'
       + '<input class="fi" id="loi-contact-search" placeholder="Search contact name..." oninput="searchLoiContact(this.value)" style="width:100%;margin-bottom:8px">'
       + '<div id="loi-contact-results" style="max-height:200px;overflow-y:auto"></div>'
@@ -5892,7 +5902,7 @@ async function updateLeadStatus(id, status) {
     await api('PATCH', '/api/leads/' + id, { status })
     toast('Lead → ' + (LEAD_STATUSES.find(s=>s.key===status)?.l || status))
 
-    // CLOSED_WON → 계약 생성 모달 자동 오픈
+    // CLOSED_WON → Contract Create modal Auto 오픈
     if (status === 'CLOSED_WON') {
       const lead = await api('GET', '/api/leads/' + id)
       await openNewContractFromLead(lead)
@@ -5902,27 +5912,27 @@ async function updateLeadStatus(id, status) {
   } catch(e) { alert('Error: ' + e.message) }
 }
 
-// Lead 정보를 자동으로 채운 계약 생성 모달 오픈
+// Lead info automatically 채운 Contract Create modal 오픈
 async function openNewContractFromLead(lead) {
   _ncListingId = null; _ncTenantId = null; _ncLessorId = null
 
-  // 직원 목록 로드
+  // Staff List Loading
   const staffList = _staff.length ? _staff : await api('GET', '/api/staff')
   const staffOpts = staffList.map(s => '<option value="' + s.id + '">' + s.name + '</option>').join('')
   document.getElementById('nc-tenant-agent').innerHTML = '<option value="">Unassigned</option>' + staffOpts
   document.getElementById('nc-owner-agent').innerHTML  = '<option value="">Unassigned</option>' + staffOpts
 
-  // 폼 초기화
+  // 폼 Reset
   ;['nc-listing-search','nc-tenant-search','nc-lessor-search','nc-contract-date','nc-movein','nc-months','nc-rent','nc-deposit','nc-notes']
     .forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
   ;['nc-listing-selected','nc-tenant-selected','nc-lessor-selected'].forEach(id => {
     document.getElementById(id).style.display='none'
   })
 
-  // Lead 정보 자동 채움
+  // Lead Info Auto 채움
   const contact = lead.contact || {}
 
-  // 임차인 자동 설정
+  // Tenant Auto Settings
   if (lead.contact_id && contact.name) {
     _ncTenantId = lead.contact_id
     document.getElementById('nc-tenant-search').value = contact.name
@@ -5931,19 +5941,19 @@ async function openNewContractFromLead(lead) {
     tenantSel.style.display = ''
   }
 
-  // 담당 에이전트 자동 설정
+  // 담당 에Previous트 Auto Settings
   if (lead.assigned_user_id) {
     document.getElementById('nc-tenant-agent').value = lead.assigned_user_id
   } else if (me?.id) {
     document.getElementById('nc-tenant-agent').value = me.id
   }
 
-  // 예산 → 임대료 자동 채움
+  // 예산 → 임대료 Auto 채움
   if (lead.budget) {
     document.getElementById('nc-rent').value = lead.budget
   }
 
-  // 입주일 자동 채움
+  // 입주일 Auto 채움
   if (lead.move_in_date) {
     document.getElementById('nc-movein').value = lead.move_in_date
   } else if (lead.target_move_in) {
@@ -5955,27 +5965,27 @@ async function openNewContractFromLead(lead) {
     document.getElementById('nc-notes').value = '[Lead] ' + lead.remarks
   }
 
-  // 모달 상단에 lead 정보 안Mine: 배너 추가
+  // modal 상단에 lead Info not mine: 배너 Add
   const existingBanner = document.getElementById('nc-lead-banner')
   if (existingBanner) existingBanner.remove()
 
   const banner = document.createElement('div')
   banner.id = 'nc-lead-banner'
   banner.style.cssText = 'background:#E0F3ED;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#0F6E56'
-  banner.innerHTML = '✅ <strong>Closed Won!</strong> Lead 정보를 자동으로 채웠습니다. 매물(Listing)과 임대인(Lessor)을 선택하여 계약을 완성해주세요.'
+  banner.innerHTML = '✅ <strong>Closed Won!</strong> Lead info automatically 채웠습니다. 매물(Listing)과 임대인(Lessor)을 Select하여 Contract을 완성해주세요.'
   const modalBody = document.querySelector('#modal-new-contract .modal-body') 
     || document.querySelector('#modal-new-contract .modal')
   if (modalBody) modalBody.prepend(banner)
 
-  // 모달 오픈
+  // modal 오픈
   document.getElementById('modal-new-contract').style.display = 'flex'
   vLeads()
 }
 
 function openAddLead() { openAddLeadInStatus('NEW') }
 function openAddLeadInStatus(status) {
-  // Contacts 탭 이동 후 Quick Input 또는 고객 상세에서 리드 추가
-  // 단기: contacts로 이동
+  // Contacts 탭 Go 후 Quick Input 또는 고객 상세에서 리드 Add
+  // 단기: contacts로 Go
   nav('contacts')
   setTimeout(() => toast('Select a contact to add a lead'), 300)
 }
@@ -5996,7 +6006,7 @@ const REQ_STATUS = {
   CANCELLED:   { l:'Cancelled',   bg:'#F1EFE8', c:'#5F5E5A' }
 }
 
-// ═══════════ PMS 납부 검토 ═══════════
+// ═══════════ PMS Payment Review ═══════════
 async function vPmsPayments() {
   if (!window._pmsFilter) window._pmsFilter = 'ALL'
   try {
@@ -6006,9 +6016,9 @@ async function vPmsPayments() {
     ])
     const isAdmin = me.role === 'admin'
     const STATUS = {
-      AWAITING_APPROVAL: { l:'검토 대기', bg:'#FDF0DC', c:'#7A4F00' },
-      PAID:              { l:'납부 완료', bg:'#E0F3ED', c:'#0F6E56' },
-      PENDING:           { l:'납부 대기', bg:'#E6F1FB', c:'#185FA5' },
+      AWAITING_APPROVAL: { l:'Review Pending', bg:'#FDF0DC', c:'#7A4F00' },
+      PAID:              { l:'Payment Done', bg:'#E0F3ED', c:'#0F6E56' },
+      PENDING:           { l:'Payment Pending', bg:'#E6F1FB', c:'#185FA5' },
       OVERDUE:           { l:'연체',     bg:'#FDEAEA', c:'#A33030' },
     }
     const badge = (s) => {
@@ -6017,7 +6027,7 @@ async function vPmsPayments() {
     }
     const fmtMon = (d) => d ? new Date(d).toLocaleDateString('ko-KR', { year:'numeric', month:'long' }) : '-'
     const filterTabs = ['ALL','AWAITING_APPROVAL','PAID','OVERDUE','PENDING'].map(f => {
-      const labels = { ALL:'전체', AWAITING_APPROVAL:'검토 대기', PAID:'납부 완료', OVERDUE:'연체', PENDING:'납부 대기' }
+      const labels = { ALL:'All', AWAITING_APPROVAL:'Review Pending', PAID:'Payment Done', OVERDUE:'연체', PENDING:'Payment Pending' }
       const active = window._pmsFilter === f
       return `<button onclick="window._pmsFilter='${f}';nav('pms-payments')"
         style="padding:5px 12px;border-radius:20px;border:1px solid ${active?'var(--N)':'var(--b)'};
@@ -6025,7 +6035,7 @@ async function vPmsPayments() {
         font-size:11px;font-weight:600;cursor:pointer">${labels[f]}</button>`
     }).join('')
     const rows = payments.length === 0
-      ? `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--m)">해당하는 납부 내역이 없습니다.</td></tr>`
+      ? `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--m)">해당하는 Payment 내역이 없습니다.</td></tr>`
       : payments.map((p, i) => {
           const tenant  = p.deal?.tenant_contact
           const listing = p.deal?.listing
@@ -6033,7 +6043,7 @@ async function vPmsPayments() {
           const approveBtn = isAdmin && isAwaiting
             ? `<button onclick="pmsApprove('${p.id}')" style="background:#E0F3ED;color:#0F6E56;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px">✅ 승인</button>
                <button onclick="pmsReject('${p.id}')" style="background:#FDEAEA;color:#A33030;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">❌ 반려</button>`
-            : (!isAdmin && isAwaiting ? `<span style="color:var(--m);font-size:11px">검토 권한 없음</span>` : '')
+            : (!isAdmin && isAwaiting ? `<span style="color:var(--m);font-size:11px">Review 권한 None</span>` : '')
           return `<tr>
             <td style="color:var(--m)">${i+1}</td>
             <td><div style="font-weight:600">${listing?.name??'-'}</div><div style="font-size:10px;color:var(--m)">${listing?.unit_no??''}</div></td>
@@ -6043,7 +6053,7 @@ async function vPmsPayments() {
             <td>${badge(p.status)}</td>
             <td style="text-align:center">${p.receipt_image_url
               ? `<a href="${p.receipt_image_url}" target="_blank" style="color:var(--N);font-size:11px;font-weight:600;text-decoration:none;background:var(--bg);padding:3px 8px;border-radius:6px;border:1px solid var(--b)">🖼 영수증 보기</a>`
-              : `<span style="color:var(--m);font-size:11px">미업로드</span>`}
+              : `<span style="color:var(--m);font-size:11px">미uploading</span>`}
               ${p.receipt_notes?`<div style="font-size:10px;color:var(--m);margin-top:2px">${p.receipt_notes}</div>`:''}
             </td>
             <td>${approveBtn}</td>
@@ -6051,54 +6061,54 @@ async function vPmsPayments() {
         }).join('')
     vc(`
 <div class="ph">
-  <div><div class="ph-title"><i class="ti ti-receipt-2" style="margin-right:6px"></i>PMS 납부 검토</div>
-  <div class="ph-sub">임차인 영수증 확인 및 승인 (admin만 승인 가능)</div></div>
-  <button onclick="nav('pms-payments')" style="background:var(--bg);border:1px solid var(--b);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer"><i class="ti ti-refresh"></i> 새로고침</button>
+  <div><div class="ph-title"><i class="ti ti-receipt-2" style="margin-right:6px"></i>PMS Payment Review</div>
+  <div class="ph-sub">Tenant 영수증 Confirm 및 승인 (admin만 승인 가능)</div></div>
+  <button onclick="nav('pms-payments')" style="background:var(--bg);border:1px solid var(--b);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer"><i class="ti ti-refresh"></i> Refresh</button>
 </div>
 <div class="pb">
   <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-    <div class="kpi"><div class="kpi-l">검토 대기</div><div style="font-size:22px;font-weight:800;color:#7A4F00">${stats.awaiting}</div><div style="font-size:10px;color:var(--m)">건</div></div>
-    <div class="kpi"><div class="kpi-l">납부 완료</div><div style="font-size:22px;font-weight:800;color:var(--G)">${stats.paid}</div><div style="font-size:10px;color:var(--m)">건</div></div>
+    <div class="kpi"><div class="kpi-l">Review Pending</div><div style="font-size:22px;font-weight:800;color:#7A4F00">${stats.awaiting}</div><div style="font-size:10px;color:var(--m)">건</div></div>
+    <div class="kpi"><div class="kpi-l">Payment Done</div><div style="font-size:22px;font-weight:800;color:var(--G)">${stats.paid}</div><div style="font-size:10px;color:var(--m)">건</div></div>
     <div class="kpi"><div class="kpi-l">연체</div><div style="font-size:22px;font-weight:800;color:var(--R)">${stats.overdue}</div><div style="font-size:10px;color:var(--m)">건</div></div>
-    <div class="kpi"><div class="kpi-l">총 납부 확인액</div><div style="font-size:18px;font-weight:800;color:var(--N)">₱${Math.round(stats.totalPaid).toLocaleString('en-PH')}</div><div style="font-size:10px;color:var(--m)">누적</div></div>
+    <div class="kpi"><div class="kpi-l">총 Payment Confirm액</div><div style="font-size:18px;font-weight:800;color:var(--N)">₱${Math.round(stats.totalPaid).toLocaleString('en-PH')}</div><div style="font-size:10px;color:var(--m)">누적</div></div>
   </div>
   <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">${filterTabs}</div>
   <div class="card">
-    <div class="card-h"><span><i class="ti ti-list"></i> 납부 내역 (${payments.length}건)</span>
-      ${stats.awaiting>0&&isAdmin?`<span style="background:#FDF0DC;color:#7A4F00;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700">⚠️ ${stats.awaiting}건 승인 대기</span>`:''}
+    <div class="card-h"><span><i class="ti ti-list"></i> Payment 내역 (${payments.length}건)</span>
+      ${stats.awaiting>0&&isAdmin?`<span style="background:#FDF0DC;color:#7A4F00;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700">⚠️ ${stats.awaiting}건 승인 Pending</span>`:''}
     </div>
     <div class="scroll-x"><table class="tbl">
-      <tr><th>No.</th><th>유닛</th><th>임차인</th><th>납부월</th><th>금액</th><th>상태</th><th>영수증</th><th>액션</th></tr>
+      <tr><th>No.</th><th>유닛</th><th>Tenant</th><th>Payment월</th><th>금액</th><th>상태</th><th>영수증</th><th>액션</th></tr>
       ${rows}
     </table></div>
   </div>
-  ${!isAdmin?`<div style="background:#E6F1FB;border:1px solid #B3D1F0;border-radius:10px;padding:12px 16px;font-size:12px;color:#185FA5"><i class="ti ti-info-circle"></i> 현재 <strong>읽기 전용</strong> 모드입니다. 승인/반려는 Admin 권한이 필요합니다.</div>`:''}
+  ${!isAdmin?`<div style="background:#E6F1FB;border:1px solid #B3D1F0;border-radius:10px;padding:12px 16px;font-size:12px;color:#185FA5"><i class="ti ti-info-circle"></i> Current <strong>읽기 전용</strong> 모드입니다. 승인/반려는 Admin 권한이 필요합니다.</div>`:''}
 </div>`)
   } catch(e) {
-    vc(`<div class="pb"><div class="card" style="padding:20px;color:var(--R)">오류: ${e.message}</div></div>`)
+    vc(`<div class="pb"><div class="card" style="padding:20px;color:var(--R)">Error: ${e.message}</div></div>`)
   }
 }
 
 async function pmsApprove(id) {
-  if (!confirm('이 영수증을 승인하시겠습니까?\n납부 완료로 처리되며 임차인에게 알림이 전송됩니다.')) return
+  if (!confirm('Approve this receipt?\nIt will be marked as Payment Done and tenant will be notified.')) return
   try {
     await api('PATCH', `/api/pms-payments/${id}/approve`)
-    alert('승인 완료! 임차인에게 알림이 전송되었습니다.')
+    alert('Approved! Notification sent to tenant.')
     nav('pms-payments')
-  } catch(e) { alert('오류: ' + e.message) }
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 async function pmsReject(id) {
-  const reason = prompt('반려 사유를 입력해주세요 (임차인에게 전달됩니다):')
+  const reason = prompt('반려 사유를 is required (to tenant 전달됩니다):')
   if (reason === null) return
   try {
     await api('PATCH', `/api/pms-payments/${id}/reject`, { reason })
-    alert('반려 처리되었습니다. 임차인이 다시 업로드해야 합니다.')
+    alert('Rejected. Tenant must re-upload.')
     nav('pms-payments')
-  } catch(e) { alert('오류: ' + e.message) }
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
-// ═══════════ PMS 홈케어 관리 ═══════════
+// ═══════════ PMS Home Care 관리 ═══════════
 async function vPmsCare() {
   if (!window._careFilter) window._careFilter = 'ALL'
   try {
@@ -6107,9 +6117,9 @@ async function vPmsCare() {
 
     const CARE_STATUS = {
       PENDING:   { l:'접수',   bg:'#E6F1FB', c:'#185FA5' },
-      SCHEDULED: { l:'일정확정', bg:'#FDF0DC', c:'#7A4F00' },
-      COMPLETED: { l:'완료',   bg:'#E0F3ED', c:'#0F6E56' },
-      CANCELLED: { l:'취소',   bg:'#F1EFE8', c:'#5F5E5A' },
+      SCHEDULED: { l:'Scheduled', bg:'#FDF0DC', c:'#7A4F00' },
+      COMPLETED: { l:'Done',   bg:'#E0F3ED', c:'#0F6E56' },
+      CANCELLED: { l:'Cancel',   bg:'#F1EFE8', c:'#5F5E5A' },
     }
     const CARE_TYPE = {
       AIRCON:   '❄️ 에어컨 청소',
@@ -6128,7 +6138,7 @@ async function vPmsCare() {
     data.forEach(r => { if(stats[r.status.toLowerCase()]!==undefined) stats[r.status.toLowerCase()]++ })
 
     const filterTabs = ['ALL','PENDING','SCHEDULED','COMPLETED','CANCELLED'].map(f => {
-      const labels = { ALL:'전체', PENDING:'접수', SCHEDULED:'일정확정', COMPLETED:'완료', CANCELLED:'취소' }
+      const labels = { ALL:'All', PENDING:'Pending', SCHEDULED:'Scheduled', COMPLETED:'Completed', CANCELLED:'Cancel' }
       const active = window._careFilter === f
       return `<button onclick="window._careFilter='${f}';nav('pms-care')"
         style="padding:5px 12px;border-radius:20px;border:1px solid ${active?'var(--N)':'var(--b)'};
@@ -6149,9 +6159,9 @@ async function vPmsCare() {
             ${(isAdmin || me.role === 'agent') ? (
               isPending
                 ? `<button onclick="careSchedule('${r.id}')" style="background:#FDF0DC;color:#7A4F00;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-right:4px">📅 확정</button>
-                   <button onclick="careCancel('${r.id}')" style="background:#F1EFE8;color:#5F5E5A;border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">취소</button>`
+                   <button onclick="careCancel('${r.id}')" style="background:#F1EFE8;color:#5F5E5A;border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">Cancel</button>`
                 : isScheduled
-                  ? `<button onclick="careComplete('${r.id}')" style="background:#E0F3ED;color:#0F6E56;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✅ 완료</button>`
+                  ? `<button onclick="careComplete('${r.id}')" style="background:#E0F3ED;color:#0F6E56;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✅ Done</button>`
                   : ''
             ) : ''}`
 
@@ -6169,50 +6179,50 @@ async function vPmsCare() {
 
     vc(`
 <div class="ph">
-  <div><div class="ph-title"><i class="ti ti-tool" style="margin-right:6px"></i>PMS 홈케어 관리</div>
-  <div class="ph-sub">임차인 홈케어 신청 일정 관리</div></div>
-  <button onclick="nav('pms-care')" style="background:var(--bg);border:1px solid var(--b);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer"><i class="ti ti-refresh"></i> 새로고침</button>
+  <div><div class="ph-title"><i class="ti ti-tool" style="margin-right:6px"></i>PMS Home Care 관리</div>
+  <div class="ph-sub">Tenant Home Care 신청 Schedule 관리</div></div>
+  <button onclick="nav('pms-care')" style="background:var(--bg);border:1px solid var(--b);padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer"><i class="ti ti-refresh"></i> Refresh</button>
 </div>
 <div class="pb">
   <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
     <div class="kpi"><div class="kpi-l">접수</div><div style="font-size:22px;font-weight:800;color:#185FA5">${stats.pending}</div><div style="font-size:10px;color:var(--m)">건</div></div>
-    <div class="kpi"><div class="kpi-l">일정 확정</div><div style="font-size:22px;font-weight:800;color:#7A4F00">${stats.scheduled}</div><div style="font-size:10px;color:var(--m)">건</div></div>
-    <div class="kpi"><div class="kpi-l">완료</div><div style="font-size:22px;font-weight:800;color:var(--G)">${stats.completed}</div><div style="font-size:10px;color:var(--m)">건</div></div>
-    <div class="kpi"><div class="kpi-l">취소</div><div style="font-size:22px;font-weight:800;color:var(--m)">${stats.cancelled}</div><div style="font-size:10px;color:var(--m)">건</div></div>
+    <div class="kpi"><div class="kpi-l">Schedule 확정</div><div style="font-size:22px;font-weight:800;color:#7A4F00">${stats.scheduled}</div><div style="font-size:10px;color:var(--m)">건</div></div>
+    <div class="kpi"><div class="kpi-l">Done</div><div style="font-size:22px;font-weight:800;color:var(--G)">${stats.completed}</div><div style="font-size:10px;color:var(--m)">건</div></div>
+    <div class="kpi"><div class="kpi-l">Cancel</div><div style="font-size:22px;font-weight:800;color:var(--m)">${stats.cancelled}</div><div style="font-size:10px;color:var(--m)">건</div></div>
   </div>
   <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">${filterTabs}</div>
   <div class="card">
-    <div class="card-h"><span><i class="ti ti-list"></i> 케어 신청 목록 (${data.length}건)</span>
-      ${stats.pending>0?`<span style="background:#E6F1FB;color:#185FA5;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700">📋 ${stats.pending}건 처리 대기</span>`:''}
+    <div class="card-h"><span><i class="ti ti-list"></i> 케어 신청 List (${data.length}건)</span>
+      ${stats.pending>0?`<span style="background:#E6F1FB;color:#185FA5;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700">📋 ${stats.pending}건 처리 Pending</span>`:''}
     </div>
     <div class="scroll-x"><table class="tbl">
-      <tr><th>No.</th><th>유닛</th><th>임차인</th><th>서비스</th><th>희망일시</th><th>확정일시</th><th>상태</th><th>액션</th></tr>
+      <tr><th>No.</th><th>유닛</th><th>Tenant</th><th>서비스</th><th>희망일시</th><th>확정일시</th><th>상태</th><th>액션</th></tr>
       ${rows}
     </table></div>
   </div>
 </div>`)
   } catch(e) {
-    vc(`<div class="pb"><div class="card" style="padding:20px;color:var(--R)">오류: ${e.message}</div></div>`)
+    vc(`<div class="pb"><div class="card" style="padding:20px;color:var(--R)">Error: ${e.message}</div></div>`)
   }
 }
 
-// ── 케어 상세보기 모달 ─────────────────────────────────────
+// ── 케어 상세보기 modal ─────────────────────────────────────
 async function careDetail(id) {
   try {
     const r = await api('GET', `/api/pms-care/${id}`)
     const CARE_TYPE = { AIRCON:'❄️ 에어컨 청소', CLEANING:'🧹 유닛 청소', REPAIR:'🔧 잔수리', HANDYMAN:'🪛 핸디맨' }
     const CARE_STATUS = {
       PENDING:   { l:'접수',    bg:'#E6F1FB', c:'#185FA5' },
-      SCHEDULED: { l:'일정확정', bg:'#FDF0DC', c:'#7A4F00' },
-      COMPLETED: { l:'완료',    bg:'#E0F3ED', c:'#0F6E56' },
-      CANCELLED: { l:'취소',    bg:'#F1EFE8', c:'#5F5E5A' },
+      SCHEDULED: { l:'Scheduled', bg:'#FDF0DC', c:'#7A4F00' },
+      COMPLETED: { l:'Done',    bg:'#E0F3ED', c:'#0F6E56' },
+      CANCELLED: { l:'Cancel',    bg:'#F1EFE8', c:'#5F5E5A' },
     }
     const st = CARE_STATUS[r.status] || { l:r.status, bg:'#eee', c:'#333' }
     const fmtDt = (d) => d ? new Date(d).toLocaleString('ko-KR') : '-'
     const workers = r.workers || []
 
     const workerRows = workers.length === 0
-      ? `<div style="color:var(--m);font-size:12px;padding:12px 0">등록된 작업자 정보가 없습니다.</div>`
+      ? `<div style="color:var(--m);font-size:12px;padding:12px 0">Register된 작업자 info 없습니다.</div>`
       : workers.map((w, i) => `
         <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:8px">
           <div style="font-size:11px;font-weight:700;color:var(--m);margin-bottom:6px">작업자 ${i+1}</div>
@@ -6235,7 +6245,7 @@ async function careDetail(id) {
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
         <div class="kpi" style="padding:10px">
-          <div class="kpi-l">임차인</div>
+          <div class="kpi-l">Tenant</div>
           <div style="font-weight:700;font-size:13px">${r.deal?.tenant_contact?.name||'-'}</div>
           <div style="font-size:11px;color:var(--m)">${r.deal?.tenant_contact?.mobile||''}</div>
         </div>
@@ -6255,11 +6265,11 @@ async function careDetail(id) {
 
       ${r.description?`
       <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px">
-        <div style="font-size:10px;font-weight:700;color:var(--m);margin-bottom:4px">임차인 요청사항</div>
+        <div style="font-size:10px;font-weight:700;color:var(--m);margin-bottom:4px">Tenant 요청사항</div>
         <div style="font-size:13px">${r.description}</div>
       </div>`:''}
 
-      <div style="font-size:11px;font-weight:700;color:var(--m);letter-spacing:.05em;margin-bottom:8px">GATEPASS 작업자 정보</div>
+      <div style="font-size:11px;font-weight:700;color:var(--m);letter-spacing:.05em;margin-bottom:8px">GATEPASS 작업자 Info</div>
       ${workerRows}
 
       ${r.gatepass_notes?`
@@ -6269,15 +6279,15 @@ async function careDetail(id) {
       </div>`:''}
 
       <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
-        ${r.status==='PENDING'?`<button onclick="closeDynModal();careSchedule('${r.id}')" class="btn btn-g">📅 일정 확정</button>`:''}
-        ${r.status==='SCHEDULED'?`<button onclick="closeDynModal();careComplete('${r.id}')" class="btn btn-g">✅ 완료 처리</button>`:''}
-        <button onclick="closeDynModal()" class="btn btn-o">닫기</button>
+        ${r.status==='PENDING'?`<button onclick="closeDynModal();careSchedule('${r.id}')" class="btn btn-g">📅 Schedule 확정</button>`:''}
+        ${r.status==='SCHEDULED'?`<button onclick="closeDynModal();careComplete('${r.id}')" class="btn btn-g">✅ Done 처리</button>`:''}
+        <button onclick="closeDynModal()" class="btn btn-o">Close</button>
       </div>
     `)
-  } catch(e) { alert('오류: ' + e.message) }
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
-// ── 일정 확정 모달 (작업자 정보 입력) ────────────────────
+// ── Schedule 확정 modal (작업자 Info Input) ────────────────────
 function careSchedule(id) {
   let workerCount = 1
 
@@ -6290,7 +6300,7 @@ function careSchedule(id) {
       <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <span style="font-size:11px;font-weight:700;color:var(--m)">작업자 ${i+1}</span>
-          ${i>0?`<button onclick="removeWorker(${i})" style="background:none;border:none;color:var(--R);cursor:pointer;font-size:11px">✕ 삭제</button>`:''}
+          ${i>0?`<button onclick="removeWorker(${i})" style="background:none;border:none;color:var(--R);cursor:pointer;font-size:11px">✕ Delete</button>`:''}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div>
@@ -6317,7 +6327,7 @@ function careSchedule(id) {
 
   window.addWorker = () => { workerCount++; renderWorkers() }
   window.removeWorker = (i) => {
-    // 삭제 시 앞 데이터 보존
+    // Delete 시 앞 데이터 보존
     const saved = []
     for (let j = 0; j < workerCount; j++) {
       if (j !== i) saved.push({
@@ -6341,7 +6351,7 @@ function careSchedule(id) {
     const scheduled_at = document.getElementById('care-scheduled-at')?.value
     const gatepass_notes = document.getElementById('care-gatepass-notes')?.value || null
 
-    if (!scheduled_at) { alert('방문 일시를 입력해주세요.'); return }
+    if (!scheduled_at) { alert('Please enter visit date and time.'); return }
 
     const workers = []
     for (let i = 0; i < workerCount; i++) {
@@ -6349,7 +6359,7 @@ function careSchedule(id) {
       const mobile = document.getElementById(`w-mobile-${i}`)?.value?.trim()
       const tools  = document.getElementById(`w-tools-${i}`)?.value?.trim()
       const notes  = document.getElementById(`w-notes-${i}`)?.value?.trim()
-      if (!name || !mobile) { alert(`작업자 ${i+1}의 Name과 Contact를 입력해주세요.`); return }
+      if (!name || !mobile) { alert(`Please enter name and contact for worker ${i+1}.`); return }
       workers.push({ name, mobile, tools: tools||'', notes: notes||'' })
     }
 
@@ -6360,13 +6370,13 @@ function careSchedule(id) {
         gatepass_notes,
       })
       closeDynModal()
-      alert('일정이 확정되었습니다. 임차인에게 알림이 전송됩니다.')
+      alert('Schedule confirmed. Notification sent to tenant.')
       nav('pms-care')
-    } catch(e) { alert('오류: ' + e.message) }
+    } catch(e) { alert('Error: ' + e.message) }
   }
 
   showModal(`
-    <div style="font-size:16px;font-weight:700;margin-bottom:16px">📅 홈케어 일정 확정</div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:16px">📅 Home Care Schedule 확정</div>
 
     <div style="margin-bottom:14px">
       <label style="font-size:11px;font-weight:700;color:var(--m);display:block;margin-bottom:5px">확정 방문 일시 *</label>
@@ -6374,41 +6384,41 @@ function careSchedule(id) {
     </div>
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <span style="font-size:11px;font-weight:700;color:var(--m)">GATEPASS 작업자 정보</span>
-      <button onclick="addWorker()" style="background:var(--N);color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">+ 작업자 추가</button>
+      <span style="font-size:11px;font-weight:700;color:var(--m)">GATEPASS 작업자 Info</span>
+      <button onclick="addWorker()" style="background:var(--N);color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">+ 작업자 Add</button>
     </div>
     <div id="care-workers-container"></div>
 
     <div style="margin-top:10px">
-      <label style="font-size:11px;font-weight:700;color:var(--m);display:block;margin-bottom:5px">게이트패스 메모 (선택)</label>
-      <textarea class="fi" id="care-gatepass-notes" placeholder="콘도 관리실 전달 메모, 차량 정보 등" style="width:100%;height:60px;resize:none"></textarea>
+      <label style="font-size:11px;font-weight:700;color:var(--m);display:block;margin-bottom:5px">게이트패스 메모 (Select)</label>
+      <textarea class="fi" id="care-gatepass-notes" placeholder="콘도 관리실 전달 메모, 차량 Info 등" style="width:100%;height:60px;resize:none"></textarea>
     </div>
 
     <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
-      <button onclick="closeDynModal()" class="btn btn-o">취소</button>
-      <button onclick="submitCareSchedule()" class="btn btn-g">일정 확정 저장</button>
+      <button onclick="closeDynModal()" class="btn btn-o">Cancel</button>
+      <button onclick="submitCareSchedule()" class="btn btn-g">Schedule 확정 Save</button>
     </div>
   `)
   renderWorkers()
 }
 
 async function careComplete(id) {
-  if (!confirm('완료 처리하시겠습니까?')) return
-  const price = prompt('서비스 금액을 입력해주세요 (PHP, 선택):')
+  if (!confirm('Mark as completed?')) return
+  const price = prompt('서비스 금액을 is required (PHP, Select):')
   try {
     await api('PATCH', `/api/pms-care/${id}/complete`, { price: price ? Number(price) : null })
-    alert('완료 처리되었습니다.')
+    alert('Marked as completed.')
     nav('pms-care')
-  } catch(e) { alert('오류: ' + e.message) }
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 async function careCancel(id) {
-  if (!confirm('이 신청을 취소하시겠습니까?')) return
+  if (!confirm('Cancel this request?')) return
   try {
     await api('PATCH', `/api/pms-care/${id}/cancel`)
-    alert('취소 처리되었습니다.')
+    alert('Cancelled successfully.')
     nav('pms-care')
-  } catch(e) { alert('오류: ' + e.message) }
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 let _tenantShowInactive = false
@@ -6531,20 +6541,20 @@ async function vTenantDetail(dealId) {
 </div>
 <div class="pb">
 <div class="g2">
-  <!-- 좌측: 계약 정보 + 추가 정보 -->
+  <!-- 좌측: Contract Info + Add Info -->
   <div>
-    <!-- PMS 계정 연결 카드 -->
+    <!-- PMS Account Connection 카드 -->
     <div class="card" style="margin-bottom:12px" id="pms-account-card-${dealId}">
       <div class="card-h" style="justify-content:space-between">
-        <span><i class="ti ti-device-mobile"></i> PMS 앱 계정 연결</span>
+        <span><i class="ti ti-device-mobile"></i> PMS 앱 Account Connection</span>
         <button onclick="loadPmsAccounts('${dealId}')" style="background:none;border:none;color:var(--m);cursor:pointer;font-size:11px"><i class="ti ti-refresh"></i></button>
       </div>
       <div id="pms-accounts-area-${dealId}" style="padding:12px">
-        <div style="text-align:center;color:var(--m);font-size:12px;padding:8px">불러오는 중...</div>
+        <div style="text-align:center;color:var(--m);font-size:12px;padding:8px">Loading...</div>
       </div>
     </div>
 
-    <!-- 계약 정보 수정 (Deal 직접 수정) -->
+    <!-- Contract Info Edit (Deal 직접 Edit) -->
     <div class="card" style="margin-bottom:12px">
       <div class="card-h"><i class="ti ti-pencil"></i> Edit Contract</div>
       <div class="card-b">
@@ -6590,7 +6600,7 @@ async function vTenantDetail(dealId) {
           <i class="ti ti-device-floppy"></i> Save Contract Info
         </button>
         <div style="font-size:10px;color:var(--m);margin-top:6px;text-align:center">
-          Tenant · Lessor contact changes → Deals & Commission tab
+          
         </div>
       </div>
     </div>
@@ -6620,7 +6630,7 @@ async function vTenantDetail(dealId) {
       </div>
     </div>
 
-    <!-- 추가 정보 수정 폼 -->
+    <!-- Add Info Edit 폼 -->
     <div class="card">
       <div class="card-h"><i class="ti ti-edit"></i> Update Info</div>
       <div class="card-b">
@@ -6646,20 +6656,20 @@ async function vTenantDetail(dealId) {
     </div>
   </div>
 
-  <!-- 우측: 납부 일정 + 요청사항 -->
+  <!-- 우측: Payment Schedule + 요청사항 -->
   <div>
-    <!-- 납부 일정 카드 -->
+    <!-- Payment Schedule 카드 -->
     <div class="card" style="margin-bottom:12px">
       <div class="card-h" style="justify-content:space-between">
-        <span><i class="ti ti-calendar-dollar"></i> 납부 일정 (Payment Schedule)</span>
+        <span><i class="ti ti-calendar-dollar"></i> Payment Schedule (Payment Schedule)</span>
         <div style="display:flex;gap:6px">
           <button class="btn btn-n" style="font-size:11px;padding:4px 10px"
-            onclick="generatePayments('${dealId}')">⚡ 자동 생성</button>
-          <button onclick="deletePayments('${dealId}')" style="display:${me.role==='admin'?'block':'none'};background:none;border:1px solid var(--R);color:var(--R);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">🗑 삭제</button>
+            onclick="generatePayments('${dealId}')">⚡ Auto Generate</button>
+          <button onclick="deletePayments('${dealId}')" style="display:${me.role==='admin'?'block':'none'};background:none;border:1px solid var(--R);color:var(--R);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">🗑 Delete</button>
         </div>
       </div>
       <div id="payment-schedule-area" style="padding:8px">
-        <div style="text-align:center;color:var(--m);font-size:12px;padding:16px">불러오는 중...</div>
+        <div style="text-align:center;color:var(--m);font-size:12px;padding:16px">Loading...</div>
       </div>
     </div>
 
@@ -6703,7 +6713,7 @@ async function vTenantDetail(dealId) {
   </div>
 </div>
 </div>`)
-  // 납부 일정 + PMS 계정 비동기 로드
+  // Payment Schedule + PMS Account 비동기 Loading
   setTimeout(() => { loadPaymentSchedule(dealId); loadPmsAccounts(dealId); }, 100)
   } catch(e) { err(e) }
 }
@@ -6751,8 +6761,8 @@ async function saveTenantInfo(dealId) {
   } catch(e) { alert('Error: ' + e.message) }
 }
 
-// ── 납부 일정 로드 ──────────────────────────────────────
-// ═══════════ PMS 계정 관리 ═══════════
+// ── Payment Schedule Loading ──────────────────────────────────────
+// ═══════════ PMS Account 관리 ═══════════
 async function loadPmsAccounts(dealId) {
   const areaId = 'pms-accounts-area-' + dealId
   const area = document.getElementById(areaId)
@@ -6763,40 +6773,40 @@ async function loadPmsAccounts(dealId) {
     const isAdmin = me.role === 'admin'
 
     function renderAccount(type, acc) {
-      const label   = type === 'tenant' ? '임차인' : '임대인'
+      const label   = type === 'tenant' ? 'Tenant' : '임대인'
       const icon    = type === 'tenant' ? 'ti-user' : 'ti-building'
       const roleVal = type === 'tenant' ? 'tenant' : 'landlord'
       if (!acc.contact) return ''
 
       const emailHtml = acc.contact.email
         ? acc.contact.email
-        : '<span style="color:var(--R)">이메일 없음</span>'
+        : '<span style="color:var(--R)">No email</span>'
 
       const mobileHtml = acc.contact.mobile ? ' · 📱 ' + acc.contact.mobile : ''
 
       let statusBadge = acc.connected
-        ? '<span style="background:#E0F3ED;color:#0F6E56;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">✅ 연결됨</span>'
-        : '<span style="background:#FDEAEA;color:#A33030;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">미연결</span>'
+        ? '<span style="background:#E0F3ED;color:#0F6E56;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">✅ Connected</span>'
+        : '<span style="background:#FDEAEA;color:#A33030;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">Not Connected</span>'
 
       let actionHtml = ''
       if (acc.connected) {
         const connDate = new Date(acc.created_at).toLocaleDateString('ko-KR')
-        actionHtml = '<div style="font-size:10px;color:var(--m);margin-bottom:8px">연결일: ' + connDate + '</div>'
+        actionHtml = '<div style="font-size:10px;color:var(--m);margin-bottom:8px">Connect일: ' + connDate + '</div>'
         if (isAdmin) {
           actionHtml += '<div style="display:flex;gap:6px">'
-          actionHtml += '<button onclick="pmsResetPassword(\'' + acc.auth_uid + '\')" style="background:#E6F1FB;color:#185FA5;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">🔑 비밀번호 재설정</button>'
-          actionHtml += '<button onclick="pmsDisconnect(\'' + acc.contact.id + '\',\'' + dealId + '\')" style="background:#FDEAEA;color:#A33030;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">✕ 연결 해제</button>'
+          actionHtml += '<button onclick="pmsResetPassword(\'' + acc.auth_uid + '\')" style="background:#E6F1FB;color:#185FA5;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">🔑 비밀번호 re-settings</button>'
+          actionHtml += '<button onclick="pmsDisconnect(\'' + acc.contact.id + '\',\'' + dealId + '\')" style="background:#FDEAEA;color:#A33030;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">✕ Connect Disconnect</button>'
           actionHtml += '</div>'
         }
       } else {
         if (isAdmin) {
           if (acc.contact.email) {
-            actionHtml = '<button onclick="pmsCreateAccount(\'' + acc.contact.id + '\',\'' + roleVal + '\',\'' + dealId + '\')" style="background:var(--N);color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%"><i class="ti ti-device-mobile"></i> PMS 계정 생성</button>'
+            actionHtml = '<button onclick="pmsCreateAccount(\'' + acc.contact.id + '\',\'' + roleVal + '\',\'' + dealId + '\')" style="background:var(--N);color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%"><i class="ti ti-device-mobile"></i> PMS Account Create</button>'
           } else {
-            actionHtml = '<div style="background:#FDF0DC;border-radius:8px;padding:8px;font-size:11px;color:#7A4F00">⚠️ Contacts에서 이메일을 먼저 등록해주세요.</div>'
+            actionHtml = '<div style="background:#FDF0DC;border-radius:8px;padding:8px;font-size:11px;color:#7A4F00">⚠️ Contacts에서 이메일을 먼저 Register해주세요.</div>'
           }
         } else {
-          actionHtml = '<div style="font-size:11px;color:var(--m)">Admin만 계정을 생성할 수 있습니다.</div>'
+          actionHtml = '<div style="font-size:11px;color:var(--m)">Admin만 account Create할 수 있습니다.</div>'
         }
       }
 
@@ -6813,58 +6823,58 @@ async function loadPmsAccounts(dealId) {
     }
 
     const html = renderAccount('tenant', pa.tenant) + renderAccount('landlord', pa.landlord)
-    area.innerHTML = html || '<div style="text-align:center;color:var(--m);font-size:12px;padding:12px">연결할 계정 정보가 없습니다.</div>'
+    area.innerHTML = html || '<div style="text-align:center;color:var(--m);font-size:12px;padding:12px">Connect할 Account info 없습니다.</div>'
 
   } catch(e) {
-    if (area) area.innerHTML = '<div style="color:var(--R);font-size:12px;padding:8px">오류: ' + e.message + '</div>'
+    if (area) area.innerHTML = '<div style="color:var(--R);font-size:12px;padding:8px">Error: ' + e.message + '</div>'
   }
 }
 
 async function pmsCreateAccount(contactId, role, dealId) {
-  const label = role === 'tenant' ? '임차인' : '임대인'
-  if (!confirm(label + ' PMS 계정을 생성하시겠습니까?\n임시 비밀번호가 발급됩니다.')) return
+  const label = role === 'tenant' ? 'Tenant' : '임대인'
+  if (!confirm(label + ' PMS account Create하시겠습니까?\n임시 비밀번호가 발급됩니다.')) return
   try {
     const res = await api('POST', '/api/pms-accounts/create', { contact_id: contactId, role: role })
-    const html = '<div style="font-size:16px;font-weight:700;margin-bottom:16px">✅ PMS 계정 생성 완료</div>'
+    const html = '<div style="font-size:16px;font-weight:700;margin-bottom:16px">✅ PMS Account Create Done</div>'
       + '<div style="background:var(--bg);border-radius:10px;padding:16px;margin-bottom:16px">'
       + '<div style="display:grid;gap:10px;font-size:13px">'
       + '<div><span style="color:var(--m);font-size:11px">Name</span><br><strong>' + res.name + '</strong></div>'
       + '<div><span style="color:var(--m);font-size:11px">이메일 (로그인 ID)</span><br><strong>' + res.email + '</strong></div>'
       + '<div><span style="color:var(--m);font-size:11px">임시 비밀번호</span><br><strong style="font-size:18px;letter-spacing:2px;color:var(--N)">' + res.temp_password + '</strong></div>'
-      + '<div><span style="color:var(--m);font-size:11px">역할</span><br><strong>' + (res.role === 'tenant' ? '임차인' : '임대인') + '</strong></div>'
+      + '<div><span style="color:var(--m);font-size:11px">역할</span><br><strong>' + (res.role === 'tenant' ? 'Tenant' : '임대인') + '</strong></div>'
       + '</div></div>'
       + '<div style="background:#FDF0DC;border-radius:8px;padding:10px;font-size:11px;color:#7A4F00;margin-bottom:16px">'
       + '⚠️ 이 임시 비밀번호를 ' + res.name + '님께 전달해주세요.<br>PMS 앱 접속 후 비밀번호를 변경하도록 안내하세요.'
       + '</div>'
-      + '<div style="text-align:right"><button onclick="closeDynModal();loadPmsAccounts(\'' + dealId + '\')" class="btn btn-g">확인</button></div>'
+      + '<div style="text-align:right"><button onclick="closeDynModal();loadPmsAccounts(\'' + dealId + '\')" class="btn btn-g">Confirm</button></div>'
     showModal(html)
-  } catch(e) { alert('오류: ' + e.message) }
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 async function pmsResetPassword(authUid) {
-  if (!confirm('임시 비밀번호를 재발급하시겠습니까?')) return
+  if (!confirm('Reset temporary password?')) return
   try {
     const res = await api('POST', '/api/pms-accounts/reset-password', { auth_uid: authUid })
-    const html = '<div style="font-size:16px;font-weight:700;margin-bottom:16px">🔑 비밀번호 재설정 완료</div>'
+    const html = '<div style="font-size:16px;font-weight:700;margin-bottom:16px">🔑 비밀번호 re-settings Done</div>'
       + '<div style="background:var(--bg);border-radius:10px;padding:16px;margin-bottom:16px;text-align:center">'
       + '<div style="font-size:11px;color:var(--m);margin-bottom:8px">새 임시 비밀번호</div>'
       + '<div style="font-size:22px;font-weight:800;letter-spacing:3px;color:var(--N)">' + res.temp_password + '</div>'
       + '</div>'
       + '<div style="background:#FDF0DC;border-radius:8px;padding:10px;font-size:11px;color:#7A4F00;margin-bottom:16px">'
-      + '⚠️ 임차인/임대인에게 이 비밀번호를 전달해주세요.'
+      + '⚠️ Tenant/임대인에게 이 비밀번호를 전달해주세요.'
       + '</div>'
-      + '<div style="text-align:right"><button onclick="closeDynModal()" class="btn btn-g">확인</button></div>'
+      + '<div style="text-align:right"><button onclick="closeDynModal()" class="btn btn-g">Confirm</button></div>'
     showModal(html)
-  } catch(e) { alert('오류: ' + e.message) }
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 async function pmsDisconnect(contactId, dealId) {
-  if (!confirm('PMS 계정 연결을 해제하시겠습니까?\n(Supabase Auth 계정은 유지됩니다)')) return
+  if (!confirm('Disconnect this PMS account?\n(Supabase Auth account will be retained)')) return
   try {
     await api('DELETE', '/api/pms-accounts/' + contactId)
-    toast('✓ PMS 계정 연결이 해제되었습니다')
+    toast('✓ PMS account disconnected')
     loadPmsAccounts(dealId)
-  } catch(e) { alert('오류: ' + e.message) }
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 async function loadPaymentSchedule(dealId) {
@@ -6874,15 +6884,15 @@ async function loadPaymentSchedule(dealId) {
     const data = await api('GET', `/api/pms-payments/deal/${dealId}`)
     if (data.length === 0) {
       area.innerHTML = `<div style="text-align:center;color:var(--m);font-size:12px;padding:20px">
-        납부 스케줄이 없습니다.<br>
-        <span style="font-size:11px">Move-in date와 Contract months 저장 후 ⚡ 자동 생성 버튼을 눌러주세요.</span>
+        Payment 스케줄이 없습니다.<br>
+        <span style="font-size:11px">Move-in date와 Contract months Save 후 ⚡ Auto Generate 버튼을 눌러주세요.</span>
       </div>`
       return
     }
     const STATUS = {
-      PENDING:           { l:'납부 대기',  bg:'#E6F1FB', c:'#185FA5' },
-      AWAITING_APPROVAL: { l:'검토 대기',  bg:'#FDF0DC', c:'#7A4F00' },
-      PAID:              { l:'납부 완료',  bg:'#E0F3ED', c:'#0F6E56' },
+      PENDING:           { l:'Payment Pending',  bg:'#E6F1FB', c:'#185FA5' },
+      AWAITING_APPROVAL: { l:'Review Pending',  bg:'#FDF0DC', c:'#7A4F00' },
+      PAID:              { l:'Payment Done',  bg:'#E0F3ED', c:'#0F6E56' },
       OVERDUE:           { l:'연체',       bg:'#FDEAEA', c:'#A33030' },
     }
     const paid    = data.filter(p => p.status === 'PAID').length
@@ -6893,11 +6903,11 @@ async function loadPaymentSchedule(dealId) {
     area.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
         <div style="background:var(--bg);border-radius:8px;padding:8px;text-align:center">
-          <div style="font-size:10px;color:var(--m)">전체</div>
+          <div style="font-size:10px;color:var(--m)">All</div>
           <div style="font-size:16px;font-weight:800">${data.length}개월</div>
         </div>
         <div style="background:#E0F3ED;border-radius:8px;padding:8px;text-align:center">
-          <div style="font-size:10px;color:#0F6E56">납부 완료</div>
+          <div style="font-size:10px;color:#0F6E56">Payment Done</div>
           <div style="font-size:16px;font-weight:800;color:#0F6E56">${paid}회</div>
         </div>
         <div style="background:${overdue>0?'#FDEAEA':'var(--bg)'};border-radius:8px;padding:8px;text-align:center">
@@ -6909,7 +6919,7 @@ async function loadPaymentSchedule(dealId) {
         <table style="width:100%;border-collapse:collapse;font-size:11px">
           <tr style="background:var(--bg)">
             <th style="padding:6px 8px;text-align:left;font-weight:600;color:var(--m)">월</th>
-            <th style="padding:6px 8px;text-align:right;font-weight:600;color:var(--m)">납부일</th>
+            <th style="padding:6px 8px;text-align:right;font-weight:600;color:var(--m)">Payment일</th>
             <th style="padding:6px 8px;text-align:right;font-weight:600;color:var(--m)">금액</th>
             <th style="padding:6px 8px;text-align:center;font-weight:600;color:var(--m)">상태</th>
           </tr>
@@ -6928,34 +6938,34 @@ async function loadPaymentSchedule(dealId) {
         </table>
       </div>
       <div style="display:flex;justify-content:space-between;padding:8px;border-top:1px solid var(--b);margin-top:4px;font-size:11px">
-        <span style="color:var(--m)">총 계약액</span>
+        <span style="color:var(--m)">총 Contract액</span>
         <span style="font-weight:700">₱${Math.round(total).toLocaleString('en-PH')}</span>
       </div>
       <div style="display:flex;justify-content:space-between;padding:4px 8px;font-size:11px">
-        <span style="color:#0F6E56">납부 완료액</span>
+        <span style="color:#0F6E56">Payment Done액</span>
         <span style="font-weight:700;color:#0F6E56">₱${Math.round(paidAmt).toLocaleString('en-PH')}</span>
       </div>`
   } catch(e) {
-    if (area) area.innerHTML = `<div style="color:var(--R);font-size:12px;padding:12px">오류: ${e.message}</div>`
+    if (area) area.innerHTML = `<div style="color:var(--R);font-size:12px;padding:12px">Error: ${e.message}</div>`
   }
 }
 
 async function generatePayments(dealId) {
-  if (!confirm('계약 기간 전체의 납부 스케줄을 자동 생성하시겠습니까?\n(납부일은 Utility Payment Day 기준)')) return
+  if (!confirm('Auto-generate payment schedule for the full contract period?\n(Based on Utility Payment Day)')) return
   try {
     const res = await api('POST', `/api/pms-payments/generate/${dealId}`)
-    toast(`✓ ${res.created}건의 납부 스케줄이 생성되었습니다`)
+    toast(`✓ ${res.created} payment schedule(s) created`)
     loadPaymentSchedule(dealId)
-  } catch(e) { alert('오류: ' + e.message) }
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 async function deletePayments(dealId) {
-  if (!confirm('PENDING/OVERDUE 상태의 납부 스케줄을 모두 삭제하시겠습니까?')) return
+  if (!confirm('Delete all PENDING/OVERDUE payment schedules?')) return
   try {
     await api('DELETE', `/api/pms-payments/deal/${dealId}`)
-    toast('✓ 삭제 완료')
+    toast('✓ Delete Done')
     loadPaymentSchedule(dealId)
-  } catch(e) { alert('오류: ' + e.message) }
+  } catch(e) { alert('Error: ' + e.message) }
 }
 
 function openNewRequest(dealId) {
@@ -7046,7 +7056,7 @@ async function vDeals() {
     <div class="card">
       <div class="card-h"><i class="ti ti-file-plus"></i> Commission Entry</div>
       <div class="card-b">
-        <!-- 기존 계약에서 불러오기 -->
+        <!-- 기존 Contract에서 불러오기 -->
         <div style="background:#E6F1FB;border-radius:9px;padding:10px 12px;margin-bottom:12px">
           <div style="font-size:11px;font-weight:600;color:#185FA5;margin-bottom:6px">
             <i class="ti ti-download"></i> Load from existing contract
@@ -7066,14 +7076,14 @@ async function vDeals() {
           </select></div>
         <div class="fg2">
           <div class="ff"><label class="fl">Gross Commission (PHP)</label>
-            <input class="fi" type="number" id="d-gross" oninput="calcD()" placeholder="자동계산"></div>
+            <input class="fi" type="number" id="d-gross" oninput="calcD()" placeholder="Auto계산"></div>
           <div class="ff"><label class="fl">Contract Date</label>
             <input class="fi" type="date" id="d-date" value="${tod()}"></div>
         </div>
         <div class="sep"></div>
         <div class="fg2">
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--m);margin-bottom:8px" id="d-own-lbl">Rent인 (Lessor) 측</div>
+            <div style="font-size:11px;font-weight:700;color:var(--m);margin-bottom:8px" id="d-own-lbl">Lessor (Lessor) 측</div>
             <div class="ff"><label class="fl">Contact</label>
               <select class="fs" id="d-own-c"><option value="">Select</option>
                 ${cl.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
@@ -7163,28 +7173,28 @@ async function loadDealFromContract(dealId) {
   if (!dealId) return
   try {
     const d = await api('GET', `/api/deals/${dealId}`)
-    // 계약 유형 설정
+    // Contract 유형 Settings
     if (d.contract_type) setDT(d.contract_type)
-    // Listing 선택
+    // Listing Select
     const lsSel = document.getElementById('d-ls')
     if (lsSel && d.listing_id) {
       const opt = Array.from(lsSel.options).find(o => o.value.startsWith(d.listing_id))
       if (opt) { lsSel.value = opt.value; onDLs() }
     }
-    // 계약일 설정
+    // Contract일 Settings
     const dateEl = document.getElementById('d-date')
     if (dateEl && d.contract_date) dateEl.value = d.contract_date
-    // Gross commission (monthly_rent 기반 자동 계산)
+    // Gross commission (monthly_rent 기반 Auto 계산)
     if (d.monthly_rent) {
       const grossEl = document.getElementById('d-gross')
       if (grossEl) { grossEl.value = d.monthly_rent; calcD() }
     }
-    // 임대인/임차인 Contact 설정
+    // 임대인/Tenant Contact Settings
     const ownC = document.getElementById('d-own-c')
     const tenC = document.getElementById('d-ten-c')
     if (ownC && d.owner_contact_id) ownC.value = d.owner_contact_id
     if (tenC && d.tenant_contact_id) tenC.value = d.tenant_contact_id
-    // Agent 설정
+    // Agent Settings
     const ownA = document.getElementById('d-own-a')
     const tenA = document.getElementById('d-ten-a')
     if (ownA && d.owner_agent_user_id) ownA.value = d.owner_agent_user_id
@@ -7215,7 +7225,7 @@ function openDealDetail(id) {
         <div style="font-size:13px;font-weight:600">${d.listing?.name||'-'}</div>
       </div>
       <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
-        <div style="font-size:10px;color:var(--m);margin-bottom:3px">계약 타입</div>
+        <div style="font-size:10px;color:var(--m);margin-bottom:3px">Contract 타입</div>
         <div style="font-size:13px;font-weight:600">${bdg(d.contract_type==='RENT'?'Rent':'Sale',d.contract_type==='RENT'?'#E6F1FB':'#FDF0DC',d.contract_type==='RENT'?'#185FA5':'#854F0B')}</div>
       </div>
       <div style="background:var(--bg);border-radius:8px;padding:10px 12px">
@@ -7243,7 +7253,7 @@ function openDealDetail(id) {
     <div class="fg2">
       <div class="ff"><label class="fl">이사 날짜</label>
         <input class="fi" id="dd-movein" type="date" value="${d.move_in_date||''}"></div>
-      <div class="ff"><label class="fl">계약기간 (개월)</label>
+      <div class="ff"><label class="fl">Contract기간 (개월)</label>
         <input class="fi" id="dd-months" type="number" min="1" max="120" value="${d.contract_months||''}" placeholder="e.g. 12"></div>
     </div>
     <div class="ff"><label class="fl">월세 (Monthly Rent)</label>
@@ -7251,14 +7261,14 @@ function openDealDetail(id) {
     <div class="ff"><label class="fl">비고</label>
       <textarea class="fi" id="dd-remarks" rows="3" style="resize:vertical">${d.remarks||''}</textarea></div>
     <div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end">
-      <button onclick="closeDynModal()" class="btn btn-o">취소</button>
-      <button onclick="saveDealDetail('${id}')" class="btn btn-g"><i class="ti ti-device-floppy"></i> 저장</button>
+      <button onclick="closeDynModal()" class="btn btn-o">Cancel</button>
+      <button onclick="saveDealDetail('${id}')" class="btn btn-g"><i class="ti ti-device-floppy"></i> Save</button>
     </div>
   `)
 }
 function onDealStatusChange(sel) {
   if (sel.value === 'COMPLETED') {
-    if (!confirm('계약 완료 처리 시 rbs-homes에 임대차 계약이 자동 생성됩니다. 계속하시겠습니까?')) {
+    if (!confirm('Completing this contract will auto-generate a lease contract on rbs-homes. Continue?')) {
       sel.value = sel.dataset.prev
       return
     }
@@ -7275,7 +7285,7 @@ async function saveDealDetail(id) {
     await api('PATCH', `/api/deals/${id}`, { status, move_in_date, contract_months, monthly_rent, remarks })
     closeDynModal()
     if (status === 'COMPLETED') {
-      toast('계약 완료 처리됐습니다. rbs-homes 임대차 계약이 생성됐습니다.')
+      toast('Contract completed. Lease contract created on rbs-homes.')
     } else {
       toast('✓ Deal updated')
     }
@@ -7287,7 +7297,7 @@ function setDT(t) {
   document.getElementById('d-ls').value=''; document.getElementById('d-gross').value=''
   document.getElementById('dbt-r').className='btn '+(t==='RENT'?'btn-n':'btn-o')
   document.getElementById('dbt-s').className='btn '+(t==='SALE'?'btn-a':'btn-o')
-  document.getElementById('d-own-lbl').textContent=t==='RENT'?'Rent인 (Lessor) 측':'Seller Side'
+  document.getElementById('d-own-lbl').textContent=t==='RENT'?'Lessor (Lessor) 측':'Seller Side'
   document.getElementById('d-ten-lbl').textContent=t==='RENT'?'Lessee Side':'Buyer Side'
   document.getElementById('d-rbdg').textContent=t==='RENT'?'Rent · 10%':'Sale · 15%'
   calcD()
@@ -7303,7 +7313,7 @@ function calcD() {
   const gross=parseFloat(g('d-gross')?.value)||(_dType==='RENT'?_dPrice:_dPrice*0.03)||0
   const owA=g('d-own-a')?.value||'', teA=g('d-ten-a')?.value||''
   const cb=owA==='ext'||teA==='ext'
-  // Co-broke 비율 입력란 표시/숨김
+  // Co-broke 비율 Input란 표시/숨김
   const cbWrap=g('d-cb-rate-wrap'); if(cbWrap) cbWrap.style.display=cb?'':'none'
   const cbRate=cb?(parseFloat(g('d-cb-rate')?.value||50)/100):1
   const our=cb?gross*cbRate:gross
@@ -7349,7 +7359,7 @@ async function saveDeal() {
       is_co_broke: cb,
       created_by:me?.id
     })
-    toast('계약 Save 완료! 회계에 자동 반영됩니다')
+    toast('Contract saved! Accounting updated automatically.')
     vDeals()
   } catch(e) { alert('Save Error: '+e.message) }
 }
@@ -7392,7 +7402,7 @@ function renderActivityView() {
   cc.innerHTML = `
 <div class="g2" style="align-items:flex-start">
 
-  <!-- 왼쪽: 기록 입력 폼 -->
+  <!-- 왼쪽: 기록 Input 폼 -->
   <div>
     <div class="card">
       <div class="card-h"><i class="ti ti-edit" aria-hidden="true"></i> Add Activity</div>
@@ -7415,12 +7425,12 @@ function renderActivityView() {
         <div class="ff">
           <label class="fl">Contact</label>
           <select class="fs" id="act-contact" onchange="onActContactChange()">
-            <option value="">Contact Select (Select사항)</option>
+            <option value="">Contact Select (optional)</option>
             ${cl.map(c=>`<option value="${c.id}">${c.name} · ${CT[c.type]?.l||c.type}</option>`).join('')}
           </select>
         </div>
 
-        <!-- 리드 연결 (Contact Select 시 표시) -->
+        <!-- 리드 Connect (Contact Select 시 표시) -->
         <div class="ff" id="act-lead-wrap" style="display:none">
           <label class="fl">Related Lead</label>
           <select class="fs" id="act-lead">
@@ -7450,7 +7460,7 @@ function renderActivityView() {
         <div class="ff">
           <label class="fl">Notes</label>
           <textarea class="fi" id="act-notes" rows="4"
-            placeholder="통화: 예산 ₱35K, BGC 선호, 다음주 방문 희망&#10;방문: 1207B 쇼잉 완료, 가격 협상 의향 있음&#10;메시지: 계약 진행 의사 확인, 서류 안Mine: 완료"
+            placeholder="통화: 예산 ₱35K, BGC 선호, Next주 방문 희망&#10;방문: 1207B 쇼잉 Done, 가격 협상 의향 Available&#10;메시지: Contract 진행 의사 Confirm, 서류 not mine: Done"
             style="resize:vertical;line-height:1.7;font-size:12px"></textarea>
         </div>
 
@@ -7475,7 +7485,7 @@ function renderActivityView() {
         <span id="act-count" style="font-size:11px;color:var(--m)">${acts.length}deals</span>
       </div>
 
-      <!-- 필터 -->
+      <!-- Filter -->
       <div style="padding:10px 14px;border-bottom:1px solid var(--b)">
         <input class="fi" style="margin-bottom:8px" placeholder="Contact Search by name..." oninput="filterActs(this.value,'q')">
         <div style="display:flex;gap:5px;flex-wrap:wrap">
@@ -7505,8 +7515,8 @@ function renderActList(acts) {
   acts.forEach(a => {
     const d = new Date(a.created_at)
     let label
-    if (d.toDateString() === today)          label = '오늘'
-    else if (d.toDateString() === yesterday) label = '어제'
+    if (d.toDateString() === today)          label = 'Today'
+    else if (d.toDateString() === yesterday) label = 'Yesterday'
     else {
       const diff = Math.floor((Date.now()-d)/86400000)
       label = diff < 7
@@ -7589,11 +7599,11 @@ function onActContactChange() {
     return
   }
 
-  // 해당 Contact의 Active Leads 필터링
+  // 해당 Contact의 Active Leads Filter링
   const myLeads = _actAllData.leads.filter(l => l.contact_id === contactId && !l.status.startsWith('CLOSED'))
   if (myLeads.length) {
     leadWrap.style.display = ''
-    leadSel.innerHTML = `<option value="">리드 Select (Select사항)</option>` +
+    leadSel.innerHTML = `<option value="">리드 Select (optional)</option>` +
       myLeads.map(l => `<option value="${l.id}">${LEAD_STATUS_LABELS[l.status]||l.status} · ${fmt(l.budget)}${l.request_type==='RENT'?'/Month':''} · ${l.location_pref||''}</option>`).join('')
     leadSel.onchange = () => {
       stWrap.style.display = leadSel.value ? '' : 'none'
@@ -7649,7 +7659,7 @@ async function saveActivity() {
 
     toast('Activity saved' + (newStatus ? ' · Status → ' + (LEAD_STATUS_LABELS[newStatus]||newStatus) : ''))
 
-    // 폼 초기화
+    // 폼 Reset
     ;['act-notes','act-followup'].forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
     ;['act-contact','act-listing','act-lead','act-lead-status'].forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
     const lw = document.getElementById('act-lead-wrap')
@@ -7657,13 +7667,13 @@ async function saveActivity() {
     if (lw) lw.style.display = 'none'
     if (sw) sw.style.display = 'none'
 
-    // Back 새로고침
+    // Back Refresh
     vActivities()
   } catch(e) { alert('Save Error: ' + e.message) }
 }
 
 async function deleteActivity(id) {
-  if (!confirm('이 활동 기록을 Delete하시겠습니까?')) return
+  if (!confirm('Delete this activity record?')) return
   try {
     await api('DELETE', `/api/activities/${id}`)
     toast('Deleted')
@@ -7760,7 +7770,7 @@ async function addExp() {
       description:document.getElementById('e-desc').value,
       amount:amt, date:document.getElementById('e-date').value, created_by:me?.id
     })
-    toast('지출이 Added'); vAcct()
+    toast('Expense added'); vAcct()
   } catch(e) { alert(e.message) }
 }
 
@@ -7790,7 +7800,7 @@ async function createUser() {
     await api('POST', '/api/staff/create', { name, email, password, mobile, role, base_salary: salary })
     toast('✓ User created: ' + name)
     closeModal('modal-create-user')
-    _staff = []  // 직원 캐시 초기화
+    _staff = []  // Staff 캐시 Reset
   } catch(e) {
     alert('Failed: ' + e.message)
   }
@@ -7829,7 +7839,7 @@ async function vStaff() {
         </div>
         <div class="sep"></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--m)">Base Salary</span><span style="font-weight:600">${fmt(ag.base_salary)}</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--m)">Rent인측</span><span style="color:var(--G);font-weight:600">${fmt(ag.owner_commission)}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--m)">Lessor side</span><span style="color:var(--G);font-weight:600">${fmt(ag.owner_commission)}</span></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:10px"><span style="color:var(--m)">Lessee Side</span><span style="color:var(--G);font-weight:600">${fmt(ag.tenant_commission)}</span></div>
         <div style="background:var(--N);color:#fff;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:11px;opacity:.7">Total Monthly Pay</span>
@@ -7919,7 +7929,7 @@ async function vStaff() {
           </select>
         </div>
         <div class="mf">
-          <label>담당 직원</label>
+          <label>담당 Staff</label>
           <select class="fi" id="al-agent">
             <option value="">-- Select --</option>
           </select>
